@@ -318,11 +318,14 @@ class Entry
       }
     }
 
+    void printTree();
+
   private:  
     void createSubtreeIndex(EntryNav *nav,FileStorage *storage,FileDef *fd);
     Entry         *m_parent;    //!< parent node in the tree
     QList<Entry>  *m_sublist;   //!< entries that are children of this one
-    Entry &operator=(const Entry &); 
+    Entry &operator=(const Entry &);
+    void print(int level=0); 
 };
 
 /** Wrapper for a node in the Entry tree.

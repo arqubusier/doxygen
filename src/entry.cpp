@@ -17,6 +17,7 @@
 
 #include <stdlib.h>
 #include <qfile.h>
+#include <string>
 #include "entry.h"
 #include "marshal.h"
 #include "util.h"
@@ -323,6 +324,24 @@ Entry *Entry::removeSubEntry(Entry *e)
 {
  int i = m_sublist->find(e);
  return i!=-1 ? m_sublist->take(i) : 0;
+}
+
+void Entry::printTree(){
+  std::cout << "Printing entry tree" << std::endl;
+  print();	
+}
+
+void Entry::print(int level){
+    QListIterator<Entry> eli(*m_sublist);
+    Entry *childNode;
+    
+    std::string pad(3*level, ' ');
+    std::cout << pad << "Node " << section << " with children:" << std::endl;
+    int level++;
+    for (eli.toFirst();(childNode=eli.current());++eli)
+    {
+      childNode->print(level);
+    }
 }
 
 //------------------------------------------------------------------
