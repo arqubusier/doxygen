@@ -14,16 +14,26 @@
  */
 float glob;
 
+/**
+ * \brief global variable.
+ *
+ * asdfsdfsdf
+ */
+int glob2;
+
 class abst{
 public:
    virtual void fun() = 0;
+  void priv(){;}
+  int m;
 };
 
 class con1:protected abstr{
-pulblic:
+public:
   void fun(){;}
 private:
   void priv(){;}
+  int m1;
 };
 
 class con2:public abstr{
@@ -31,6 +41,8 @@ public:
   void fun(){;}
 private:
   void priv(){;}
+  void priv(){;}
+  int m2;
 };
 
 class con3:public con1{
@@ -38,6 +50,8 @@ public:
   void fun(){;}
 private:
   void priv(){;}
+  void priv(){;}
+  int m3;
 };
 
 

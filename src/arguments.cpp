@@ -2,6 +2,18 @@
 #include "marshal.h"
 #include <assert.h>
 
+//TODO CLEANME
+#include "dbg_util.h"
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
+void Argument::print(std::string pad){
+    cout << "ARG";
+    printQC(pad, "", name);
+}
+
 /*! the argument list is documented if one of its
  *  arguments is documented 
  */

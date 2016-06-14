@@ -232,42 +232,42 @@ class Entry
   public:
 
     // identification
-    int          section;     //!< entry type (see Sections);
-    QCString	 type;        //!< member type 
-    QCString	 name;        //!< member name
-    TagInfo     *tagInfo;     //!< tag file info
+    int          section;     //!< entry type (see Sections); HOW DOES THIS WORK??
+    QCString	 type;        //!< member type DATA TYPE/ RETURN TYPE
+    QCString	 name;        //!< member name HOW DOES THIS WORK??
+    TagInfo     *tagInfo;     //!< tag file info HOW DOES THIS WORK??
 
     // content
     Protection protection;    //!< class protection
-    MethodTypes mtype;        //!< signal, slot, (dcop) method, or property?
-    uint64 spec;              //!< class/member specifiers
+    MethodTypes mtype;        //!< signal, slot, (dcop) method, or property? TODO
+    uint64 spec;              //!< class/member specifiers TODO
     int  initLines;           //!< define/variable initializer lines to show 
     bool stat;                //!< static ?
-    bool explicitExternal;    //!< explicitly defined as external?
+    bool explicitExternal;    //!< explicitly defined as external? TODO
     bool proto;               //!< prototype ?
     bool subGrouping;         //!< automatically group class members?
     bool callGraph;           //!< do we need to draw the call graph?
     bool callerGraph;         //!< do we need to draw the caller graph?
     Specifier    virt;        //!< virtualness of the entry 
-    QCString     args;        //!< member argument string
-    QCString     bitfields;   //!< member's bit fields
-    ArgumentList *argList;    //!< member arguments as a list
-    QList<ArgumentList> *tArgLists; //!< template argument declarations
+    QCString     args;        //!< member argument string TODO
+    QCString     bitfields;   //!< member's bit fields TODO
+    ArgumentList *argList;    //!< member arguments as a list TODO
+    QList<ArgumentList> *tArgLists; //!< template argument declarations TODO
     QGString	 program;     //!< the program text
-    QGString     initializer; //!< initial value (for variables)
-    QCString     includeFile; //!< include file (2 arg of \\class, must be unique)
-    QCString     includeName; //!< include name (3 arg of \\class)
-    QCString     doc;         //!< documentation block (partly parsed)
+    QGString     initializer; //!< initial value (for variables) TODO
+    QCString     includeFile; //!< include file (2 arg of \\class, must be unique) TODO
+    QCString     includeName; //!< include name (3 arg of \\class) TODO
+    QCString     doc;         //!< documentation block (partly parsed) TODO
     int          docLine;     //!< line number at which the documentation was found
     QCString     docFile;     //!< file in which the documentation was found
     QCString     brief;       //!< brief description (doc block)
     int          briefLine;   //!< line number at which the brief desc. was found
     QCString     briefFile;   //!< file in which the brief desc. was found
-    QCString     inbodyDocs;  //!< documentation inside the body of a function
+    QCString     inbodyDocs;  //!< documentation inside the body of a function TODO
     int          inbodyLine;  //!< line number at which the body doc was found
     QCString     inbodyFile;  //!< file in which the body doc was found
-    QCString     relates;     //!< related class (doc block)
-    RelatesType  relatesType; //!< how relates is handled
+    QCString     relates;     //!< related class (doc block) TODO
+    RelatesType  relatesType; //!< how relates is handled TODO
     QCString     read;        //!< property read accessor
     QCString     write;       //!< property write accessor
     QCString     inside;      //!< name of the class in which documents are found
@@ -278,15 +278,15 @@ class Entry
     int          mGrpId;      //!< member group id
     QList<BaseInfo> *extends; //!< list of base classes    
     QList<Grouping> *groups;  //!< list of groups this entry belongs to
-    QList<SectionInfo> *anchors; //!< list of anchors defined in this entry
+    QList<SectionInfo> *anchors; //!< list of anchors defined in this entry TODO
     QCString	fileName;     //!< file this entry was extracted from
     int		startLine;    //!< start line of entry in the source
     int		startColumn;  //!< start column of entry in the source
     QList<ListItemInfo> *sli; //!< special lists (test/todo/bug/deprecated/..) this entry is in
     SrcLangExt  lang;         //!< programming language in which this entry was found
     bool        hidden;       //!< does this represent an entity that is hidden from the output
-    bool        artificial;   //!< Artificially introduced item
-    GroupDocType groupDocType;
+    bool        artificial;   //!< Artificially introduced item TODO
+    GroupDocType groupDocType; //TODO
     QCString    id;           //!< libclang id
 
 

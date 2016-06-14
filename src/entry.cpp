@@ -29,6 +29,8 @@
 #include "arguments.h"
 #include "config.h"
 
+#include "dbg_util.h"
+
 //------------------------------------------------------------------
 
 #define HEADER ('D'<<24)+('O'<<16)+('X'<<8)+'!'
@@ -334,12 +336,6 @@ void Entry::printTree(){
   print();	
 }
 
-void printQC(std::string pad, std::string name, QCString &str){
-    if (str.isNull())
-       return;
-
-    std::cout << pad << name << " " << str << std::endl;
-}
 
 void Entry::print(int level){
     QListIterator<Entry> eli(*m_sublist);
@@ -348,9 +344,29 @@ void Entry::print(int level){
     std::string pad(3*level, ' ');
     std::cout << pad << "Node "
     << "Section " << section << std::endl;
-    printQC(pad, "type ", type);
-    printQC(pad, "name ", name);
-    printQC(pad, "brief ", brief);
+    printQC(pad, "type", type);
+    printQC(pad, "name", name);
+    printQC(pad, "brief", brief);
+    std::cout << pad << "mtype " << mtype << std::endl;
+    std::cout << pad << "spec " << spec << std::endl;
+    printFlag(pad, "explicitExternal", explicitExternal);
+    printFlag(pad, "proto", proto);
+    printFlag(pad, "callGraph", callGraph);
+    printFlag(pad, "callerGraph", callerGraph);
+    printFlag(pad, "proto", proto);
+    printQC(pad, "args", args);
+    printQC(pad, "bitfields", args);
+    printArgs(pad, argList);
+    //printQC(pad, "inititalizer", initializer);
+    printQC(pad, "includeFile", includeFile);
+    printQC(pad, "includeName", includeName);
+    printQC(pad, "inbodyDocs", inbodyDocs);
+    printQC(pad, "doc", doc);
+    printQC(pad, "relates", relates);
+    std::cout << pad << "relatestype" << relatesType << std::endl;
+    printFlag(pad, "artificial", artificial);
+    
+    
     std::cout << pad << "with children:" << std::endl;
 
     level++;

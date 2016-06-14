@@ -240,6 +240,8 @@ add_library(_doxygen STATIC
     xmlgen.cpp
     docbookvisitor.cpp
     docbookgen.cpp
+    #TODO CLEANME
+    dbg_util.cpp
 )
 
 add_executable(doxygen main.cpp)

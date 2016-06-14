@@ -18,6 +18,7 @@
 
 #include <qlist.h>
 #include <qcstring.h>
+#include <string>
 
 class StorageIntf;
 
@@ -62,12 +63,15 @@ struct Argument
   {
     return !name.isEmpty() && !docs.isEmpty();
   }
+  
+  //TODO CLEANME
+  void print(std::string pad);
 
   QCString attrib;   /*!< Argument's attribute (IDL only) */
   QCString type;     /*!< Argument's type */
-  QCString canType;  /*!< Cached value of canonical type (after type resolution). Empty initially. */
+  QCString canType;  /*!< Cached value of canonical type (after type resolution). Empty initially. */ //TODO ANALYSE
   QCString name;     /*!< Argument's name (may be empty) */
-  QCString array;    /*!< Argument's array specifier (may be empty) */
+  QCString array;    /*!< Argument's array specifier (may be empty) */ //TODO ANALYSE
   QCString defval;   /*!< Argument's default value (may be empty) */
   QCString docs;     /*!< Argument's documentation (may be empty) */
   QCString typeConstraint;  /*!< Used for Java generics: \<T extends C\> */
