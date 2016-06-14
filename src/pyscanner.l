@@ -1763,7 +1763,7 @@ void PythonLanguageScanner::parseInput(const char *fileName,
   printlex(yy_flex_debug, FALSE, __FILE__, fileName);
 
   // May print the AST for debugging purposes
-  // printAST(global_root);
+  root->printTree();
 }
 
 bool PythonLanguageScanner::needsPreprocessing(const QCString &)

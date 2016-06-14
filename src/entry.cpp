@@ -18,6 +18,8 @@
 #include <stdlib.h>
 #include <qfile.h>
 #include <string>
+#include <iostream>
+#include <map>
 #include "entry.h"
 #include "marshal.h"
 #include "util.h"
@@ -26,6 +28,7 @@
 #include "filestorage.h"
 #include "arguments.h"
 #include "config.h"
+
 //------------------------------------------------------------------
 
 #define HEADER ('D'<<24)+('O'<<16)+('X'<<8)+'!'
@@ -331,13 +334,26 @@ void Entry::printTree(){
   print();	
 }
 
+void printQC(std::string pad, std::string name, QCString &str){
+    if (str.isNull())
+       return;
+
+    std::cout << pad << name << " " << str << std::endl;
+}
+
 void Entry::print(int level){
     QListIterator<Entry> eli(*m_sublist);
     Entry *childNode;
     
     std::string pad(3*level, ' ');
-    std::cout << pad << "Node " << section << " with children:" << std::endl;
-    int level++;
+    std::cout << pad << "Node "
+    << "Section " << section << std::endl;
+    printQC(pad, "type ", type);
+    printQC(pad, "name ", name);
+    printQC(pad, "brief ", brief);
+    std::cout << pad << "with children:" << std::endl;
+
+    level++;
     for (eli.toFirst();(childNode=eli.current());++eli)
     {
       childNode->print(level);

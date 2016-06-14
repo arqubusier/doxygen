@@ -24,9 +24,12 @@
 
 #include <qlist.h>
 #include <ctype.h>
+#include <string>
 #include "types.h"
 #include "sortdict.h"
 #include "docparser.h"
+
+using std::string;
 
 //--------------------------------------------------------------------
 
@@ -477,5 +480,6 @@ bool mainPageHasTitle();
 bool openOutputFile(const char *outFile,QFile &f);
 void writeExtraLatexPackages(FTextStream &t);
 
+string section2text(const int& section_id);
 #endif
 

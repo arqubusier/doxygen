@@ -6955,6 +6955,9 @@ static void parseMain(const char *fileName,
     anonNSCount++;
 
   }
+
+  //print AST
+  rt->printTree();
 }
 
 //----------------------------------------------------------------------------
