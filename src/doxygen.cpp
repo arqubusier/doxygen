@@ -11111,6 +11111,9 @@ void parseInput()
         Doxygen::entryDBFileName.data());
     exit(1);
   }
+ 
+  //TODO CLEANME
+  root->printTree();
 
   /**************************************************************************
    *             Gather information                                         *

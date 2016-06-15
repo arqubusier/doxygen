@@ -45,9 +45,11 @@ private:
   int m2;
 };
 
+template<class T>
 class con3:public con1{
 public:
   void fun(){;}
+  void pub(int arg){;}
 private:
   void priv(){;}
   void priv(){;}

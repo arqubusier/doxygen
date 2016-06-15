@@ -318,14 +318,15 @@ class Entry
       }
     }
 
+    //TODO CLEANME
     void printTree();
+    void print(int level=0); 
 
   private:  
     void createSubtreeIndex(EntryNav *nav,FileStorage *storage,FileDef *fd);
     Entry         *m_parent;    //!< parent node in the tree
     QList<Entry>  *m_sublist;   //!< entries that are children of this one
     Entry &operator=(const Entry &);
-    void print(int level=0); 
 };
 
 /** Wrapper for a node in the Entry tree.
@@ -355,6 +356,10 @@ class EntryNav
     const QList<EntryNav> *children() const { return m_subList; }
     EntryNav *parent() const { return m_parent; }
     FileDef *fileDef() const { return m_fileDef; }
+
+    //TODO CLEANME
+    void printTree();
+    void print(int level=0); 
 
   private:
 

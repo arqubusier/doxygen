@@ -6957,6 +6957,7 @@ static void parseMain(const char *fileName,
   }
 
   //print AST
+  //TODO CLEANME
   rt->printTree();
 }
 

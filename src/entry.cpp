@@ -342,8 +342,9 @@ void Entry::print(int level){
     Entry *childNode;
     
     std::string pad(3*level, ' ');
+    std::cout << pad << "---------------------" << std::endl;
     std::cout << pad << "Node "
-    << "Section " << section << std::endl;
+    << "Section " << section2str(section) << std::endl;
     printQC(pad, "type", type);
     printQC(pad, "name", name);
     printQC(pad, "brief", brief);
@@ -368,6 +369,7 @@ void Entry::print(int level){
     
     
     std::cout << pad << "with children:" << std::endl;
+    std::cout << pad << "-----------------" << std::endl;
 
     level++;
     for (eli.toFirst();(childNode=eli.current());++eli)
@@ -481,3 +483,33 @@ void EntryNav::setEntry(Entry *e)
   m_noLoad=TRUE; 
 }
 
+void EntryNav::printTree(){
+  std::cout << "Printing NAV tree" << std::endl;
+  print();	
+}
+
+
+void EntryNav::print(int level){
+    QListIterator<EntryNav> eli(*m_subList);
+    EntryNav *childNode;
+    
+    std::string pad(3*level, ' ');
+    std::cout << pad << "---------------------" << std::endl;
+    std::cout << pad << "NAV "
+    << "Section " << section2str(m_section) << std::endl;
+    //printQC(pad, "type", m_type);
+    //printQC(pad, "name", m_name);
+    std::cout << pad << "m_type " << m_type << std::endl;
+    std::cout << pad << "#######has entry#####" << std::endl;
+    m_info->print(level);
+    std::cout << pad << "#####################" << std::endl;
+    
+    std::cout << pad << "with children:" << std::endl;
+    std::cout << pad << "-----------------" << std::endl;
+
+    level++;
+    for (eli.toFirst();(childNode=eli.current());++eli)
+    {
+      childNode->print(level);
+    }
+}
