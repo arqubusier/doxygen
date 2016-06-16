@@ -8,6 +8,6 @@
 void printQC(std::string pad, std::string name, QCString &str);
 void printFlag(std::string pad, std::string name, bool flag);
 void printArgs(std::string pad,  ArgumentList *al);
-void printTArgs(std::string pad,  Qlist *tal);
+//void printTArgs(std::string pad,  Qlist *tal);
 std::string section2str(int sec);
 #endif //DBG_UTIL_H

@@ -117,9 +117,11 @@ FLEX_TARGET(commentscan    commentscan.l    ${GENERATED_SRC}/commentscan.cpp    
 FLEX_TARGET(constexp       constexp.l       ${GENERATED_SRC}/constexp.cpp       COMPILE_FLAGS "${LEX_FLAGS} -PconstexpYY")
 FLEX_TARGET(xmlcode        xmlcode.l        ${GENERATED_SRC}/xmlcode.cpp        COMPILE_FLAGS "${LEX_FLAGS} -PxmlcodeYY")
 FLEX_TARGET(configimpl     configimpl.l     ${GENERATED_SRC}/configimpl.cpp     COMPILE_FLAGS "${LEX_FLAGS} -PconfigimplYY")
+FLEX_TARGET(adascanner     adascanner.l     ${GENERATED_SRC}/adascanner.cpp     COMPILE_FLAGS "${LEX_FLAGS} --prefix=adaYY")
 
 BISON_TARGET(vhdlparser    vhdlparser.y     ${GENERATED_SRC}/vhdlparser.cpp     COMPILE_FLAGS "${YACC_FLAGS} -l -p vhdlscannerYY")
 BISON_TARGET(constexp      constexp.y       ${GENERATED_SRC}/ce_parse.cpp       COMPILE_FLAGS "${YACC_FLAGS} -l -p constexpYY")
+BISON_TARGET(adaparser      adaparser.y       ${GENERATED_SRC}/adaparser.cpp       COMPILE_FLAGS "${YACC_FLAGS} -d -l -Dapi.prefix=adaYY")
 
 add_library(doxycfg STATIC
     ${GENERATED_SRC}/lang_cfg.h
@@ -157,6 +159,8 @@ add_library(_doxygen STATIC
     ${GENERATED_SRC}/commentscan.cpp
     ${GENERATED_SRC}/constexp.cpp
     ${GENERATED_SRC}/xmlcode.cpp
+    ${GENERATED_SRC}/adascanner.cpp
+    ${GENERATED_SRC}/adaparser.cpp
     #
     ${GENERATED_SRC}/ce_parse.cpp
     #

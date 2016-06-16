@@ -4,6 +4,7 @@
 #include<ctype.h>
 #include "adaparser.tab.h"
 
+#define YY_DECL extern "C" int yylex()
 %}
 
 
@@ -45,103 +46,18 @@ CHARACTER		[a-zA-Z](_?[a-zA-Z0-9])*
 ">="			return(GTEQ);
 ":="			return(ASS);
 "=>"			return(REF);
-{CHARACTER}		return(resword(yytext));
+{CHARACTER}		return(CHARACTER);
 "'"."'"			return(character_literal);
 \"(\"\"|[^\n\"])*\"     return(string_literal);
 {DECIMAL_LITERAL}	return(numerical);
 {BASED_LITERAL}		return(numerical);
---.*\n			{getComment();};
+--.*\n			return('o');
 [ \t\n\f]		;
 
 
 %%
 
-typedef struct
-        {
-        char    * kw;
-        int     kwv;
-        } KEY_TABLE;
-
-# define NUM_KW  72
-
-
-KEY_TABLE key_tab[NUM_KW] = {
-                {"ABORT",       ABORT},
-                {"ABS",         ABS},
-		{"ABSTRACT",	ABSTRACT},
-                {"ACCEPT",      ACCEPT},
-                {"ACCESS",      ACCESS},
-		{"ALIASED",	ALIASED},
-                {"ALL",         ALL},
-                {"AND",         AND},
-                {"ARRAY",       ARRAY},
-                {"AT",          AT},
-                {"BEGIN",       BeGIN},
-                {"BODY",        BODY},
-                {"CASE",        CASE},
-                {"CONSTANT",    CONSTANT},
-                {"DECLARE",     DECLARE},
-                {"DELAY",       DELAY},
-                {"DELTA",       DELTA},
-                {"DIGITS",      DIGITS},
-                {"DO",          DO},
-                {"ELSE",        ELSE},
-                {"ELSIF",       ELSIF},
-                {"END",         END},
-                {"ENTRY",       ENTRY},
-                {"EXCEPTION",   EXCEPTION},
-                {"EXIT",        EXIT},
-                {"FOR",         FOR},
-                {"FUNCTION",    FUNCTION},
-                {"GENERIC",     GENERIC},
-                {"GOTO",        GOTO},
-                {"IF",          IF},
-                {"IN",          IN},
-		{"INTERFACE",	INTERFACE},
-                {"IS",          IS},
-                {"LIMITED",     LIMITED},
-                {"LOOP",        LOOP},
-                {"MOD",         MOD},
-                {"NEW",         NEW},
-                {"NOT",         NOT},
-                {"NULL",        Null},
-                {"OF",          OF},
-                {"OR",          OR},
-                {"OTHERS",      OTHERS},
-                {"OUT",         OUT},
-		{"OVERRIDING",	OVERRIDING},
-                {"PACKAGE",     PACKAGE},
-                {"PRAGMA",      PRAGMA},
-                {"PRIVATE",     PRIVATE},
-                {"PROCEDURE",   PROCEDURE},
-		{"PROTECTED",	PROTECTED},
-                {"RAISE",       RAISE},
-                {"RANGE",       RANGE},
-                {"RECORD",      RECORD},
-                {"REM",         REM},
-                {"RENAMES",     RENAMES},
-		{"REQUEUE",	REQUEUE},
-                {"RETURN",      RETURN},
-                {"REVERSE",     REVERSE},
-                {"SELECT",      SELECT},
-                {"SEPARATE",    SEPARATE},
-                {"SUBTYPE",     SUBTYPE},
-		{"SYNCHRONIZED",SYNCHRONIZED},
-		{"TAGGED",	TAGGED},
-                {"TASK",        TASK},
-                {"TERMINATE",   TERMINATE},
-                {"THEN",        THEN},
-                {"TYPE",        TYPE},
-		{"UNTIL",	UNTIL},
-                {"USE",         USE},
-                {"WHEN",        WHEN},
-                {"WHILE",       WHILE},
-                {"WITH",        WITH},
-                {"XOR",         XOR}
-                };
-          
-
-upper_string(char *str)
+void upper_string(char *str)
 {
 	while(*str != '\0')
 	{
@@ -150,17 +66,18 @@ upper_string(char *str)
 	}
 }
 
-getComment()
+void getComment()
 {
 	printf("%s",yytext);
 }
 
-getMLComment()
+void getMLComment()
 {
 	printf("ML: %s", yytext);
 }
 
-resword(char *str) 
+/*
+void resword(char *str) 
 {
 	int i;
 	for(i = 0; i<NUM_KW; i++)
@@ -176,3 +93,4 @@ resword(char *str)
 	printf("ID: %s\n", str);
       	return identifier;
 }
+*/

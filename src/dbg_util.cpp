@@ -27,9 +27,10 @@ void printArgs(std::string pad, ArgumentList *al){
 }
 
 //TODO
+/*
 void printTArgs(std::string pad,  Qlist *tal){
 }
-
+*/
 std::string section2str(int sec){
     std::stringstream ss;
     std::string s;
