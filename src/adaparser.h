@@ -22,8 +22,8 @@
  */
 
 
-#ifndef ADASCANNER_H
-#define ADASCANNER_H
+#ifndef ADAPARSER_H
+#define ADAPARSER_H
 
 #include "parserintf.h"
 
@@ -34,6 +34,7 @@
 class AdaLanguageScanner : public ParserInterface
 {
   public:
+    AdaLanguageScanner() {}
     virtual ~AdaLanguageScanner() {}
     void startTranslationUnit(const char *) {}
     void finishTranslationUnit() {}
@@ -43,6 +44,7 @@ class AdaLanguageScanner : public ParserInterface
                     bool sameTranslationUnit,
                     QStrList &filesInSameTranslationUnit);
     bool needsPreprocessing(const QCString &extension);
+    //TODO IMPLEMENT
     void parseCode(CodeOutputInterface &codeOutIntf,
                    const char *scopeName,
                    const QCString &input,
@@ -62,6 +64,6 @@ class AdaLanguageScanner : public ParserInterface
     void parsePrototype(const char *text);
 };
 
-void pyscanFreeScanner();
+void adaFreeScanner();
 
-#endif
+#endif //ADAPARSER_H

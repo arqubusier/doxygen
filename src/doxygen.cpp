@@ -73,6 +73,7 @@
 #include "fortranscanner.h"
 #include "xmlscanner.h"
 #include "tclscanner.h"
+#include "adaparser.h"
 #include "code.h"
 #include "objcache.h"
 #include "store.h"
@@ -10001,6 +10002,7 @@ void initDoxygen()
   Doxygen::parserManager->registerParser("xml",          new XMLScanner);
   Doxygen::parserManager->registerParser("tcl",          new TclLanguageScanner);
   Doxygen::parserManager->registerParser("md",           new MarkdownFileParser);
+  Doxygen::parserManager->registerParser("ada",          new AdaLanguageScanner);
 
   // register any additional parsers here...
 

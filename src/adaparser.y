@@ -139,9 +139,18 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
                    bool collectXrefs
                   )
 {
-	adaYYparse();
 }
 
+void AdaLanguageScanner::parseInput(const char * fileName, 
+                const char *fileBuf, 
+                Entry *root,
+                bool sameTranslationUnit,
+                QStrList &filesInSameTranslationUnit){
+	adaYYparse();
+}
+bool AdaLanguageScanner::needsPreprocessing(const QCString &extension){return false;}
+void AdaLanguageScanner::resetCodeParserState(){;}
+void AdaLanguageScanner::parsePrototype(const char *text){;}
 
 //called when yylex reaches end of file, returns 1 to stop yylex from continuing scan
 int adaYYwrap()
@@ -153,3 +162,5 @@ void adaYYerror(const char *s)
 {
   printf("ERROR: ada parser\n");
 }
+
+void adaFreeScanner(){;}
