@@ -159,8 +159,8 @@ add_library(_doxygen STATIC
     ${GENERATED_SRC}/commentscan.cpp
     ${GENERATED_SRC}/constexp.cpp
     ${GENERATED_SRC}/xmlcode.cpp
-    ${GENERATED_SRC}/adascanner.cpp
     ${GENERATED_SRC}/adaparser.cpp
+    ${GENERATED_SRC}/adascanner.cpp
     #
     ${GENERATED_SRC}/ce_parse.cpp
     #

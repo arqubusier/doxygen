@@ -1,13 +1,14 @@
 %{
-#include<stdlib.h>
-#include<stdio.h>
+#include <qfileinfo.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <iostream>
 #include "adaparser.h"
   //from flex for bison to know about!
 extern int adaYYlex();
 extern int adaYYparse();
-extern FILE *adaYYin;
 extern int adaYYwrap();
+extern void adaYYrestart( FILE *new_file );
 void adaYYerror (char const *s);
  %}
 
@@ -116,7 +117,7 @@ void adaYYerror (char const *s);
 %token identifier
 %token numerical
 */
-
+adaYYin
 %%
 
 test: CHARACTER {
@@ -146,7 +147,12 @@ void AdaLanguageScanner::parseInput(const char * fileName,
                 Entry *root,
                 bool sameTranslationUnit,
                 QStrList &filesInSameTranslationUnit){
-	adaYYparse();
+  std::cout << "ADAPARSER" << std::endl;
+  if (setFile(fileName)){
+    restartScanner();
+    adaYYparse();
+    cleanFile();
+  }
 }
 bool AdaLanguageScanner::needsPreprocessing(const QCString &extension){return false;}
 void AdaLanguageScanner::resetCodeParserState(){;}

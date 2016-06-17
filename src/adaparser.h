@@ -26,6 +26,7 @@
 #define ADAPARSER_H
 
 #include "parserintf.h"
+#include <qfile.h>
 
 /** \brief Ada Language parser using state-based lexical scanning.
  *
@@ -34,7 +35,7 @@
 class AdaLanguageScanner : public ParserInterface
 {
   public:
-    AdaLanguageScanner() {}
+    AdaLanguageScanner(){}
     virtual ~AdaLanguageScanner() {}
     void startTranslationUnit(const char *) {}
     void finishTranslationUnit() {}
@@ -62,6 +63,11 @@ class AdaLanguageScanner : public ParserInterface
                   );
     void resetCodeParserState();
     void parsePrototype(const char *text);
+    bool setFile(const char* fileName);
+    void restartScanner();
+    void cleanFile();
+  private:
+    QFile inputFile;
 };
 
 void adaFreeScanner();

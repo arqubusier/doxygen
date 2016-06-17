@@ -9593,7 +9593,7 @@ int readDir(QFileInfo *fi,
     {
       if (exclDict==0 || exclDict->find(cfi->absFilePath().utf8())==0)
       { // file should not be excluded
-        //printf("killDict->find(%s)\n",cfi->absFilePath().data());
+        printf("killDict->find(%s)\n",cfi->absFilePath().data());
         if (!cfi->exists() || !cfi->isReadable())
         {
           if (errorIfNotExist)
@@ -9610,7 +9610,7 @@ int readDir(QFileInfo *fi,
         {
           totalSize+=cfi->size()+cfi->absFilePath().length()+4;
           QCString name=cfi->fileName().utf8();
-          //printf("New file %s\n",name.data());
+          printf("New file %s\n",name.data());
           if (fnDict)
           {
             FileDef  *fd=new FileDef(cfi->dirPath().utf8()+"/",name);

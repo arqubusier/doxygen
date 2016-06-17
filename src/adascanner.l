@@ -1,10 +1,12 @@
 %{
-
-#include<stdio.h>
-#include<ctype.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <iostream>
 #include "adaparser.tab.h"
+#include "adaparser.h"
 
-#define YY_DECL extern "C" int yylex()
+#define YY_DECL extern int adaYYlex()
+
 %}
 
 
@@ -16,7 +18,7 @@ DECIMAL_LITERAL		{INTEGER}(\.?{INTEGER})?{EXPONENT}?
 BASE			{INTEGER}
 BASED_INTEGER		{EXTENDED_DIGIT}(_?{EXTENDED_DIGIT})*
 BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
-CHARACTER		[a-zA-Z](_?[a-zA-Z0-9])*
+CH		[a-zA-Z](_?[a-zA-Z0-9])*
 
 %%
 
@@ -46,7 +48,11 @@ CHARACTER		[a-zA-Z](_?[a-zA-Z0-9])*
 ">="			return(GTEQ);
 ":="			return(ASS);
 "=>"			return(REF);
-{CHARACTER}		return(CHARACTER);
+{CH}			{
+			  adaYYlval.charVal = *adaYYtext;
+			  std::cout << "adascanner found" << adaYYlval.charVal << std::endl;
+			  return(CHARACTER);
+			}
 "'"."'"			return(character_literal);
 \"(\"\"|[^\n\"])*\"     return(string_literal);
 {DECIMAL_LITERAL}	return(numerical);
@@ -94,3 +100,27 @@ void resword(char *str)
       	return identifier;
 }
 */
+int adaYYwrap(){
+	return 1;
+}
+
+bool AdaLanguageScanner::setFile(const char* fileName){
+  adaYYin = fopen( yytext, "r" );
+  inputFile.setName(fileName);
+  if (inputFile.open(IO_ReadOnly))
+  {
+    yy_switch_to_buffer(yy_create_buffer(adaYYin, YY_BUF_SIZE));	
+    return true;
+  }
+  inputFile.close();
+  return false;
+}
+
+void AdaLanguageScanner::restartScanner(){
+  adaYYrestart(adaYYin);	
+}
+
+void AdaLanguageScanner::cleanFile(){
+  yy_delete_buffer( YY_CURRENT_BUFFER );
+  inputFile.close();
+}
