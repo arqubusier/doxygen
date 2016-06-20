@@ -9379,6 +9379,8 @@ static void parseFile(ParserInterface *parser,
 
   // use language parse to parse the file
   parser->parseInput(fileName,convBuf.data(),root,sameTu,filesInSameTu);
+  //TODO CLEANME
+  printf("parsed file\n"); 
 
   // store the Entry tree in a file and create an index to
   // navigate/load entries

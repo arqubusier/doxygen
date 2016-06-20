@@ -66,10 +66,13 @@ class AdaLanguageScanner : public ParserInterface
     bool setFile(const char* fileName);
     void restartScanner();
     void cleanFile();
+    void read();
   private:
     QFile inputFile;
 };
 
 void adaFreeScanner();
+void setInputString(const char* input);
+void cleanupInputString();
 
 #endif //ADAPARSER_H

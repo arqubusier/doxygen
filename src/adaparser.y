@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <iostream>
 #include "adaparser.h"
+#include "entry.h"
   //from flex for bison to know about!
 extern int adaYYlex();
 extern int adaYYparse();
@@ -120,8 +121,11 @@ void adaYYerror (char const *s);
 adaYYin
 %%
 
-test: CHARACTER {
-          std::cout<< "adaparser found: " << $1 <<std::endl;}
+start: test
+test: /* empty */
+        {std::cout << "adaparser end found" << std::endl;}
+      | test CHARACTER
+        {std::cout<< "adaparser found: " << $2 <<std::endl;}
 %%
 
 void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
@@ -148,10 +152,16 @@ void AdaLanguageScanner::parseInput(const char * fileName,
                 bool sameTranslationUnit,
                 QStrList &filesInSameTranslationUnit){
   std::cout << "ADAPARSER" << std::endl;
-  if (setFile(fileName)){
-    restartScanner();
+  root = new Entry;
+  root->section = Entry::EMPTY_SEC;
+  inputFile.setName(fileName);
+  std::cout << "ADAPARSER" << std::endl;
+  if (inputFile.open(IO_ReadOnly))
+  {
+    setInputString(fileBuf);
     adaYYparse();
-    cleanFile();
+    cleanupInputString();
+    inputFile.close();
   }
 }
 bool AdaLanguageScanner::needsPreprocessing(const QCString &extension){return false;}

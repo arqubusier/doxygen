@@ -7,6 +7,40 @@
 
 #define YY_DECL extern int adaYYlex()
 
+/*
+ Static variables
+ */
+static const char *     inputString;
+static int		        inputPosition;
+YY_BUFFER_STATE         s_bufferState;
+
+/*
+ the file contents is read by doxygen before scanning.
+ */
+ /*
+//#undef	YY_INPUT
+//#define	YY_INPUT(buf,result,max_size) result=yyread(buf,max_size);
+static int yyread(char *buf, int max_size){
+  int c=0;
+  while ( c < max_size && inputString[inputPosition] )
+  {
+    *buf = inputString[inputPosition++] ;
+    printf("%d (%c)\n",*buf,*buf);
+    c++; buf++;
+  }
+  return c;
+    
+}
+*/
+
+void setInputString(const char *input)
+{
+  s_bufferState = yy_scan_string(input);
+}
+
+void cleanupInputString(){
+  yy_delete_buffer(s_bufferState);
+}
 %}
 
 
@@ -18,7 +52,7 @@ DECIMAL_LITERAL		{INTEGER}(\.?{INTEGER})?{EXPONENT}?
 BASE			{INTEGER}
 BASED_INTEGER		{EXTENDED_DIGIT}(_?{EXTENDED_DIGIT})*
 BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
-CH		[a-zA-Z](_?[a-zA-Z0-9])*
+CH		[a-zA-Z]
 
 %%
 
@@ -50,7 +84,7 @@ CH		[a-zA-Z](_?[a-zA-Z0-9])*
 "=>"			return(REF);
 {CH}			{
 			  adaYYlval.charVal = *adaYYtext;
-			  std::cout << "adascanner found" << adaYYlval.charVal << std::endl;
+			  std::cout << "adascanner found " << adaYYlval.charVal << std::endl;
 			  return(CHARACTER);
 			}
 "'"."'"			return(character_literal);
@@ -102,25 +136,4 @@ void resword(char *str)
 */
 int adaYYwrap(){
 	return 1;
-}
-
-bool AdaLanguageScanner::setFile(const char* fileName){
-  adaYYin = fopen( yytext, "r" );
-  inputFile.setName(fileName);
-  if (inputFile.open(IO_ReadOnly))
-  {
-    yy_switch_to_buffer(yy_create_buffer(adaYYin, YY_BUF_SIZE));	
-    return true;
-  }
-  inputFile.close();
-  return false;
-}
-
-void AdaLanguageScanner::restartScanner(){
-  adaYYrestart(adaYYin);	
-}
-
-void AdaLanguageScanner::cleanFile(){
-  yy_delete_buffer( YY_CURRENT_BUFFER );
-  inputFile.close();
 }
