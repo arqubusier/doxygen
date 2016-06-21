@@ -5,6 +5,9 @@
 #include <iostream>
 #include "adaparser.h"
 #include "entry.h"
+#include "types.h"
+#include "commentscan.h"
+
   //from flex for bison to know about!
 extern int adaYYlex();
 extern int adaYYparse();
@@ -152,17 +155,62 @@ void AdaLanguageScanner::parseInput(const char * fileName,
                 bool sameTranslationUnit,
                 QStrList &filesInSameTranslationUnit){
   std::cout << "ADAPARSER" << std::endl;
+
+  qcFileName = fileName;
+
   root = new Entry;
   root->section = Entry::EMPTY_SEC;
   inputFile.setName(fileName);
-  std::cout << "ADAPARSER" << std::endl;
-  if (inputFile.open(IO_ReadOnly))
+
+if (inputFile.open(IO_ReadOnly))
   {
     setInputString(fileBuf);
     adaYYparse();
     cleanupInputString();
     inputFile.close();
   }
+  Entry *e = new Entry();
+  e->section = Entry::NAMESPACE_SEC;
+  e->name = "A";
+  e->type = "namespace";
+  root->addSubEntry(e);
+  root->printTree();
+
+  Entry *e2 = new Entry();
+  QCString doc = QCString("\\file test.adb \n brief... det..");  
+  int pos=0;
+  bool newEntryNeeded;
+  parseCommentBlock(
+    this,
+    e2,
+    *doc,
+    *qcFileName,
+    0,
+    false,
+    false,
+    false,
+    Public,
+    pos,
+    newEntryNeeded);
+
+
+  /*
+  e2->section = Entry::FILEDOC_SEC;
+  e2->name = "test.adb";
+  e2->brief = "Documentation for test.adb";
+  e->addSubEntry(e2);
+
+  Entry *e3 = new Entry();
+  e3->name = "B";
+  e3->section = Entry::USINGDECL_SEC;
+  e2->addSubEntry(e3);
+
+  e2 = new Entry();
+  e2->section = Entry::NAMESPACE_SEC;
+  e2->name = "B";
+  e->addSubEntry(e2);
+  */
+  root->printTree();
 }
 bool AdaLanguageScanner::needsPreprocessing(const QCString &extension){return false;}
 void AdaLanguageScanner::resetCodeParserState(){;}

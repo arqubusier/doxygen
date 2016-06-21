@@ -7884,14 +7884,10 @@ bool patternMatch(const QFileInfo &fi,const QStrList *patList)
     QCString fp = fi.filePath().data();
     QCString afp= fi.absFilePath().data();
     
-    printf("find match for %s\n", fi.fileName().data());
-
     for (it.toFirst();(pattern=it.current());++it)
     {
-      printf("pattern %s\n", pattern.data());
       if (!pattern.isEmpty())
       {
-        printf("pattern not empty\n");
         int i=pattern.find('=');
         if (i!=-1) pattern=pattern.left(i); // strip of the extension specific filter name
 
@@ -7903,8 +7899,8 @@ bool patternMatch(const QFileInfo &fi,const QStrList *patList)
         found = re.match(fn)!=-1 ||
                 re.match(fp)!=-1 ||
                 re.match(afp)!=-1;
-        printf("Matching `%s' against pattern `%s' found=%d\n",
-            fi.fileName().data(),pattern.data(),found);
+        //printf("Matching `%s' against pattern `%s' found=%d\n",
+        //    fi.fileName().data(),pattern.data(),found);
         if (found) break;
       }
     }

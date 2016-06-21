@@ -1764,7 +1764,7 @@ void PythonLanguageScanner::parseInput(const char *fileName,
 
   // May print the AST for debugging purposes
   //TODO CLEANME
-  //root->printTree();
+  root->printTree();
 }
 
 bool PythonLanguageScanner::needsPreprocessing(const QCString &)

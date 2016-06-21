@@ -69,6 +69,7 @@ class AdaLanguageScanner : public ParserInterface
     void read();
   private:
     QFile inputFile;
+    QCString qcFileName;
 };
 
 void adaFreeScanner();

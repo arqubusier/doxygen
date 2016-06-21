@@ -7,6 +7,9 @@
 #include "f2.h"
 #include "f3.h"
 
+using namespace nA;
+using namespace nB;
+
 /**
  * \brief global variable.
  *
