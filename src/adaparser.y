@@ -179,20 +179,23 @@ if (inputFile.open(IO_ReadOnly))
   Entry *e2 = new Entry();
   QCString doc = QCString("\\file test.adb \n brief... det..");  
   int pos=0;
+  int lineNum=0;
+  Protection protection = Public;
   bool newEntryNeeded;
   parseCommentBlock(
     this,
     e2,
-    *doc,
-    *qcFileName,
-    0,
+    doc,
+    qcFileName,
+    lineNum,
     false,
     false,
     false,
-    Public,
+    protection,
     pos,
     newEntryNeeded);
 
+  e->addSubEntry(e2);
 
   /*
   e2->section = Entry::FILEDOC_SEC;
