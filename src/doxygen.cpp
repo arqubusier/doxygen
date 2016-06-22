@@ -9385,6 +9385,9 @@ static void parseFile(ParserInterface *parser,
   // store the Entry tree in a file and create an index to
   // navigate/load entries
   //printf("root->createNavigationIndex for %s\n",fd->name().data());
+  //CLEANME
+  printf("saving entry tree\n");
+  root->printTree();
   root->createNavigationIndex(rootNav,g_storage,fd);
 }
 
@@ -11117,7 +11120,7 @@ void parseInput()
   }
  
   //TODO CLEANME
-  root->printTree();
+  //root->printTree();
 
   /**************************************************************************
    *             Gather information                                         *

@@ -14,6 +14,8 @@ extern int adaYYparse();
 extern int adaYYwrap();
 extern void adaYYrestart( FILE *new_file );
 void adaYYerror (char const *s);
+void initEntry (Entry *e, Protection prot, MethodTypes mtype, bool stat,
+                Specifier virt, Entry *parent);
  %}
 
 %union {
@@ -158,8 +160,10 @@ void AdaLanguageScanner::parseInput(const char * fileName,
 
   qcFileName = fileName;
 
-  root = new Entry;
-  root->section = Entry::EMPTY_SEC;
+  //root = new Entry;
+  //root->section = Entry::EMPTY_SEC;
+  //initEntry(root, Public, Method, false, Normal, root);
+
   inputFile.setName(fileName);
 
 if (inputFile.open(IO_ReadOnly))
@@ -173,10 +177,12 @@ if (inputFile.open(IO_ReadOnly))
   e->section = Entry::NAMESPACE_SEC;
   e->name = "A";
   e->type = "namespace";
+  initEntry(e, Public, Method, false, Normal, root);
   root->addSubEntry(e);
-  root->printTree();
 
   Entry *e2 = new Entry();
+  initEntry(e2, Public, Method, false, Normal, e);
+
   QCString doc = QCString("\\file test.adb \n brief... det..");  
   int pos=0;
   int lineNum=0;
@@ -228,6 +234,17 @@ int adaYYwrap()
 void adaYYerror(const char *s)
 {
   printf("ERROR: ada parser\n");
+}
+
+void initEntry (Entry *e, Protection prot, MethodTypes mtype, bool stat,
+                Specifier virt, Entry *parent)
+{
+  e->protection = prot;
+  e->mtype      = mtype;
+  e->virt       = virt;
+  e->stat       = stat;
+  e->lang       = SrcLangExt_Ada; 
+  e->setParent(parent);
 }
 
 void adaFreeScanner(){;}
