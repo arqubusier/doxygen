@@ -67,6 +67,7 @@ class AdaLanguageScanner : public ParserInterface
     void restartScanner();
     void cleanFile();
     void read();
+    void handleComment(Entry* comment_root, const QCString &doc);
   private:
     QFile inputFile;
     QCString qcFileName;

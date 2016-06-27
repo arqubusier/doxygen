@@ -14,19 +14,23 @@ extern int adaYYparse();
 extern int adaYYwrap();
 extern void adaYYrestart( FILE *new_file );
 void adaYYerror (char const *s);
-void initEntry (Entry *e, Protection prot, MethodTypes mtype, bool stat,
-                Specifier virt, Entry *parent);
+void initEntry (Entry *e, Entry *parent=NULL, Protection prot=Public,
+                MethodTypes mtype=Method, bool stat=false,
+                Specifier virt=Normal);
+
+static Entry* s_root;
+static AdaLanguageScanner* s_adaScanner;
  %}
 
 %union {
   int intVal;
   char charVal;
+  char* cstrVal;
+  Entry* entryPtr;
+  QCString* qstrPtr;
 }
 
-%token <charVal>CHARACTER
-
 /*KEYWORDS*/
-/*
 %token ABORT
 %token ABS
 %token ABSTRACT //ADA 95
@@ -37,7 +41,7 @@ void initEntry (Entry *e, Protection prot, MethodTypes mtype, bool stat,
 %token AND
 %token ARRAY
 %token AT
-%token BeGIN
+%token BEGIN
 %token BODY 
 %token CASE
 %token CONSTANT
@@ -100,10 +104,13 @@ void initEntry (Entry *e, Protection prot, MethodTypes mtype, bool stat,
 %token WHILE
 %token WITH
 %token XOR
-*/
 
  /*OTHER */
-/*
+%token START_COMMENT
+%token START_DOXY_COMMENT
+%token <cstrVal>COMMENT_BODY
+%token LINE
+%token NEWLINE
 %token TIC
 %token DDOT
 %token MLT
@@ -115,22 +122,43 @@ void initEntry (Entry *e, Protection prot, MethodTypes mtype, bool stat,
 %token GTEQ
 %token ASS
 %token REF
-*/ 
 
 /*non-terminals*/
-/*%token string_literal
-%token character_literal
-%token identifier
-%token numerical
-*/
-adaYYin
+//%type<charVal> character_literal
+//%type<cstrVal> identifier
+//%type<intVal> numerical
+//%type<entryPtr> package_spec
+//%type<entryPtr> package_body
+//%type<cstrVal> comment
+%type<entryPtr> doxy_comment
+%type<qstrPtr> doxy_comment_cont
+
+
+%defines
+
 %%
 
-start: test
-test: /* empty */
-        {std::cout << "adaparser end found" << std::endl;}
-      | test CHARACTER
-        {std::cout<< "adaparser found: " << $2 <<std::endl;}
+start: doxy_comment {s_root->addSubEntry($1);}
+
+doxy_comment:       COMMENT_BODY doxy_comment_cont
+                    {QCString doc = QCString($1) + *$2;
+                     std::cout << "comment: " << doc << std::endl; 
+                     delete $1;
+                     delete $2;
+                     Entry *e = new Entry;
+                     initEntry(e);
+                     s_adaScanner->handleComment(e, doc);
+                     $$ = e;}
+
+doxy_comment_cont:  /*COMMENT_BODY doxy_comment_cont
+                 
+                      {Entry* e = new QCString(QCString($1) + *$2);
+                       delete $1;
+                       delete $2;
+                       $$ = e;}
+                       
+                    |*/ {$$ = new QCString("");}
+
 %%
 
 void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
@@ -151,75 +179,58 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
 {
 }
 
+void AdaLanguageScanner::handleComment(Entry* comment_root, const QCString &doc)
+{
+  int pos=0;
+  int lineNum=0;
+  Protection protection = Public;
+  bool newEntryNeeded;
+  Entry *current;
+
+  while (parseCommentBlock(
+           this,
+           current,
+           doc,
+           qcFileName,
+           lineNum,
+           false,
+           false,
+           false,
+           protection,
+           pos,
+           newEntryNeeded))
+  {
+    if (newEntryNeeded){
+      current = new Entry;
+      comment_root->addSubEntry(current);
+    }
+  }
+  if (newEntryNeeded){
+    current = new Entry;
+    comment_root->addSubEntry(current);
+  }
+}
+
 void AdaLanguageScanner::parseInput(const char * fileName, 
                 const char *fileBuf, 
                 Entry *root,
                 bool sameTranslationUnit,
                 QStrList &filesInSameTranslationUnit){
   std::cout << "ADAPARSER" << std::endl;
-
+  s_root = root;
+  s_adaScanner = this;
   qcFileName = fileName;
-
-  //root = new Entry;
-  //root->section = Entry::EMPTY_SEC;
-  //initEntry(root, Public, Method, false, Normal, root);
 
   inputFile.setName(fileName);
 
-if (inputFile.open(IO_ReadOnly))
+  if (inputFile.open(IO_ReadOnly))
   {
     setInputString(fileBuf);
     adaYYparse();
     cleanupInputString();
     inputFile.close();
   }
-  Entry *e = new Entry();
-  e->section = Entry::NAMESPACE_SEC;
-  e->name = "A";
-  e->type = "namespace";
-  initEntry(e, Public, Method, false, Normal, root);
-  root->addSubEntry(e);
-
-  Entry *e2 = new Entry();
-  initEntry(e2, Public, Method, false, Normal, e);
-
-  QCString doc = QCString("\\file test.adb \n brief... det..");  
-  int pos=0;
-  int lineNum=0;
-  Protection protection = Public;
-  bool newEntryNeeded;
-  parseCommentBlock(
-    this,
-    e2,
-    doc,
-    qcFileName,
-    lineNum,
-    false,
-    false,
-    false,
-    protection,
-    pos,
-    newEntryNeeded);
-
-  e->addSubEntry(e2);
-
-  /*
-  e2->section = Entry::FILEDOC_SEC;
-  e2->name = "test.adb";
-  e2->brief = "Documentation for test.adb";
-  e->addSubEntry(e2);
-
-  Entry *e3 = new Entry();
-  e3->name = "B";
-  e3->section = Entry::USINGDECL_SEC;
-  e2->addSubEntry(e3);
-
-  e2 = new Entry();
-  e2->section = Entry::NAMESPACE_SEC;
-  e2->name = "B";
-  e->addSubEntry(e2);
-  */
-  root->printTree();
+  s_root->printTree();
 }
 bool AdaLanguageScanner::needsPreprocessing(const QCString &extension){return false;}
 void AdaLanguageScanner::resetCodeParserState(){;}
@@ -236,8 +247,9 @@ void adaYYerror(const char *s)
   printf("ERROR: ada parser\n");
 }
 
-void initEntry (Entry *e, Protection prot, MethodTypes mtype, bool stat,
-                Specifier virt, Entry *parent)
+void initEntry (Entry *e, Entry *parent, Protection prot,
+                MethodTypes mtype, bool stat,
+                Specifier virt)
 {
   e->protection = prot;
   e->mtype      = mtype;

@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <iostream>
-#include "adaparser.tab.h"
+//the hpp file contains the tokens
+#include "adaparser.hpp"
 #include "adaparser.h"
 
 #define YY_DECL extern int adaYYlex()
@@ -52,26 +53,13 @@ DECIMAL_LITERAL		{INTEGER}(\.?{INTEGER})?{EXPONENT}?
 BASE			{INTEGER}
 BASED_INTEGER		{EXTENDED_DIGIT}(_?{EXTENDED_DIGIT})*
 BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
-CH		[a-zA-Z]
+
+%x comment
+
 
 %%
 
-"."			return('.');
-"<"			return('<');
-"("                     return('(');
-"+"                     return('+');
-"|"                     return('|');
-"&"                     return('&');
-"*"                     return('*');
-")"                     return(')');
-";"                     return(';');
-"-"                     return('-');
-"/"                     return('/');
-","                     return(',');
-">"                     return('>');
-":"                     return(':');
-"="                     return('=');
-"'"			return(TIC);
+"'"			    return(TIC);
 ".."			return(DDOT);
 "<<"			return(MLT);
 "<>"			return(BOX);
@@ -82,16 +70,15 @@ CH		[a-zA-Z]
 ">="			return(GTEQ);
 ":="			return(ASS);
 "=>"			return(REF);
-{CH}			{
-			  adaYYlval.charVal = *adaYYtext;
-			  std::cout << "adascanner found " << adaYYlval.charVal << std::endl;
-			  return(CHARACTER);
-			}
 "'"."'"			return(character_literal);
 \"(\"\"|[^\n\"])*\"     return(string_literal);
 {DECIMAL_LITERAL}	return(numerical);
 {BASED_LITERAL}		return(numerical);
---.*\n			return('o');
+"--[^\n!]*\n"			{std::cout << "skipping comment" << std::endl;}
+"--!"                 {BEGIN(comment);}
+<comment>[^\n]*     {adaYYlval.cstrVal = strdup(adaYYtext);
+                     return(COMMENT_BODY);}
+<comment>\n         {BEGIN(INITIAL);} 
 [ \t\n\f]		;
 
 
@@ -115,25 +102,6 @@ void getMLComment()
 {
 	printf("ML: %s", yytext);
 }
-
-/*
-void resword(char *str) 
-{
-	int i;
-	for(i = 0; i<NUM_KW; i++)
-	{
-		upper_string(str);
-		if(!strcmp(key_tab[i].kw, str))
-			{
-			printf("KW: %s\n", str);
-			return key_tab[i].kwv;
-			}
-	
-	}
-	printf("ID: %s\n", str);
-      	return identifier;
-}
-*/
 int adaYYwrap(){
 	return 1;
 }

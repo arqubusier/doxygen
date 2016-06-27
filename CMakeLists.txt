@@ -131,7 +131,6 @@ if (win_static)
     endforeach()
 endif()
 
-
 add_subdirectory(libmd5)
 add_subdirectory(qtools)
 add_subdirectory(vhdlparser)
