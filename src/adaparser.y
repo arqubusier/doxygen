@@ -41,7 +41,7 @@ static AdaLanguageScanner* s_adaScanner;
 %token AND
 %token ARRAY
 %token AT
-%token BEGIN
+//%token BEGIN causes conflict with begin macro
 %token BODY 
 %token CASE
 %token CONSTANT
@@ -150,14 +150,14 @@ doxy_comment:       COMMENT_BODY doxy_comment_cont
                      s_adaScanner->handleComment(e, doc);
                      $$ = e;}
 
-doxy_comment_cont:  /*COMMENT_BODY doxy_comment_cont
+doxy_comment_cont:  COMMENT_BODY doxy_comment_cont
                  
-                      {Entry* e = new QCString(QCString($1) + *$2);
+                      {QCString* str = new QCString(QCString($1) + *$2);
                        delete $1;
                        delete $2;
-                       $$ = e;}
+                       $$ = str;}
                        
-                    |*/ {$$ = new QCString("");}
+                    | {$$ = new QCString("");}
 
 %%
 
@@ -185,7 +185,7 @@ void AdaLanguageScanner::handleComment(Entry* comment_root, const QCString &doc)
   int lineNum=0;
   Protection protection = Public;
   bool newEntryNeeded;
-  Entry *current;
+  Entry *current=comment_root;
 
   while (parseCommentBlock(
            this,

@@ -3,8 +3,8 @@
 #include <ctype.h>
 #include <iostream>
 //the hpp file contains the tokens
-#include "adaparser.hpp"
 #include "adaparser.h"
+#include "adaparser.hpp"
 
 #define YY_DECL extern int adaYYlex()
 
@@ -18,21 +18,6 @@ YY_BUFFER_STATE         s_bufferState;
 /*
  the file contents is read by doxygen before scanning.
  */
- /*
-//#undef	YY_INPUT
-//#define	YY_INPUT(buf,result,max_size) result=yyread(buf,max_size);
-static int yyread(char *buf, int max_size){
-  int c=0;
-  while ( c < max_size && inputString[inputPosition] )
-  {
-    *buf = inputString[inputPosition++] ;
-    printf("%d (%c)\n",*buf,*buf);
-    c++; buf++;
-  }
-  return c;
-    
-}
-*/
 
 void setInputString(const char *input)
 {
@@ -70,11 +55,7 @@ BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
 ">="			return(GTEQ);
 ":="			return(ASS);
 "=>"			return(REF);
-"'"."'"			return(character_literal);
-\"(\"\"|[^\n\"])*\"     return(string_literal);
-{DECIMAL_LITERAL}	return(numerical);
-{BASED_LITERAL}		return(numerical);
-"--[^\n!]*\n"			{std::cout << "skipping comment" << std::endl;}
+"--[^\n!]*\n"			{std::cout << "skipping comment " << std::endl;}
 "--!"                 {BEGIN(comment);}
 <comment>[^\n]*     {adaYYlval.cstrVal = strdup(adaYYtext);
                      return(COMMENT_BODY);}
@@ -83,6 +64,11 @@ BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
 
 
 %%
+/*
+"'"."'"			return(character_literal);
+\"(\"\"|[^\n\"])*\"     return(string_literal);
+
+*/
 
 void upper_string(char *str)
 {
