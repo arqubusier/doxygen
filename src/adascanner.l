@@ -28,7 +28,7 @@ void cleanupInputString(){
   yy_delete_buffer(s_bufferState);
 }
 %}
-
+%option caseless
 
 DIGIT			[0-9]
 EXTENDED_DIGIT		[0-9a-zA-Z]
@@ -56,13 +56,20 @@ BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
 ">="			return(GTEQ);
 ":="			return(ASS);
 "=>"			return(REF);
+";"             return(SEM);
+"package"       {printf("package\n");return(PACKAGE);}
+"is"            {printf("is\n");return(IS);}
+"end"           {printf("end\n");return(END);}
 "--!"                 {BEGIN(doxy_comment);}
 <doxy_comment>[^\n]*     {adaYYlval.cstrVal = strdup(adaYYtext);
                      return(COMMENT_BODY);}
-<doxy_comment>\n         {BEGIN(INITIAL);} 
+<doxy_comment>\n         {BEGIN(INITIAL);printf("end doxycomment\n");} 
 "--"                 {BEGIN(comment);}
 <comment>[^\n]*     ;
-<comment>\n         {BEGIN(INITIAL);}
+<comment>\n         {BEGIN(INITIAL);printf("end comment\n");}
+[:alpha:][[:alnum:]_]* {printf("id\n");
+                        adaYYlval.cstrVal = strdup(adaYYtext);
+                        return(IDENTIFIER);}
 [ \t\n\f]		;
 
 

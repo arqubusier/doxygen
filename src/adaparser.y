@@ -7,6 +7,7 @@
 #include "entry.h"
 #include "types.h"
 #include "commentscan.h"
+#include <list>
 
   //from flex for bison to know about!
 extern int adaYYlex();
@@ -17,9 +18,12 @@ void adaYYerror (char const *s);
 void initEntry (Entry *e, Entry *parent=NULL, Protection prot=Public,
                 MethodTypes mtype=Method, bool stat=false,
                 Specifier virt=Normal);
+Entry* handlePackage(const char* name);
+Entry* newEntry();
 
 static Entry* s_root;
 static AdaLanguageScanner* s_adaScanner;
+static std::list<Entry*> s_decl_items;
  %}
 
 %union {
@@ -56,13 +60,12 @@ static AdaLanguageScanner* s_adaScanner;
 %token ENTRY
 %token EXCEPTION
 %token EXIT
-%token FOR
-%token FUNCTION
 %token GENERIC
 %token GOTO
 %token IF
 %token IN
 %token INTERFACE //ADA 2005
+%token <cstrVal>IDENTIFIER
 %token IS
 %token LIMITED
 %token LOOP
@@ -122,44 +125,135 @@ static AdaLanguageScanner* s_adaScanner;
 %token GTEQ
 %token ASS
 %token REF
+%token SEM
 
 /*non-terminals*/
 //%type<charVal> character_literal
-//%type<cstrVal> identifier
 //%type<intVal> numerical
-//%type<entryPtr> package_spec
 //%type<entryPtr> package_body
-//%type<cstrVal> comment
 %type<entryPtr> doxy_comment
-%type<qstrPtr> doxy_comment_cont
-
+//%type<qstrPtr> doxy_comment_cont
+%type<entryPtr> package_spec
+%type<entryPtr> library_item
+//%type<qstrPtr> subtype
 
 %defines
 
 %%
 
 start: doxy_comment {s_root->addSubEntry($1);}
+       |doxy_comment library_item
+                    {
+                    Entry *comment = $1;
+                    Entry *item = $2;
+                    s_root->addSubEntry(comment);
+                    comment->addSubEntry(item);}
 
-doxy_comment:       COMMENT_BODY doxy_comment_cont
-                    {QCString doc = QCString($1) + *$2;
+library_item: package_spec
+              |doxy_comment package_spec
+               {
+                    Entry *comment = $1;
+                    Entry *item = $2;
+                    comment->addSubEntry(item);
+                    $$ = comment;
+               }
+
+doxy_comment:       COMMENT_BODY
+                    {QCString doc = QCString($1);// + *$2;
                      std::cout << "comment: " << doc << std::endl; 
                      delete $1;
-                     delete $2;
+                     //delete $2;
                      Entry *e = new Entry;
                      initEntry(e);
                      s_adaScanner->handleComment(e, doc);
                      $$ = e;}
 
+/*
 doxy_comment_cont:  COMMENT_BODY doxy_comment_cont
-                 
                       {QCString* str = new QCString(QCString($1) + *$2);
                        delete $1;
                        delete $2;
                        $$ = str;}
                        
                     | {$$ = new QCString("");}
+                    */
+
+package_spec:       PACKAGE IDENTIFIER IS END IDENTIFIER SEM
+                      {
+                       $$ = handlePackage($2);
+                      }
+                    | PACKAGE IDENTIFIER IS PRIVATE
+                      END IDENTIFIER SEM
+                      {
+                       $$ = handlePackage($2);
+                      }
+                      /*
+basic_decl:         | decl_item basic_decl;
+decl_item:          obj_decl;
+obj_decl:           identifier_list ":" subtype
+                    {
+                      for (std::list<Entry*>::iterator
+                           it=s_decl_items.begin();                                               it != s_decl_items.end(); ++it)
+                      {
+                        std::cout << "add type" << *$3 << " to " <<
+                        (*it)->name << std::endl;
+                        (*it)->type=*$3;
+                        delete $3;
+                      }
+                    }
+identifier_list:    IDENTIFIER
+                    {
+                      std::cout << "New id " << $1 << std::endl;
+                      Entry *e = newEntry();
+                      e->name = QCString($1);
+                      s_decl_items.push_front(newEntry());
+                    }
+                    |IDENTIFIER "," identifier_list
+                    {
+                      std::cout << "New id " << $1 << std::endl;
+                      Entry *e = newEntry();
+                      e->name = QCString($1);
+                      s_decl_items.push_front(newEntry());
+                    }
+                    
+subtype:            IDENTIFIER constraint
+                    {
+                      std::cout << "New type " << $1 << std::endl;
+                      $$ = new QCString($1);
+                    }
+constraint:;
+                    
+                    */
+                    
+
 
 %%
+Entry* newEntry(){
+    Entry* e = new Entry;
+    initEntry(e);
+    return e;
+}
+
+Entry *handlePackage(const char* name){
+  std::cout << "New package " << name << std::endl;
+  Entry *pkg = newEntry();
+  pkg->section = Entry::NAMESPACE_SEC;
+  pkg->name = QCString(name);
+
+  /*
+  Entry *e;
+  while (!s_decl_items.empty())
+  {
+    e = s_decl_items.front();
+    pkg->addSubEntry(e);
+    s_decl_items.pop_front();
+  }
+  */
+  return pkg;
+}
+
+void addDeclItems(Entry *root){
+}
 
 void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
                    const char *scopeName,
