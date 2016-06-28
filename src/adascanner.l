@@ -39,6 +39,7 @@ BASE			{INTEGER}
 BASED_INTEGER		{EXTENDED_DIGIT}(_?{EXTENDED_DIGIT})*
 BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
 
+%x doxy_comment
 %x comment
 
 
@@ -55,11 +56,13 @@ BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
 ">="			return(GTEQ);
 ":="			return(ASS);
 "=>"			return(REF);
-"--[^\n!]*\n"			{std::cout << "skipping comment " << std::endl;}
-"--!"                 {BEGIN(comment);}
-<comment>[^\n]*     {adaYYlval.cstrVal = strdup(adaYYtext);
+"--!"                 {BEGIN(doxy_comment);}
+<doxy_comment>[^\n]*     {adaYYlval.cstrVal = strdup(adaYYtext);
                      return(COMMENT_BODY);}
-<comment>\n         {BEGIN(INITIAL);} 
+<doxy_comment>\n         {BEGIN(INITIAL);} 
+"--"                 {BEGIN(comment);}
+<comment>[^\n]*     ;
+<comment>\n         {BEGIN(INITIAL);}
 [ \t\n\f]		;
 
 
