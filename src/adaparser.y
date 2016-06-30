@@ -9,7 +9,7 @@
 #include "commentscan.h"
 #include <list>
 
-  //from flex for bison to know about!
+//from flex for bison to know about!
 extern int adaYYlex();
 extern int adaYYparse();
 extern int adaYYwrap();
@@ -18,12 +18,20 @@ void adaYYerror (char const *s);
 void initEntry (Entry *e, Entry *parent=NULL, Protection prot=Public,
                 MethodTypes mtype=Method, bool stat=false,
                 Specifier virt=Normal);
-Entry* handlePackage(const char* name);
+Entry* handlePackage(const char* name, Entries *publics,
+                     Entries *privates=NULL);
+
+/**
+ * Takes the children from src and adds them to dst.
+ * dst parent is removed.
+ */
+void   moveEntries(Entries *dst_entries, Entries* src_entries); 
+void   moveEntriesToEntry(Entry *entry, Entries* entries); 
 Entry* newEntry();
 
 static Entry* s_root;
 static AdaLanguageScanner* s_adaScanner;
-static std::list<Entry*> s_decl_items;
+
  %}
 
 %union {
@@ -32,6 +40,7 @@ static std::list<Entry*> s_decl_items;
   char* cstrVal;
   Entry* entryPtr;
   QCString* qstrPtr;
+  Entries* entriesPtr;
 }
 
 /*KEYWORDS*/
@@ -126,6 +135,8 @@ static std::list<Entry*> s_decl_items;
 %token ASS
 %token REF
 %token SEM
+%token COMMA
+%token COLON
 
 /*non-terminals*/
 //%type<charVal> character_literal
@@ -134,11 +145,19 @@ static std::list<Entry*> s_decl_items;
 %type<entryPtr> doxy_comment
 //%type<qstrPtr> doxy_comment_cont
 %type<entryPtr> package_spec
+%type<entriesPtr> basic_decls
+%type<entriesPtr> obj_decl
+%type<entriesPtr> decl_item
+%type<entriesPtr> identifier_list
 %type<entryPtr> library_item
-//%type<qstrPtr> subtype
+%type<qstrPtr> subtype
 
 %defines
-
+/*
+ NOTE: when receiving c strings from the lexer, the parser
+ becomes responsible for deallocating them. Thus, they
+ need to be deleted in every rule that they are used.
+*/
 %%
 
 start: doxy_comment {s_root->addSubEntry($1);}
@@ -178,77 +197,125 @@ doxy_comment_cont:  COMMENT_BODY doxy_comment_cont
                     | {$$ = new QCString("");}
                     */
 
-package_spec:       PACKAGE IDENTIFIER IS END IDENTIFIER SEM
+package_spec:       PACKAGE IDENTIFIER IS basic_decls END
+                    IDENTIFIER SEM
                       {
-                       $$ = handlePackage($2);
+                       $$ = handlePackage($2, $4);
+                       printf("p:pub package2\n");
+                       delete $2;
+                       printf("p:pub package1\n");
+                       delete $6;
+                       printf("p:pub package2\n");
                       }
-                    | PACKAGE IDENTIFIER IS PRIVATE
-                      END IDENTIFIER SEM
+                    | PACKAGE IDENTIFIER IS basic_decls
+                      PRIVATE basic_decls END IDENTIFIER SEM
                       {
-                       $$ = handlePackage($2);
+                       $$ = handlePackage($2, $4, $6);
+                       delete $2;
+                       delete $8;
                       }
-                      /*
-basic_decl:         | decl_item basic_decl;
-decl_item:          obj_decl;
-obj_decl:           identifier_list ":" subtype
+basic_decls:        {Entries *entries = new Entries;
+                     $$ = entries;
+                     printf("new basic_decls root");}
+                    |decl_item basic_decls
                     {
-                      for (std::list<Entry*>::iterator
-                           it=s_decl_items.begin();                                               it != s_decl_items.end(); ++it)
-                      {
-                        std::cout << "add type" << *$3 << " to " <<
-                        (*it)->name << std::endl;
-                        (*it)->type=*$3;
-                        delete $3;
-                      }
+                      Entries *entries = $2;
+                      Entries *sub_entries = $1;
+                      printf("decls\n");
+                      moveEntries(entries, sub_entries);
+                      printf("decls moved\n");
+                      $$ = entries;
+                    }
+decl_item:          obj_decl
+obj_decl:           identifier_list COLON subtype expression SEM
+                    {
+                      $$ = $1;
+                      delete $3;
                     }
 identifier_list:    IDENTIFIER
                     {
                       std::cout << "New id " << $1 << std::endl;
-                      Entry *e = newEntry();
-                      e->name = QCString($1);
-                      s_decl_items.push_front(newEntry());
+                      Entries *entries = new Entries;
+
+                      Entry *obj = newEntry();
+                      obj->name = QCString($1);
+                      obj->section = Entry::VARIABLE_SEC;
+                      obj->type = "int";
+
+                      entries->push_front(obj);
+                      printf("identifier list\n");
+                      $$ = entries;
+                      delete $1;
                     }
-                    |IDENTIFIER "," identifier_list
+                    |IDENTIFIER COMMA identifier_list
                     {
                       std::cout << "New id " << $1 << std::endl;
-                      Entry *e = newEntry();
-                      e->name = QCString($1);
-                      s_decl_items.push_front(newEntry());
+                      Entries *entries = $3;
+
+                      Entry *obj = newEntry();
+                      obj->name = QCString($1);
+                      obj->section = Entry::VARIABLE_SEC;
+                      obj->type = "int";
+
+                      entries->push_front(obj);
+
+                      $$ = entries;
+                      delete $1;
                     }
                     
 subtype:            IDENTIFIER constraint
                     {
                       std::cout << "New type " << $1 << std::endl;
                       $$ = new QCString($1);
+                      delete $1;
                     }
 constraint:;
+expression:;
                     
-                    */
-                    
-
-
 %%
-Entry* newEntry(){
+
+Entry* newEntry()
+{
     Entry* e = new Entry;
     initEntry(e);
     return e;
 }
 
-Entry *handlePackage(const char* name){
+void   moveEntries(Entries* dst_entries, Entries* src_entries)
+{
+  dst_entries->splice(dst_entries->begin(), *src_entries);
+  printf("before delete\n");
+  delete src_entries;
+  printf("after delete\n");
+}
+
+void moveEntriesToEntry(Entry* entry, Entries *entries)
+{
+  EntriesIter it;
+  for (it=entries->begin(); it!=entries->end(); ++it)
+  {
+    entry->addSubEntry(*it);
+  } 
+  delete entries;
+}
+
+Entry *handlePackage(const char* name, Entries *publics,
+                     Entries *privates)
+{
   std::cout << "New package " << name << std::endl;
   Entry *pkg = newEntry();
   pkg->section = Entry::NAMESPACE_SEC;
   pkg->name = QCString(name);
 
-  /*
-  Entry *e;
-  while (!s_decl_items.empty())
+  moveEntriesToEntry(pkg, publics);
+  printf("parser: added publics\n");
+  if (privates)
   {
-    e = s_decl_items.front();
-    pkg->addSubEntry(e);
-    s_decl_items.pop_front();
-  }
-  */
+    printf("parser: adding privates\n");
+    moveEntriesToEntry(pkg, privates);
+  }   
+
+  printf("parser: returning\n");
   return pkg;
 }
 

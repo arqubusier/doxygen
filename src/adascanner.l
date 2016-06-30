@@ -57,6 +57,8 @@ BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
 ":="			return(ASS);
 "=>"			return(REF);
 ";"             return(SEM);
+","             return(COMMA);
+":"             {printf("colon\n");return(COLON);}
 "package"       {printf("package\n");return(PACKAGE);}
 "is"            {printf("is\n");return(IS);}
 "end"           {printf("end\n");return(END);}
@@ -67,7 +69,7 @@ BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
 "--"                 {BEGIN(comment);}
 <comment>[^\n]*     ;
 <comment>\n         {BEGIN(INITIAL);printf("end comment\n");}
-[:alpha:][[:alnum:]_]* {printf("id\n");
+[a-zA-Z][a-zA-Z0-9_]* {printf("id\n");
                         adaYYlval.cstrVal = strdup(adaYYtext);
                         return(IDENTIFIER);}
 [ \t\n\f]		;

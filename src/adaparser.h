@@ -26,12 +26,17 @@
 #define ADAPARSER_H
 
 #include "parserintf.h"
+#include <list>
 #include <qfile.h>
 
 /** \brief Ada Language parser using state-based lexical scanning.
  *
  * This is the Ada language parser for doxygen.
  */
+
+typedef std::list<Entry*> Entries;
+typedef Entries::iterator EntriesIter;
+
 class AdaLanguageScanner : public ParserInterface
 {
   public:
