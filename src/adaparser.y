@@ -9,12 +9,14 @@
 #include "commentscan.h"
 #include <list>
 
+
 //from flex for bison to know about!
 extern int adaYYlex();
 extern int adaYYparse();
 extern int adaYYwrap();
 extern void adaYYrestart( FILE *new_file );
 void adaYYerror (char const *s);
+extern Entries structuralEntries;
 void initEntry (Entry *e, Entry *parent=NULL, Protection prot=Public,
                 MethodTypes mtype=Method, bool stat=false,
                 Specifier virt=Normal);
@@ -122,6 +124,7 @@ static AdaLanguageScanner* s_adaScanner;
 %token START_COMMENT
 %token START_DOXY_COMMENT
 %token <cstrVal>COMMENT_BODY
+%token <entryPtr>SPECIAL_COMMENT
 %token LINE
 %token NEWLINE
 %token TIC
@@ -161,25 +164,20 @@ static AdaLanguageScanner* s_adaScanner;
 */
 %%
 
-start: doxy_comment {s_root->addSubEntry($1);}
-       |doxy_comment library_item
+start: doxy_comment library_item
                     {
                     Entry *comment = $1;
                     Entry *item = $2;
                     s_root->addSubEntry(comment);
-                    comment->addSubEntry(item);}
+                    s_root->addSubEntry(item);}
 
 library_item: package_spec
 
-doxy_comment:       COMMENT_BODY
-                    {QCString doc = QCString($1);// + *$2;
-                     std::cout << "comment: " << doc << std::endl; 
-                     delete $1;
-                     //delete $2;
-                     Entry *e = new Entry;
-                     initEntry(e);
-                     s_adaScanner->handleComment(e, doc);
-                     $$ = e;}
+/* TODO: add error handling */
+doxy_comment:       SPECIAL_COMMENT
+                    {
+                     std::cout << "comment: " << $1->doc << std::endl;
+                     $$ = $1;}
 
 /*
 doxy_comment_cont:  COMMENT_BODY doxy_comment_cont
@@ -347,47 +345,17 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
 {
 }
 
-void AdaLanguageScanner::handleComment(Entry* comment_root, const QCString &doc)
-{
-  int pos=0;
-  int lineNum=0;
-  Protection protection = Public;
-  bool newEntryNeeded;
-  Entry *current=comment_root;
-
-  while (parseCommentBlock(
-           this,
-           current,
-           doc,
-           qcFileName,
-           lineNum,
-           false,
-           false,
-           false,
-           protection,
-           pos,
-           newEntryNeeded))
-  {
-    if (newEntryNeeded){
-      current = new Entry;
-      comment_root->addSubEntry(current);
-    }
-  }
-  if (newEntryNeeded){
-    current = new Entry;
-    comment_root->addSubEntry(current);
-  }
-}
-
 void AdaLanguageScanner::parseInput(const char * fileName, 
                 const char *fileBuf, 
                 Entry *root,
                 bool sameTranslationUnit,
-                QStrList &filesInSameTranslationUnit){
+                QStrList &filesInSameTranslationUnit)
+{
   std::cout << "ADAPARSER" << std::endl;
   s_root = root;
   s_adaScanner = this;
   qcFileName = fileName;
+
 
   inputFile.setName(fileName);
 
@@ -397,6 +365,15 @@ void AdaLanguageScanner::parseInput(const char * fileName,
     adaYYparse();
     cleanupInputString();
     inputFile.close();
+
+    //Add entries for structural comments found by the lexer.
+    EntriesIter it;
+    for (it=structuralEntries.begin();
+         it!=structuralEntries.end(); ++it)
+    {
+      s_root->addSubEntry(*it);
+    } 
+
   }
   s_root->printTree();
 }
