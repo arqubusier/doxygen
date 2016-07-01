@@ -27,6 +27,7 @@ Entry* handlePackage(const char* name, Entries *publics,
  */
 void   moveEntries(Entries *dst_entries, Entries* src_entries); 
 void   moveEntriesToEntry(Entry *entry, Entries* entries); 
+void   addDocToEntries(Entry* doc, Entries* entries);
 Entry* newEntry();
 
 static Entry* s_root;
@@ -169,13 +170,6 @@ start: doxy_comment {s_root->addSubEntry($1);}
                     comment->addSubEntry(item);}
 
 library_item: package_spec
-              |doxy_comment package_spec
-               {
-                    Entry *comment = $1;
-                    Entry *item = $2;
-                    comment->addSubEntry(item);
-                    $$ = comment;
-               }
 
 doxy_comment:       COMMENT_BODY
                     {QCString doc = QCString($1);// + *$2;
@@ -227,10 +221,13 @@ basic_decls:        {Entries *entries = new Entries;
                       $$ = entries;
                     }
 decl_item:          obj_decl
-obj_decl:           identifier_list COLON subtype expression SEM
+obj_decl:           doxy_comment identifier_list COLON 
+                    subtype expression SEM
                     {
-                      $$ = $1;
-                      delete $3;
+                      Entries *entries = $2;
+                      addDocToEntries($1, entries);
+                      $$ = entries;
+                      delete $4;
                     }
 identifier_list:    IDENTIFIER
                     {
@@ -279,6 +276,16 @@ Entry* newEntry()
     Entry* e = new Entry;
     initEntry(e);
     return e;
+}
+
+void   addDocToEntries(Entry *doc, Entries* entries)
+{
+  if (!entries->empty())
+  {
+    Entry *entry = entries->front();
+    entry->doc = doc->doc;
+    entry->brief = doc->brief;
+  }
 }
 
 void   moveEntries(Entries* dst_entries, Entries* src_entries)
