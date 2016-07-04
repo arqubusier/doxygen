@@ -2,18 +2,20 @@
 #include <sstream>
 #include <iostream>
 
+#include "message.h"
+
 void printQC(std::string pad, std::string name, QCString &str){
     if (str.isNull())
        return;
 
-    std::cout << pad << name << " " << str << std::endl;
+    msg("%s%s %s\n", pad.data(), name.data(), str.data());
 }
 
 void printFlag(std::string pad, std::string name, bool flag){
    if (flag)
-     std::cout << pad << name << " true" << std::endl;
+    msg("%s%s TRUE", pad.data(), name.data());
    else
-     std::cout << pad << name << " false" << std::endl;
+    msg("%s%s FALSE\n", pad.data(), name.data());
 
 }
 

@@ -6,7 +6,6 @@
 #include "adaparser.h"
 #include "entry.h"
 #include "types.h"
-#include "commentscan.h"
 #include <list>
 
 
@@ -166,28 +165,24 @@ static AdaLanguageScanner* s_adaScanner;
 
 start: doxy_comment library_item
                     {
-                    Entry *comment = $1;
-                    Entry *item = $2;
-                    s_root->addSubEntry(comment);
-                    s_root->addSubEntry(item);}
+                     Entry *item = $2;
+                     printf("item %s\n", item->name.data()); 
+                     s_root->addSubEntry(item);
+                     Entry *comment = $1;
+                     if ( comment )
+                     {
+                       s_root->addSubEntry(comment);
+                     }
+                    }
 
 library_item: package_spec
 
 /* TODO: add error handling */
-doxy_comment:       SPECIAL_COMMENT
+doxy_comment:       /* empty */ {$$ = NULL;}
+                    |SPECIAL_COMMENT
                     {
                      std::cout << "comment: " << $1->doc << std::endl;
                      $$ = $1;}
-
-/*
-doxy_comment_cont:  COMMENT_BODY doxy_comment_cont
-                      {QCString* str = new QCString(QCString($1) + *$2);
-                       delete $1;
-                       delete $2;
-                       $$ = str;}
-                       
-                    | {$$ = new QCString("");}
-                    */
 
 package_spec:       PACKAGE IDENTIFIER IS basic_decls END
                     IDENTIFIER SEM
@@ -278,7 +273,7 @@ Entry* newEntry()
 
 void   addDocToEntries(Entry *doc, Entries* entries)
 {
-  if (!entries->empty())
+  if (!entries->empty() && doc)
   {
     Entry *entry = entries->front();
     entry->doc = doc->doc;
@@ -307,7 +302,7 @@ void moveEntriesToEntry(Entry* entry, Entries *entries)
 Entry *handlePackage(const char* name, Entries *publics,
                      Entries *privates)
 {
-  std::cout << "New package " << name << std::endl;
+  printf("New package \n");
   Entry *pkg = newEntry();
   pkg->section = Entry::NAMESPACE_SEC;
   pkg->name = QCString(name);
@@ -362,21 +357,19 @@ void AdaLanguageScanner::parseInput(const char * fileName,
   if (inputFile.open(IO_ReadOnly))
   {
     setInputString(fileBuf);
+    initAdaScanner(this, qcFileName, s_root);
     adaYYparse();
     cleanupInputString();
     inputFile.close();
-
-    //Add entries for structural comments found by the lexer.
-    EntriesIter it;
-    for (it=structuralEntries.begin();
-         it!=structuralEntries.end(); ++it)
-    {
-      s_root->addSubEntry(*it);
-    } 
-
   }
   s_root->printTree();
 }
+
+void adaFreeScanner()
+{
+  freeAdaScanner();
+}
+
 bool AdaLanguageScanner::needsPreprocessing(const QCString &extension){return false;}
 void AdaLanguageScanner::resetCodeParserState(){;}
 void AdaLanguageScanner::parsePrototype(const char *text){;}
@@ -403,5 +396,3 @@ void initEntry (Entry *e, Entry *parent, Protection prot,
   e->lang       = SrcLangExt_Ada; 
   e->setParent(parent);
 }
-
-void adaFreeScanner(){;}

@@ -21,7 +21,6 @@
  *  taught by Peter H. Froehlich <phf@acm.org>.
  */
 
-
 #ifndef ADAPARSER_H
 #define ADAPARSER_H
 
@@ -77,8 +76,12 @@ class AdaLanguageScanner : public ParserInterface
     QCString qcFileName;
 };
 
-void adaFreeScanner();
+void freeAdaScanner();
+void initAdaScanner(AdaLanguageScanner *parser, QCString fileName,
+                    Entry* parser_root);
+Entries *getStructuralComments();
 void setInputString(const char* input);
 void cleanupInputString();
+void adaFreeScanner();
 
 #endif //ADAPARSER_H

@@ -11111,6 +11111,7 @@ void parseInput()
   preFreeScanner();
   scanFreeScanner();
   pyscanFreeScanner();
+  adaFreeScanner();
 
   if (!g_storage->open(IO_ReadOnly))
   {
@@ -11118,9 +11119,6 @@ void parseInput()
         Doxygen::entryDBFileName.data());
     exit(1);
   }
- 
-  //TODO CLEANME
-  //root->printTree();
 
   /**************************************************************************
    *             Gather information                                         *

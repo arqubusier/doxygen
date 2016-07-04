@@ -6,6 +6,8 @@
 #include "adaparser.h"
 #include "adaparser.hpp"
 #include "entry.h"
+#include "commentscan.h"
+#include "message.h"
 
 #define YY_DECL extern int adaYYlex()
 
@@ -15,12 +17,14 @@
 static const char *     inputString;
 static int		        inputPosition;
 static QCString         s_specialComment;
+static AdaLanguageScanner *s_parser;
+static QCString         s_fileName;
 YY_BUFFER_STATE         s_bufferState;
 
 /*
  Global variables
 */
-Entries structuralEntries;
+Entry* parser_root;
 
 /*
  the file contents is read by doxygen before scanning.
@@ -38,6 +42,7 @@ void cleanupInputString(){
 void handleComment(Entry *non_struct_entry,
               bool  &is_non_struct,
               const QCString &doc);
+
 %}
 %option caseless
 
@@ -74,6 +79,7 @@ BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
 "is"            {printf("is\n");return(IS);}
 "end"           {printf("end\n");return(END);}
 "--!"                 {s_specialComment.resize(0); 
+                       printf("start doxycomment\n");
                        BEGIN(doxy_comment);}
 <doxy_comment>[^\n]*  {s_specialComment.append(adaYYtext);}
 <doxy_comment>"\n--!" {s_specialComment.append("\n");} 
@@ -119,10 +125,10 @@ void handleComment(Entry *non_struct_entry,
 
   is_non_struct = true;
   while (parseCommentBlock(
-           this,
+           s_parser,
            current,
            doc,
-           qcFileName,
+           s_fileName,
            lineNum,
            false,
            false,
@@ -133,15 +139,22 @@ void handleComment(Entry *non_struct_entry,
   {
     if (newEntryNeeded){
       is_non_struct = false;
-      structuralEntities.append(current);
+      parser_root->addSubEntry(current);
       current = new Entry;
     }
   }
   if (newEntryNeeded){
       is_non_struct = false;
-      structuralEntities.append(current);
+      parser_root->addSubEntry(current);
       current = new Entry;
   }
+}
+
+void initAdaScanner(AdaLanguageScanner *parser, QCString fileName,
+                    Entry *root){
+  parser_root = root;
+  s_fileName = fileName;
+  s_parser = parser;
 }
 
 void upper_string(char *str)
@@ -153,15 +166,11 @@ void upper_string(char *str)
 	}
 }
 
-void getComment()
+void freeAdaScanner()
 {
-	printf("%s",yytext);
+  s_parser = NULL;
 }
 
-void getMLComment()
-{
-	printf("ML: %s", yytext);
-}
 int adaYYwrap(){
 	return 1;
 }

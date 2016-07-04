@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include "dbg_util.h"
+#include "message.h"
 
 //------------------------------------------------------------------
 
@@ -342,15 +343,15 @@ void Entry::print(int level){
     Entry *childNode;
     
     std::string pad(3*level, ' ');
-    std::cout << pad << "---------------------" << std::endl;
-    std::cout << pad << "Node "
-    << "Section " << section2str(section) << std::endl;
+    msg(  "%s---------------------\n", pad.data()); 
+    msg("%sNode Section %s\n", 
+        pad.data(), section2str(section).data());
     printQC(pad, "type", type);
     printQC(pad, "name", name);
     printQC(pad, "brief", brief);
-    std::cout << pad << "mtype " << mtype << std::endl;
-    std::cout << pad << "spec " << spec << std::endl;
-    printFlag(pad, "explicitExternal", explicitExternal);
+    msg("%smtype %d\n ", pad.data(), mtype);
+    msg("%sspec %d\n", pad.data(), spec);
+    printFlag(pad, "explicitExterna", explicitExternal);
     printFlag(pad, "proto", proto);
     printFlag(pad, "callGraph", callGraph);
     printFlag(pad, "callerGraph", callerGraph);
@@ -364,12 +365,11 @@ void Entry::print(int level){
     printQC(pad, "inbodyDocs", inbodyDocs);
     printQC(pad, "doc", doc);
     printQC(pad, "relates", relates);
-    std::cout << pad << "relatestype" << relatesType << std::endl;
+    msg("%srelatestype %d\n", pad.data(), relatesType);
     printFlag(pad, "artificial", artificial);
     
     
-    std::cout << pad << "with children:" << std::endl;
-    std::cout << pad << "-----------------" << std::endl;
+    msg("%swith children:\n", pad.data());
 
     level++;
     for (eli.toFirst();(childNode=eli.current());++eli)
