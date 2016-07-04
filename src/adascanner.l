@@ -77,6 +77,7 @@ B       [ \t]
 ","             return(COMMA);
 ":"             {printf("colon\n");return(COLON);}
 "package"       {printf("package\n");return(PACKAGE);}
+"private"       {printf("private\n");return(PRIVATE);}
 "is"            {printf("is\n");return(IS);}
 "end"           {printf("end\n");return(END);}
 "--!"                 {s_specialComment.resize(0); 

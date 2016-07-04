@@ -7,6 +7,7 @@
 #include "entry.h"
 #include "types.h"
 #include <list>
+#include <algorithm>
 
 
 //from flex for bison to know about!
@@ -218,7 +219,11 @@ obj_decl:           doxy_comment identifier_list COLON
                     subtype expression SEM
                     {
                       Entries *entries = $2;
+                      QCString *type = $4;
                       addDocToEntries($1, entries);
+                      EntriesIter it = entries->begin();
+                      for (;it != entries->end(); ++it)
+                        (*it)->type = *type;
                       $$ = entries;
                       delete $4;
                     }
