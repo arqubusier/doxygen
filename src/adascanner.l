@@ -40,8 +40,7 @@ void cleanupInputString(){
 }
 
 void handleComment(Entry *non_struct_entry,
-              bool  &is_non_struct,
-              const QCString &doc);
+              bool  &is_non_struct);
 
 %}
 %option caseless
@@ -54,6 +53,8 @@ DECIMAL_LITERAL		{INTEGER}(\.?{INTEGER})?{EXPONENT}?
 BASE			{INTEGER}
 BASED_INTEGER		{EXTENDED_DIGIT}(_?{EXTENDED_DIGIT})*
 BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
+B       [ \t]
+
 
 %x doxy_comment
 %x comment
@@ -81,10 +82,12 @@ BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
 "--!"                 {s_specialComment.resize(0); 
                        printf("start doxycomment\n");
                        BEGIN(doxy_comment);}
-<doxy_comment>[^\n]*  {s_specialComment.append(adaYYtext);}
-<doxy_comment>"\n--!" {s_specialComment.append("\n");} 
+<doxy_comment>[^\n]*  {s_specialComment.append(adaYYtext);
+                        printf("more text %s\n", adaYYtext);}
+<doxy_comment>\n{B}*"--!" {s_specialComment.append("\n"); 
+                        printf("new line\n");}
 
-<doxy_comment>"\n"    {/*Structural comments no not depend
+<doxy_comment>\n    {/*Structural comments no not depend
                         on location in the syntax tree, and
                         are thus handeled by the lexer.
                         
@@ -94,8 +97,7 @@ BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
                        printf("end doxycomment\n");
                        Entry *entry = new Entry;
                        bool is_non_struct;
-                       handleComment(entry, is_non_struct,
-                                    s_specialComment);
+                       handleComment(entry, is_non_struct);
                        if (is_non_struct)
                        {
                          adaYYlval.entryPtr = entry;
@@ -114,8 +116,7 @@ BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
 %%
 
 void handleComment(Entry *non_struct_entry,
-              bool  &is_non_struct,
-              const QCString &doc)
+              bool  &is_non_struct)
 {
   int pos=0;
   int lineNum=0;
@@ -127,7 +128,7 @@ void handleComment(Entry *non_struct_entry,
   while (parseCommentBlock(
            s_parser,
            current,
-           doc,
+           s_specialComment,
            s_fileName,
            lineNum,
            false,

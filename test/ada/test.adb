@@ -1,12 +1,12 @@
 --! \file test.adb
 
---! \class test.adb
-
 --! \brief package Hello
+--!
+--! oetnuhnoteuh
 package Hello is
 
     --! \brief variable var 1.
     --!
-    --! More description.
+    --! detailed desc.
     var1, var2 : int;
 end Hello;
