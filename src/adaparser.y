@@ -318,6 +318,9 @@ Entry *handlePackage(const char* name, Entries *publics,
   {
     printf("parser: adding privates\n");
     moveEntriesToEntry(pkg, privates);
+    EntriesIter it = privates->begin();
+    for (;it != privates->end(); ++it)
+      (*it)->spec = PRIVATE;
   }   
 
   printf("parser: returning\n");
