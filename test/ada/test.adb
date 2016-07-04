@@ -1,9 +1,11 @@
 --! \file test.adb
 
---! \brief package Hello
+--! \package Test.
+--! 
+--! ethuoetnuhnht.
 --!
 --! oetnuhnoteuh
-package Hello is
+package Test is
 
     --! \brief variable var 1.
     --!
@@ -11,4 +13,4 @@ package Hello is
     var1, var2 : integer;
 private
     priv1, priv2: float;
-end Hello;
+end Test;

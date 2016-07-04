@@ -317,10 +317,10 @@ Entry *handlePackage(const char* name, Entries *publics,
   if (privates)
   {
     printf("parser: adding privates\n");
-    moveEntriesToEntry(pkg, privates);
     EntriesIter it = privates->begin();
     for (;it != privates->end(); ++it)
-      (*it)->spec = PRIVATE;
+      (*it)->protection = Private;
+    moveEntriesToEntry(pkg, privates);
   }   
 
   printf("parser: returning\n");
