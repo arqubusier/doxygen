@@ -27,6 +27,7 @@
 #include "parserintf.h"
 #include <list>
 #include <qfile.h>
+#include "arguments.h"
 
 /** \brief Ada Language parser using state-based lexical scanning.
  *
@@ -35,6 +36,8 @@
 
 typedef std::list<Entry*> Entries;
 typedef Entries::iterator EntriesIter;
+typedef std::list<QCString> Identifiers;
+typedef Identifiers::iterator IdentifiersIter;;
 
 class AdaLanguageScanner : public ParserInterface
 {

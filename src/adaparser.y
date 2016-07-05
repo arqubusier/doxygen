@@ -6,9 +6,9 @@
 #include "adaparser.h"
 #include "entry.h"
 #include "types.h"
+#include "arguments.h"
 #include <list>
 #include <algorithm>
-
 
 //from flex for bison to know about!
 extern int adaYYlex();
@@ -44,6 +44,8 @@ static AdaLanguageScanner* s_adaScanner;
   Entry* entryPtr;
   QCString* qstrPtr;
   Entries* entriesPtr;
+  ArgumentList* argsPtr;
+  Identifiers* idsPtr;
 }
 
 /*KEYWORDS*/
@@ -72,6 +74,7 @@ static AdaLanguageScanner* s_adaScanner;
 %token ENTRY
 %token EXCEPTION
 %token EXIT
+%token FUNCTION
 %token GENERIC
 %token GOTO
 %token IF
@@ -149,12 +152,16 @@ static AdaLanguageScanner* s_adaScanner;
 %type<entryPtr> doxy_comment
 //%type<qstrPtr> doxy_comment_cont
 %type<entryPtr> package_spec
+%type<entryPtr> subprogram_spec
 %type<entriesPtr> basic_decls
 %type<entriesPtr> obj_decl
 %type<entriesPtr> decl_item
-%type<entriesPtr> identifier_list
+%type<idsPtr> identifier_list
 %type<entryPtr> library_item
 %type<qstrPtr> subtype
+%type<argsPtr> parameter_spec
+%type<argsPtr> parameters
+%type<qstrPtr> mode
 
 %defines
 /*
@@ -176,7 +183,7 @@ start: doxy_comment library_item
                      }
                     }
 
-library_item: package_spec
+library_item: package_spec| subprogram_spec
 
 /* TODO: add error handling */
 doxy_comment:       /* empty */ {$$ = NULL;}
@@ -202,6 +209,62 @@ package_spec:       PACKAGE IDENTIFIER IS basic_decls END
                        delete $2;
                        delete $8;
                       }
+subprogram_spec:    PROCEDURE IDENTIFIER parameters
+                   {
+                     Entry *fun = newEntry();
+                     fun->name = $2;
+                     fun->argList = $3;
+                     $$ = fun;
+                     delete $2;
+                   }
+                   |FUNCTION IDENTIFIER parameters RETURN
+                    IDENTIFIER 
+                   {
+                     Entry *fun = newEntry();
+                     fun->name = $2;
+                     fun->argList = $3;
+                     fun->type = $5;
+                     $$ = fun;
+                     delete $2;
+                     delete $5;
+                   }
+parameters:        parameter_spec
+                   |parameter_spec SEM parameters
+                   {
+                     ArgumentList *args = $3;
+                     ArgumentList *new_args = $1;
+                     ArgumentListIterator it(*args);
+                     Argument *arg;
+                     for ( it.toFirst(); (arg=it.current()); ++it )
+                     {
+                       args->append(arg);
+                     }
+                     $$ = args;
+                     delete new_args;
+                   }
+parameter_spec:    identifier_list COLON mode subtype
+                   {
+                     ArgumentList *args = new ArgumentList;
+                     Identifiers *ids = $1;
+                     IdentifiersIter it = ids->begin();
+                     QCString *type = $4;
+                     QCString *mode = $3;
+                     for (; it != ids->end(); ++it)
+                     {
+                       Argument a;
+                       a.type = *type;
+                       a.attrib = *mode;
+                       a.name = (*it);
+                       args->append(&a);
+                     }
+                     $$ = args;
+                     delete type;
+                     delete mode;
+                   }
+mode:              /* empty */ {$$ = new QCString("");}
+                   | IN {$$ = new QCString("in");}
+                   | OUT {$$ = new QCString("out");}
+                   | IN OUT {$$ = new QCString("in out");}
 basic_decls:        {Entries *entries = new Entries;
                      $$ = entries;
                      printf("new basic_decls root");}
@@ -218,43 +281,41 @@ decl_item:          obj_decl
 obj_decl:           doxy_comment identifier_list COLON 
                     subtype expression SEM
                     {
-                      Entries *entries = $2;
+                      Entries *entries = new Entries;
+
+                      Identifiers *ids = $2;
                       QCString *type = $4;
                       addDocToEntries($1, entries);
-                      EntriesIter it = entries->begin();
-                      for (;it != entries->end(); ++it)
-                        (*it)->type = *type;
+                      IdentifiersIter it = ids->begin();
+                      for (;it != ids->end(); ++it)
+                      {
+                        Entry *e = newEntry();
+                        e->name = (*it);
+                        e->type = *type;
+                        e->section = Entry::VARIABLE_SEC;
+                        entries->push_front(e);
+                      }
+
                       $$ = entries;
-                      delete $4;
+                      delete type;;
+                      delete ids;
                     }
 identifier_list:    IDENTIFIER
                     {
                       std::cout << "New id " << $1 << std::endl;
-                      Entries *entries = new Entries;
+                      Identifiers *ids = new Identifiers;
 
-                      Entry *obj = newEntry();
-                      obj->name = QCString($1);
-                      obj->section = Entry::VARIABLE_SEC;
-                      obj->type = "int";
-
-                      entries->push_front(obj);
                       printf("identifier list\n");
-                      $$ = entries;
+                      $$ = ids;
                       delete $1;
                     }
                     |IDENTIFIER COMMA identifier_list
                     {
                       std::cout << "New id " << $1 << std::endl;
-                      Entries *entries = $3;
+                      Identifiers *ids = $3;
+                      ids->push_front(QCString($1));
 
-                      Entry *obj = newEntry();
-                      obj->name = QCString($1);
-                      obj->section = Entry::VARIABLE_SEC;
-                      obj->type = "int";
-
-                      entries->push_front(obj);
-
-                      $$ = entries;
+                      $$ = ids;
                       delete $1;
                     }
                     

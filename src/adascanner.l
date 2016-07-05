@@ -80,6 +80,11 @@ B       [ \t]
 "private"       {printf("private\n");return(PRIVATE);}
 "is"            {printf("is\n");return(IS);}
 "end"           {printf("end\n");return(END);}
+"in"            return(IN);
+"out"           return(OUT);
+"procedure"     return(PROCEDURE);
+"function"      return(FUNCTION);
+"return"        return(RETURN);
 "--!"                 {s_specialComment.resize(0); 
                        printf("start doxycomment\n");
                        BEGIN(doxy_comment);}
