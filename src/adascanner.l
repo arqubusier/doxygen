@@ -80,11 +80,13 @@ B       [ \t]
 "private"       {printf("private\n");return(PRIVATE);}
 "is"            {printf("is\n");return(IS);}
 "end"           {printf("end\n");return(END);}
-"in"            return(IN);
-"out"           return(OUT);
-"procedure"     return(PROCEDURE);
-"function"      return(FUNCTION);
-"return"        return(RETURN);
+"in"            {printf("in\n");return(IN);}
+"out"           {printf("out\n");return(OUT);}
+"procedure"     {printf("procedure\n");return(PROCEDURE);}
+"function"      {printf("function\n");return(FUNCTION);}
+"return"        {printf("return\n");return(RETURN);}
+")"          {printf("rpar\n");return(RPAR);}
+"("          {printf("lpar\n");return(LPAR);}
 "--!"                 {s_specialComment.resize(0); 
                        printf("start doxycomment\n");
                        BEGIN(doxy_comment);}

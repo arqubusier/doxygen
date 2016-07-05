@@ -20,8 +20,10 @@ extern Entries structuralEntries;
 void initEntry (Entry *e, Entry *parent=NULL, Protection prot=Public,
                 MethodTypes mtype=Method, bool stat=false,
                 Specifier virt=Normal);
-Entry* handlePackage(const char* name, Entries *publics,
+Entry* handlePackage(Entry *doc, const char* name, Entries *publics,
                      Entries *privates=NULL);
+Entry* handleSubprogram(Entry *doc, const char* name,
+                        ArgumentList *args=NULL, const char *type=NULL);
 
 /**
  * Takes the children from src and adds them to dst.
@@ -30,6 +32,7 @@ Entry* handlePackage(const char* name, Entries *publics,
 void   moveEntries(Entries *dst_entries, Entries* src_entries); 
 void   moveEntriesToEntry(Entry *entry, Entries* entries); 
 void   addDocToEntries(Entry* doc, Entries* entries);
+void   addComment(Entry *entry, Entry *comment);
 Entry* newEntry();
 
 static Entry* s_root;
@@ -144,6 +147,8 @@ static AdaLanguageScanner* s_adaScanner;
 %token SEM
 %token COMMA
 %token COLON
+%token LPAR
+%token RPAR
 
 /*non-terminals*/
 //%type<charVal> character_literal
@@ -155,7 +160,8 @@ static AdaLanguageScanner* s_adaScanner;
 %type<entryPtr> subprogram_spec
 %type<entriesPtr> basic_decls
 %type<entriesPtr> obj_decl
-%type<entriesPtr> decl_item
+%type<entryPtr> decl_item
+%type<entriesPtr> decl_items
 %type<idsPtr> identifier_list
 %type<entryPtr> library_item
 %type<qstrPtr> subtype
@@ -177,10 +183,7 @@ start: doxy_comment library_item
                      printf("item %s\n", item->name.data()); 
                      s_root->addSubEntry(item);
                      Entry *comment = $1;
-                     if ( comment )
-                     {
-                       s_root->addSubEntry(comment);
-                     }
+                     addComment(s_root, comment);
                     }
 
 library_item: package_spec| subprogram_spec
@@ -192,41 +195,34 @@ doxy_comment:       /* empty */ {$$ = NULL;}
                      std::cout << "comment: " << $1->doc << std::endl;
                      $$ = $1;}
 
-package_spec:       PACKAGE IDENTIFIER IS basic_decls END
+package_spec:       doxy_comment PACKAGE IDENTIFIER IS
+                    basic_decls END
                     IDENTIFIER SEM
                       {
-                       $$ = handlePackage($2, $4);
-                       printf("p:pub package2\n");
-                       delete $2;
-                       printf("p:pub package1\n");
-                       delete $6;
-                       printf("p:pub package2\n");
+                       $$ = handlePackage($1, $3, $5);
+                       delete $3;
+                       delete $7;
                       }
-                    | PACKAGE IDENTIFIER IS basic_decls
+                    | doxy_comment PACKAGE IDENTIFIER IS basic_decls
                       PRIVATE basic_decls END IDENTIFIER SEM
                       {
-                       $$ = handlePackage($2, $4, $6);
-                       delete $2;
-                       delete $8;
+                       $$ = handlePackage($1, $3, $5, $7);
+                       delete $3;
+                       delete $9;
                       }
-subprogram_spec:    PROCEDURE IDENTIFIER parameters
+subprogram_spec:    doxy_comment PROCEDURE IDENTIFIER
+                    LPAR parameters RPAR SEM
                    {
-                     Entry *fun = newEntry();
-                     fun->name = $2;
-                     fun->argList = $3;
-                     $$ = fun;
-                     delete $2;
+                     $$ = handleSubprogram($1, $3, $5);
+                     delete $3;
                    }
-                   |FUNCTION IDENTIFIER parameters RETURN
-                    IDENTIFIER 
+                   |doxy_comment FUNCTION IDENTIFIER
+                    LPAR parameters RPAR RETURN
+                    IDENTIFIER SEM
                    {
-                     Entry *fun = newEntry();
-                     fun->name = $2;
-                     fun->argList = $3;
-                     fun->type = $5;
-                     $$ = fun;
-                     delete $2;
-                     delete $5;
+                     $$ = handleSubprogram($1, $3, $5, $8);
+                     delete $3;
+                     delete $8;
                    }
 parameters:        parameter_spec
                    |parameter_spec SEM parameters
@@ -251,11 +247,11 @@ parameter_spec:    identifier_list COLON mode subtype
                      QCString *mode = $3;
                      for (; it != ids->end(); ++it)
                      {
-                       Argument a;
-                       a.type = *type;
-                       a.attrib = *mode;
-                       a.name = (*it);
-                       args->append(&a);
+                       Argument *a = new Argument;
+                       a->type = *type;
+                       a->attrib = *mode;
+                       a->name = (*it);
+                       args->append(a);
                      }
                      $$ = args;
                      delete type;
@@ -268,7 +264,7 @@ mode:              /* empty */ {$$ = new QCString("");}
 basic_decls:        {Entries *entries = new Entries;
                      $$ = entries;
                      printf("new basic_decls root");}
-                    |decl_item basic_decls
+                    |decl_items basic_decls
                     {
                       Entries *entries = $2;
                       Entries *sub_entries = $1;
@@ -277,7 +273,15 @@ basic_decls:        {Entries *entries = new Entries;
                       printf("decls moved\n");
                       $$ = entries;
                     }
-decl_item:          obj_decl
+                    |decl_item basic_decls
+                    {
+                      Entries *entries = $2;
+                      Entry *decl = $1;
+                      entries->push_front(decl);
+                      $$ = entries;
+                    }
+decl_items:         obj_decl
+decl_item:          subprogram_spec
 obj_decl:           doxy_comment identifier_list COLON 
                     subtype expression SEM
                     {
@@ -302,8 +306,10 @@ obj_decl:           doxy_comment identifier_list COLON
                     }
 identifier_list:    IDENTIFIER
                     {
-                      std::cout << "New id " << $1 << std::endl;
+                      QCString id = $1;
+                      std::cout << "New id " << id << std::endl;
                       Identifiers *ids = new Identifiers;
+                      ids->push_front(id);
 
                       printf("identifier list\n");
                       $$ = ids;
@@ -330,6 +336,13 @@ expression:;
                     
 %%
 
+void   addComment(Entry *entry, Entry *comment)
+{
+  if ( comment )
+  {
+    entry->addSubEntry(comment);
+  }
+}
 Entry* newEntry()
 {
     Entry* e = new Entry;
@@ -337,13 +350,19 @@ Entry* newEntry()
     return e;
 }
 
-void   addDocToEntries(Entry *doc, Entries* entries)
-{
-  if (!entries->empty() && doc)
-  {
-    Entry *entry = entries->front();
+void addDocToEntry(Entry *doc, Entry *entry){
+  if( doc ){
     entry->doc = doc->doc;
     entry->brief = doc->brief;
+  }
+}
+
+void   addDocToEntries(Entry *doc, Entries* entries)
+{
+  if (!entries->empty())
+  {
+    Entry *entry = entries->front();
+    addDocToEntry(doc, entry);
   }
 }
 
@@ -365,7 +384,7 @@ void moveEntriesToEntry(Entry* entry, Entries *entries)
   delete entries;
 }
 
-Entry *handlePackage(const char* name, Entries *publics,
+Entry *handlePackage(Entry *doc, const char* name, Entries *publics,
                      Entries *privates)
 {
   printf("New package \n");
@@ -384,8 +403,23 @@ Entry *handlePackage(const char* name, Entries *publics,
     moveEntriesToEntry(pkg, privates);
   }   
 
+  addDocToEntry(doc, pkg);
   printf("parser: returning\n");
   return pkg;
+}
+
+Entry* handleSubprogram(Entry *doc, const char* name,
+                        ArgumentList *args, const char *type)
+{
+  Entry *fun = newEntry();
+  fun->name = name;
+  if (args)
+    fun->argList = args;
+  if (type)
+    fun->type = type;
+  fun->section = Entry::FUNCTION_SEC;
+  addDocToEntry(doc, fun);
+  return fun;
 }
 
 void addDeclItems(Entry *root){

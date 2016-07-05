@@ -9598,7 +9598,7 @@ int readDir(QFileInfo *fi,
     {
       if (exclDict==0 || exclDict->find(cfi->absFilePath().utf8())==0)
       { // file should not be excluded
-        printf("killDict->find(%s)\n",cfi->absFilePath().data());
+        //printf("killDict->find(%s)\n",cfi->absFilePath().data());
         if (!cfi->exists() || !cfi->isReadable())
         {
           if (errorIfNotExist)
