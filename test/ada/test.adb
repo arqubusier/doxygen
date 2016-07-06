@@ -13,7 +13,7 @@ package Test is
     --! \brief fun hej.
     --!
     --! more text.
-    procedure hej (x, y:integer); 
+    procedure hej; 
     --! \brief variable var 1.
     --!
     --! detailed desc.

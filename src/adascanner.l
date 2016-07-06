@@ -87,6 +87,8 @@ B       [ \t]
 "return"        {printf("return\n");return(RETURN);}
 ")"          {printf("rpar\n");return(RPAR);}
 "("          {printf("lpar\n");return(LPAR);}
+"body"          {printf("body\n");return(BODY);}
+"begin"          {printf("begin\n");return(BEGIN_);}
 "--!"                 {s_specialComment.resize(0); 
                        printf("start doxycomment\n");
                        BEGIN(doxy_comment);}

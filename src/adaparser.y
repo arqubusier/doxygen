@@ -24,7 +24,12 @@ Entry* handlePackage(Entry *doc, const char* name, Entries *publics,
                      Entries *privates=NULL);
 Entry* handleSubprogram(Entry *doc, const char* name,
                         ArgumentList *args=NULL, const char *type=NULL);
-
+Entries *handleDeclsBase(Entry *new_entry);
+Entries *handleDeclsBase(Entries *new_entries);
+Entries *handleDecls(Entry *new_entry, Entries *entries);
+Entries *handleDecls(Entries *new_entries, Entries *entries);
+Entry *handlePackageBody(Entry *doc, const char* name,
+                           Entries *decls=NULL);
 /**
  * Takes the children from src and adds them to dst.
  * dst parent is removed.
@@ -62,7 +67,7 @@ static AdaLanguageScanner* s_adaScanner;
 %token AND
 %token ARRAY
 %token AT
-//%token BEGIN causes conflict with begin macro
+%token BEGIN_ causes conflict with begin macro
 %token BODY 
 %token CASE
 %token CONSTANT
@@ -158,12 +163,18 @@ static AdaLanguageScanner* s_adaScanner;
 //%type<qstrPtr> doxy_comment_cont
 %type<entryPtr> package_spec
 %type<entryPtr> subprogram_spec
+%type<entryPtr> body
+%type<entryPtr> package_body
+%type<entryPtr> subprogram_body
 %type<entriesPtr> basic_decls
+%type<entriesPtr> decls
 %type<entriesPtr> obj_decl
 %type<entryPtr> decl_item
 %type<entriesPtr> decl_items
 %type<idsPtr> identifier_list
 %type<entryPtr> library_item
+%type<entryPtr> library_item_spec
+%type<entryPtr> library_item_body
 %type<qstrPtr> subtype
 %type<argsPtr> parameter_spec
 %type<argsPtr> parameters
@@ -184,8 +195,6 @@ start: library_item
                      s_root->addSubEntry(item);
                     }
 
-library_item: package_spec| subprogram_spec
-
 /* TODO: add error handling */
 doxy_comment:       /* empty */ {printf("empty comment\n");$$ = NULL;}
                     |SPECIAL_COMMENT
@@ -193,35 +202,72 @@ doxy_comment:       /* empty */ {printf("empty comment\n");$$ = NULL;}
                      std::cout << "comment: " << $1->doc << std::endl;
                      $$ = $1;}
 
+library_item: library_item_spec| library_item_body
+
+library_item_spec: package_spec| subprogram_spec
+
+library_item_body: package_body| subprogram_body
+
+
 package_spec:       doxy_comment PACKAGE IDENTIFIER IS
                     basic_decls END
                     IDENTIFIER SEM
                       {
                        $$ = handlePackage($1, $3, $5);
-                       delete $3;
                        delete $7;
                       }
                     | doxy_comment PACKAGE IDENTIFIER IS basic_decls
                       PRIVATE basic_decls END IDENTIFIER SEM
                       {
                        $$ = handlePackage($1, $3, $5, $7);
-                       delete $3;
                        delete $9;
                       }
-subprogram_spec:    doxy_comment PROCEDURE IDENTIFIER
+subprogram_spec:   doxy_comment PROCEDURE IDENTIFIER SEM
+                   {
+                     $$ = handleSubprogram($1, $3);
+                   }
+                   |doxy_comment PROCEDURE IDENTIFIER
                     LPAR parameters RPAR SEM
                    {
                      $$ = handleSubprogram($1, $3, $5);
-                     delete $3;
+                   }
+                   |doxy_comment FUNCTION IDENTIFIER RETURN
+                    IDENTIFIER SEM
+                   {
+                     $$ = handleSubprogram($1, $3, NULL, $5);
                    }
                    |doxy_comment FUNCTION IDENTIFIER
                     LPAR parameters RPAR RETURN
                     IDENTIFIER SEM
                    {
                      $$ = handleSubprogram($1, $3, $5, $8);
-                     delete $3;
-                     delete $8;
                    }
+body:              package_body| subprogram_body
+package_body:      doxy_comment PACKAGE BODY IDENTIFIER IS
+                   END IDENTIFIER SEM
+                   {
+                     $$ = handlePackageBody($1, $4); 
+                   }
+                   |doxy_comment PACKAGE BODY IDENTIFIER IS
+                   decls END IDENTIFIER SEM
+                   {
+                     $$ = handlePackageBody($1, $4, $6); 
+                   }
+                   |doxy_comment PACKAGE BODY IDENTIFIER IS
+                   decls BEGIN_ statements END SEM
+                   {
+                     $$ = handlePackageBody($1, $4, $6); 
+                   }
+
+subprogram_body:   doxy_comment PROCEDURE
+                   {
+                     $$ = NULL;
+                   }
+                   |doxy_comment FUNCTION
+                   {
+                     $$ = NULL;
+                   }
+
 parameters:        parameter_spec
                    |parameter_spec SEM parameters
                    {
@@ -255,10 +301,21 @@ parameter_spec:    identifier_list COLON mode subtype
                      delete type;
                      delete mode;
                    }
+
+/* TEST THESE!!! */
 mode:              /* empty */ {$$ = new QCString("");}
                    | IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
                    | IN OUT {$$ = new QCString("in out");}
+
+decls:             decl_items {$$ = handleDeclsBase($1);}
+                   |decl_item {$$ = handleDeclsBase($1);}
+                   |body {$$ = handleDeclsBase($1);}
+                   |decl_items decls {$$ = handleDecls($1, $2);} 
+                   |decl_item decls {$$ = handleDecls($1, $2);}
+                   |body decls {$$ = handleDecls($1, $2);}
+
+/* Redefine how empty is handled */
 basic_decls:        {Entries *entries = new Entries;
                      $$ = entries;
                      printf("new basic_decls root");}
@@ -329,6 +386,7 @@ subtype:            IDENTIFIER constraint
                       $$ = new QCString($1);
                       delete $1;
                     }
+statements:;
 constraint:;
 expression:;
                     
@@ -411,7 +469,7 @@ Entry *handlePackage(Entry *doc, const char* name, Entries *publics,
 
   addDocToEntry(doc, pkg);
   printf("parser: returning\n");
-  pkg->printTree();
+  delete name;
   return pkg;
 }
 
@@ -420,13 +478,66 @@ Entry* handleSubprogram(Entry *doc, const char* name,
 {
   Entry *fun = newEntry();
   fun->name = name;
+  delete name;
+
   if (args)
+  {
     fun->argList = args;
+  }
   if (type)
+  {
     fun->type = type;
+    delete type;
+  }
   fun->section = Entry::FUNCTION_SEC;
   addDocToEntry(doc, fun);
   return fun;
+}
+
+Entries *handleDeclsBase(Entry *new_entry)
+{
+  Entries *es = new Entries;
+  es->push_front(new_entry);
+  return es;
+}
+
+Entries *handleDeclsBase(Entries *new_entries)
+{
+  Entries *es = new Entries;
+  moveEntries(es, new_entries);
+  return es;
+}
+
+Entries *handleDecls(Entry *new_entry, Entries *entries)
+{ 
+  entries->push_front(new_entry);
+  return entries;
+}
+
+Entries *handleDecls(Entries *new_entries, Entries *entries)
+{ 
+  moveEntries(entries, new_entries);
+  return entries;
+}
+
+
+Entry *handlePackageBody(Entry *doc, const char* name, Entries *decls)
+{
+  printf("New package body\n");
+  Entry *pkg = newEntry();
+  pkg->section = Entry::NAMESPACE_SEC;
+  pkg->name = QCString(name);
+  pkg->type = QCString("namespace");
+
+  if (decls)
+  {
+    moveEntriesToEntry(pkg, decls);
+  }
+
+  addDocToEntry(doc, pkg);
+  delete name;
+  
+  return pkg;
 }
 
 void addDeclItems(Entry *root){

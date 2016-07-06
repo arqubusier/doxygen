@@ -55,6 +55,7 @@ if (WIN32)
     add_definitions(-DLIBICONV_STATIC -D_CRT_SECURE_NO_WARNINGS)
 endif()
 
+set(YACC_FLAGS $(YACC_FLAGS) -v)
 if ("${CMAKE_GENERATOR}" MATCHES "Ninja") 
   set(LEX_FLAGS )
   set(YACC_FLAGS )
