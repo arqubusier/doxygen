@@ -121,7 +121,7 @@ FLEX_TARGET(adascanner     adascanner.l     ${GENERATED_SRC}/adascanner.cpp     
 
 BISON_TARGET(vhdlparser    vhdlparser.y     ${GENERATED_SRC}/vhdlparser.cpp     COMPILE_FLAGS "${YACC_FLAGS} -l -p vhdlscannerYY")
 BISON_TARGET(constexp      constexp.y       ${GENERATED_SRC}/ce_parse.cpp       COMPILE_FLAGS "${YACC_FLAGS} -l -p constexpYY")
-BISON_TARGET(adaparser      adaparser.y       ${GENERATED_SRC}/adaparser.cpp       COMPILE_FLAGS "${YACC_FLAGS} -d -l -Dapi.prefix=adaYY")
+BISON_TARGET(adaparser      adaparser.y       ${GENERATED_SRC}/adaparser.cpp       COMPILE_FLAGS "${YACC_FLAGS} -d -v -l -Dapi.prefix=adaYY")
 
 add_library(doxycfg STATIC
     ${GENERATED_SRC}/lang_cfg.h

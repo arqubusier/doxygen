@@ -28,6 +28,7 @@ Entries *handleDeclsBase(Entry *new_entry);
 Entries *handleDeclsBase(Entries *new_entries);
 Entries *handleDecls(Entry *new_entry, Entries *entries);
 Entries *handleDecls(Entries *new_entries, Entries *entries);
+
 Entry *handlePackageBody(Entry *doc, const char* name,
                            Entries *decls=NULL);
 /**
@@ -165,7 +166,7 @@ static AdaLanguageScanner* s_adaScanner;
 %type<entryPtr> subprogram_spec
 %type<entryPtr> body
 %type<entryPtr> package_body
-%type<entryPtr> subprogram_body
+//%type<entryPtr> subprogram_body
 %type<entriesPtr> basic_decls
 %type<entriesPtr> decls
 %type<entriesPtr> obj_decl
@@ -206,7 +207,7 @@ library_item: library_item_spec| library_item_body
 
 library_item_spec: package_spec| subprogram_spec
 
-library_item_body: package_body| subprogram_body
+library_item_body: package_body/*| subprogram_body*/
 
 
 package_spec:       doxy_comment PACKAGE IDENTIFIER IS
@@ -242,7 +243,7 @@ subprogram_spec:   doxy_comment PROCEDURE IDENTIFIER SEM
                    {
                      $$ = handleSubprogram($1, $3, $5, $8);
                    }
-body:              package_body| subprogram_body
+body:              package_body/*| subprogram_body*/
 package_body:      doxy_comment PACKAGE BODY IDENTIFIER IS
                    END IDENTIFIER SEM
                    {
@@ -259,14 +260,14 @@ package_body:      doxy_comment PACKAGE BODY IDENTIFIER IS
                      $$ = handlePackageBody($1, $4, $6); 
                    }
 
-subprogram_body:   doxy_comment PROCEDURE
+/*
+subprogram_body:   doxy_comment subprogram_spec IS decls
+                   BEGIN_ statements END IDENTIFIER
                    {
                      $$ = NULL;
+                     delete $8;
                    }
-                   |doxy_comment FUNCTION
-                   {
-                     $$ = NULL;
-                   }
+                   */
 
 parameters:        parameter_spec
                    |parameter_spec SEM parameters
@@ -308,33 +309,16 @@ mode:              /* empty */ {$$ = new QCString("");}
                    | OUT {$$ = new QCString("out");}
                    | IN OUT {$$ = new QCString("in out");}
 
-decls:             decl_items {$$ = handleDeclsBase($1);}
-                   |decl_item {$$ = handleDeclsBase($1);}
+decls:             basic_decls
                    |body {$$ = handleDeclsBase($1);}
-                   |decl_items decls {$$ = handleDecls($1, $2);} 
-                   |decl_item decls {$$ = handleDecls($1, $2);}
+                   |basic_decls decls {$$ = handleDecls($1, $2);}
                    |body decls {$$ = handleDecls($1, $2);}
 
-/* Redefine how empty is handled */
-basic_decls:        {Entries *entries = new Entries;
-                     $$ = entries;
-                     printf("new basic_decls root");}
-                    |decl_items basic_decls
-                    {
-                      Entries *entries = $2;
-                      Entries *sub_entries = $1;
-                      printf("decls\n");
-                      moveEntries(entries, sub_entries);
-                      printf("decls moved\n");
-                      $$ = entries;
-                    }
-                    |decl_item basic_decls
-                    {
-                      Entries *entries = $2;
-                      Entry *decl = $1;
-                      entries->push_front(decl);
-                      $$ = entries;
-                    }
+basic_decls:        decl_items {$$ = handleDeclsBase($1);}
+                    |decl_item {$$ = handleDeclsBase($1);}
+                    |decl_items basic_decls {$$ = handleDecls($1, $2);}
+                    |decl_item basic_decls {$$ = handleDecls($1, $2);}
+
 decl_items:         obj_decl
 decl_item:          subprogram_spec
 obj_decl:           doxy_comment identifier_list COLON 
