@@ -2,9 +2,13 @@
 
 --! \package Test.
 --! 
---! ethuoetnuhnht.
+--! \brief ethuoetnuhnht.
 --!
 --! oetnuhnoteuh
+
+--! \brief namespace test
+--!
+--! detailed.
 package Test is
     --! \brief fun hej.
     --!

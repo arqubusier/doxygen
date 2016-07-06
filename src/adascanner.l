@@ -108,6 +108,7 @@ B       [ \t]
                        handleComment(entry, is_non_struct);
                        if (is_non_struct)
                        {
+                         printf("return comment\n");
                          adaYYlval.entryPtr = entry;
                          return SPECIAL_COMMENT;
                        }
@@ -147,12 +148,14 @@ void handleComment(Entry *non_struct_entry,
            newEntryNeeded))
   {
     if (newEntryNeeded){
+      printf("new entry \n");
       is_non_struct = false;
       parser_root->addSubEntry(current);
       current = new Entry;
     }
   }
   if (newEntryNeeded){
+      printf("new entry \n");
       is_non_struct = false;
       parser_root->addSubEntry(current);
       current = new Entry;

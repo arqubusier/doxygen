@@ -363,6 +363,7 @@ void Entry::print(int level){
     printQC(pad, "includeFile", includeFile);
     printQC(pad, "includeName", includeName);
     printQC(pad, "inbodyDocs", inbodyDocs);
+    printQC(pad, "inside", inside);
     printQC(pad, "doc", doc);
     printQC(pad, "relates", relates);
     msg("%srelatestype %d\n", pad.data(), relatesType);

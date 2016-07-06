@@ -177,19 +177,17 @@ static AdaLanguageScanner* s_adaScanner;
 */
 %%
 
-start: doxy_comment library_item
+start: library_item
                     {
-                     Entry *item = $2;
+                     Entry *item = $1;
                      printf("item %s\n", item->name.data()); 
                      s_root->addSubEntry(item);
-                     Entry *comment = $1;
-                     addComment(s_root, comment);
                     }
 
 library_item: package_spec| subprogram_spec
 
 /* TODO: add error handling */
-doxy_comment:       /* empty */ {$$ = NULL;}
+doxy_comment:       /* empty */ {printf("empty comment\n");$$ = NULL;}
                     |SPECIAL_COMMENT
                     {
                      std::cout << "comment: " << $1->doc << std::endl;
@@ -289,7 +287,6 @@ obj_decl:           doxy_comment identifier_list COLON
 
                       Identifiers *ids = $2;
                       QCString *type = $4;
-                      addDocToEntries($1, entries);
                       IdentifiersIter it = ids->begin();
                       for (;it != ids->end(); ++it)
                       {
@@ -299,6 +296,7 @@ obj_decl:           doxy_comment identifier_list COLON
                         e->section = Entry::VARIABLE_SEC;
                         entries->push_front(e);
                       }
+                      addDocToEntries($1, entries);
 
                       $$ = entries;
                       delete type;;
@@ -354,14 +352,17 @@ void addDocToEntry(Entry *doc, Entry *entry){
   if( doc ){
     entry->doc = doc->doc;
     entry->brief = doc->brief;
+    printf("doc");
   }
+  else
+    printf("no doc");
 }
 
 void   addDocToEntries(Entry *doc, Entries* entries)
 {
   if (!entries->empty())
   {
-    Entry *entry = entries->front();
+    Entry *entry = entries->back();
     addDocToEntry(doc, entry);
   }
 }
@@ -391,13 +392,18 @@ Entry *handlePackage(Entry *doc, const char* name, Entries *publics,
   Entry *pkg = newEntry();
   pkg->section = Entry::NAMESPACE_SEC;
   pkg->name = QCString(name);
+  pkg->type = QCString("namespace");
+
+  EntriesIter it = publics->begin();
+    for (;it != publics->end(); ++it)
+      (*it)->protection = Public;
 
   moveEntriesToEntry(pkg, publics);
   printf("parser: added publics\n");
   if (privates)
   {
     printf("parser: adding privates\n");
-    EntriesIter it = privates->begin();
+    it = privates->begin();
     for (;it != privates->end(); ++it)
       (*it)->protection = Private;
     moveEntriesToEntry(pkg, privates);
@@ -405,6 +411,7 @@ Entry *handlePackage(Entry *doc, const char* name, Entries *publics,
 
   addDocToEntry(doc, pkg);
   printf("parser: returning\n");
+  pkg->printTree();
   return pkg;
 }
 
