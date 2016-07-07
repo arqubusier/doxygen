@@ -213,7 +213,8 @@ library_item_body: package_body| subprogram_body
 package_decl:      package_spec SEM{$$ = $1;}
 package_spec:      package_spec_base
                    |doxy_comment package_spec_base
-                     {addDocToEntry($1, $2);}
+                     {addDocToEntry($1, $2);
+                      $$ = $2;}
 package_spec_base: PACKAGE IDENTIFIER IS
                    basic_decls END
                     IDENTIFIER
@@ -231,7 +232,8 @@ package_spec_base: PACKAGE IDENTIFIER IS
 subprogram_decl:   subprogram_spec SEM {$$ = $1;}
 subprogram_spec:   subprogram_spec_base|
                    doxy_comment subprogram_spec_base
-                     {addDocToEntry($1, $2);}
+                     {addDocToEntry($1, $2);
+                      $$ = $2;}
 subprogram_spec_base:  PROCEDURE IDENTIFIER
                    {
                      $$ = handleSubprogram($2);
@@ -257,7 +259,8 @@ body:              package_body {$$ = $1;}
 
 package_body:      package_body_base
                    |doxy_comment package_body_base
-                     {addDocToEntry($1, $2);}
+                     {addDocToEntry($1, $2);
+                      $$ = $2;}
 package_body_base: PACKAGE_BODY IDENTIFIER IS
                    END IDENTIFIER SEM
                    {
@@ -347,6 +350,7 @@ obj_decl:           obj_decl_base
                       Entries *es = $2;
                       if (!es->empty())
                         addDocToEntry($1, es->back());
+                      $$ = es;
                     }
 obj_decl_base:      identifier_list COLON 
                     subtype expression SEM
