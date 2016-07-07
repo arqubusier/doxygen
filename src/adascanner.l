@@ -76,7 +76,8 @@ B       [ \t]
 ";"             return(SEM);
 ","             return(COMMA);
 ":"             {printf("colon\n");return(COLON);}
-"package"       {printf("package\n");return(PACKAGE);}
+"package"{B}*"body"  {printf("package_body\n");return(PACKAGE_BODY);}
+"package"  {printf("package\n");return(PACKAGE);}
 "private"       {printf("private\n");return(PRIVATE);}
 "is"            {printf("is\n");return(IS);}
 "end"           {printf("end\n");return(END);}
@@ -87,8 +88,8 @@ B       [ \t]
 "return"        {printf("return\n");return(RETURN);}
 ")"          {printf("rpar\n");return(RPAR);}
 "("          {printf("lpar\n");return(LPAR);}
-"body"          {printf("body\n");return(BODY);}
 "begin"          {printf("begin\n");return(BEGIN_);}
+"null"          {printf("begin\n");return(Null);}
 "--!"                 {s_specialComment.resize(0); 
                        printf("start doxycomment\n");
                        BEGIN(doxy_comment);}

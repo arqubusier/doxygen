@@ -1,22 +1,22 @@
---! \file test.adb
+-- \file test.adb
 
---! \package Test.
---! 
---! \brief ethuoetnuhnht.
---!
---! oetnuhnoteuh
+-- \package Test.
+-- 
+-- \brief ethuoetnuhnht.
+--
+-- oetnuhnoteuh
 
---! \brief namespace test
---!
---! detailed.
+-- \brief namespace test
+--
+-- detailed.
 package Test is
-    --! \brief fun hej.
-    --!
-    --! more text.
+    -- \brief fun hej.
+    --
+    -- more text.
     procedure hej; 
-    --! \brief variable var 1.
-    --!
-    --! detailed desc.
+    -- \brief variable var 1.
+    --
+    -- detailed desc.
     var1, var2 : integer;
 private
     priv1, priv2: float;
