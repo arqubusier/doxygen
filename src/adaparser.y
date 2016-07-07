@@ -38,7 +38,7 @@ Entry *handlePackageBody(const char* name,
 void   moveEntries(Entries *dst_entries, Entries* src_entries); 
 void   moveEntriesToEntry(Entry *entry, Entries* entries); 
 void   addDocToEntries(Entry* doc, Entries* entries);
-void   addComment(Entry *entry, Entry *comment);
+void addDocToEntry(Entry *doc, Entry *entry);
 Entry* newEntry();
 
 static Entry* s_root;
@@ -157,19 +157,21 @@ static AdaLanguageScanner* s_adaScanner;
 %token RPAR
 
 /*non-terminals*/
-//%type<charVal> character_literal
-//%type<intVal> numerical
-//%type<entryPtr> doxy_comment
+%type<entryPtr> doxy_comment
 %type<entryPtr> package_spec
+%type<entryPtr> package_spec_base
 %type<entryPtr> package_decl
 %type<entryPtr> subprogram_spec
+%type<entryPtr> subprogram_spec_base
 %type<entryPtr> subprogram_decl
 %type<entryPtr> body
 %type<entryPtr> package_body
+%type<entryPtr> package_body_base
 %type<entryPtr> subprogram_body
 %type<entriesPtr> basic_decls
 %type<entriesPtr> decls
 %type<entriesPtr> obj_decl
+%type<entriesPtr> obj_decl_base
 %type<entryPtr> decl_item
 %type<entriesPtr> decl_items
 %type<idsPtr> identifier_list
@@ -182,7 +184,6 @@ static AdaLanguageScanner* s_adaScanner;
 %type<qstrPtr> mode
 
 %defines 
-%glr-parser
 /*
  NOTE: when receiving c strings from the lexer, the parser
  becomes responsible for deallocating them. Thus, they
@@ -198,11 +199,9 @@ start: library_item
        }
 
 /* TODO: add error handling */
-/*
 doxy_comment: SPECIAL_COMMENT{
                      std::cout << "comment: " << $1->doc << std::endl;
                      $$ = $1;}
-                     */
 
 library_item: library_item_decl| library_item_body
 
@@ -211,9 +210,12 @@ library_item_decl: package_decl| subprogram_decl
 library_item_body: package_body| subprogram_body
 
 
-package_decl: package_spec SEM{$$ = $1;}
-package_spec: PACKAGE IDENTIFIER IS
-            basic_decls END
+package_decl:      package_spec SEM{$$ = $1;}
+package_spec:      package_spec_base
+                   |doxy_comment package_spec_base
+                     {addDocToEntry($1, $2);}
+package_spec_base: PACKAGE IDENTIFIER IS
+                   basic_decls END
                     IDENTIFIER
                       {
                        $$ = handlePackage($2, $4);
@@ -225,9 +227,13 @@ package_spec: PACKAGE IDENTIFIER IS
                        $$ = handlePackage($2, $4, $6);
                        delete $8;
                       }
+
 subprogram_decl:   subprogram_spec SEM {$$ = $1;}
-subprogram_spec:   PROCEDURE IDENTIFIER
-               {
+subprogram_spec:   subprogram_spec_base|
+                   doxy_comment subprogram_spec_base
+                     {addDocToEntry($1, $2);}
+subprogram_spec_base:  PROCEDURE IDENTIFIER
+                   {
                      $$ = handleSubprogram($2);
                    }
                    |PROCEDURE IDENTIFIER
@@ -249,7 +255,10 @@ subprogram_spec:   PROCEDURE IDENTIFIER
 body:              package_body {$$ = $1;}
                    |subprogram_body {$$ = $1;}
 
-package_body:      PACKAGE_BODY IDENTIFIER IS
+package_body:      package_body_base
+                   |doxy_comment package_body_base
+                     {addDocToEntry($1, $2);}
+package_body_base: PACKAGE_BODY IDENTIFIER IS
                    END IDENTIFIER SEM
                    {
                      $$ = handlePackageBody($2); 
@@ -265,12 +274,17 @@ package_body:      PACKAGE_BODY IDENTIFIER IS
                      $$ = handlePackageBody($2, $4); 
                    }
 
-subprogram_body:   subprogram_spec IS decls
-               BEGIN_ statements END IDENTIFIER SEM
-                   {
-                     $$ = NULL;
-                     delete $7;
-                   }
+subprogram_body:  subprogram_spec IS
+                  BEGIN_ statements END tail
+                  {
+                    $$ = $1;
+                  }
+                  |subprogram_spec IS decls
+                  BEGIN_ statements END tail
+                  {
+                    $$ = $1;
+                  }
+tail:             SEM| IDENTIFIER SEM {delete $1;}
 
 parameters:parameter_spec
           |parameter_spec SEM parameters
@@ -325,10 +339,16 @@ basic_decls:        decl_items {$$ = handleDeclsBase($1);}
                     |basic_decls decl_item{$$ = handleDecls($2, $1);}
 
 decl_items:         obj_decl
-                    /*|doxy_comment obj_decl{$$=$2;}*/
 decl_item:          subprogram_decl| package_decl
-                    /*|doxy_comment subprogram_spec*/
-obj_decl:           identifier_list COLON 
+
+obj_decl:           obj_decl_base
+                    |doxy_comment obj_decl_base
+                    {
+                      Entries *es = $2;
+                      if (!es->empty())
+                        addDocToEntry($1, es->back());
+                    }
+obj_decl_base:      identifier_list COLON 
                     subtype expression SEM
                     {
                       Entries *entries = new Entries;
@@ -384,13 +404,6 @@ expression:;
                     
 %%
 
-void   addComment(Entry *entry, Entry *comment)
-{
-  if ( comment )
-  {
-    entry->addSubEntry(comment);
-  }
-}
 Entry* newEntry()
 {
     Entry* e = new Entry;

@@ -89,7 +89,7 @@ B       [ \t]
 ")"          {printf("rpar\n");return(RPAR);}
 "("          {printf("lpar\n");return(LPAR);}
 "begin"          {printf("begin\n");return(BEGIN_);}
-"null"          {printf("begin\n");return(Null);}
+"null"          {printf("null\n");return(Null);}
 "--!"                 {s_specialComment.resize(0); 
                        printf("start doxycomment\n");
                        BEGIN(doxy_comment);}
