@@ -10,6 +10,8 @@
 #include <list>
 #include <algorithm>
 
+#define YYDEBUG 1
+
 //from flex for bison to know about!
 extern int adaYYlex();
 extern int adaYYparse();
@@ -31,6 +33,11 @@ Entries *handleDecls(Entries *new_entries, Entries *entries);
 
 Entry *handlePackageBody(const char* name,
                            Entries *decls=NULL);
+ArgumentList *handleParamSpec(Identifiers *ids,
+                              QCString *type,
+                              QCString *mode=NULL);
+ArgumentList *handleParams(ArgumentList *args, ArgumentList *new_args);
+QCString adaArgListToString(const ArgumentList &args);
 /**
  * Takes the children from src and adds them to dst.
  * dst parent is removed.
@@ -180,6 +187,7 @@ static AdaLanguageScanner* s_adaScanner;
 %type<entryPtr> library_item_body
 %type<qstrPtr> subtype
 %type<argsPtr> parameter_spec
+%type<argsPtr> parameter_specs
 %type<argsPtr> parameters
 %type<qstrPtr> mode
 
@@ -289,43 +297,18 @@ subprogram_body:  subprogram_spec IS
                   }
 tail:             SEM| IDENTIFIER SEM {delete $1;}
 
-parameters:parameter_spec
-          |parameter_spec SEM parameters
-                   {
-                     ArgumentList *args = $3;
-                     ArgumentList *new_args = $1;
-                     ArgumentListIterator it(*args);
-                     Argument *arg;
-                     for ( it.toFirst(); (arg=it.current()); ++it )
-                     {
-                       args->append(arg);
-                     }
-                     $$ = args;
-                     delete new_args;
-                   }
-parameter_spec:    identifier_list COLON mode subtype
-              {
-                     ArgumentList *args = new ArgumentList;
-                     Identifiers *ids = $1;
-                     IdentifiersIter it = ids->begin();
-                     QCString *type = $4;
-                     QCString *mode = $3;
-                     for (; it != ids->end(); ++it)
-                     {
-                       Argument *a = new Argument;
-                       a->type = *type;
-                       a->attrib = *mode;
-                       a->name = (*it);
-                       args->append(a);
-                     }
-                     $$ = args;
-                     delete type;
-                     delete mode;
-                   }
+parameters:       parameter_spec
+                  | parameter_specs parameter_spec
+                   {$$ = handleParams($1, $2);}
+parameter_specs:  parameter_spec SEM {$$ = $1;}
+                  |parameter_specs parameter_spec SEM
+                   {$$ = handleParams($1, $2);}
+parameter_spec:    identifier_list COLON subtype
+                     {$$ = handleParamSpec($1, $3);}
+                   |identifier_list COLON mode subtype
+                     {$$ = handleParamSpec($1, $4, $3);}
 
-/* TEST THESE!!! */
-mode:              /* empty */ {$$ = new QCString("");}
-                   | IN {$$ = new QCString("in");}
+mode:              IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
                    | IN OUT {$$ = new QCString("in out");}
 
@@ -407,6 +390,77 @@ constraint:;
 expression:;
                     
 %%
+
+ArgumentList *handleParams(ArgumentList *args, ArgumentList *new_args)
+{
+  ArgumentListIterator it(*new_args);
+  Argument *arg;
+  for ( it.toFirst(); (arg=it.current()); ++it )
+  {
+    args->append(arg);
+  }
+  return args;
+}
+ArgumentList *handleParamSpec(Identifiers *ids,
+                              QCString *type,
+                              QCString *mode)
+{
+  ArgumentList *args = new ArgumentList;
+  IdentifiersIter it = ids->begin();
+  for (; it != ids->end(); ++it)
+  {
+    Argument *a = new Argument;
+    if (mode)
+      a->type = *mode;
+    a->type += " " + *type;
+    a->name = (*it);
+    args->append(a);
+  }
+  delete type;
+  if (mode)
+    delete mode;
+
+  return args;
+}
+
+QCString adaArgListToString(const ArgumentList &args)
+{
+  QCString res = "()";
+  if (args.isEmpty())
+    return res;
+  res = "(";
+
+  Argument *arg;
+  ArgumentListIterator it(args);
+  it.toFirst();
+  arg=it.current();
+  res += arg->name;
+  res += " ";
+  QCString prev_type = arg->type;
+  ++it;
+  
+  for (; (arg=it.current()); ++it )
+  {
+    QCString type = arg->type;
+    if (type == prev_type) 
+    {
+      res += ", ";
+      res += arg->name;
+    }
+    else 
+    {
+      res += ": ";
+      res += prev_type;
+      res += ";\n";
+      res += arg->name;
+      prev_type = type;
+    }
+  }
+  res += ": ";
+  res += prev_type;
+  res += ")";
+
+}
 
 Entry* newEntry()
 {
@@ -491,6 +545,7 @@ Entry* handleSubprogram(const char* name,
   if (args)
   {
     fun->argList = args;
+    fun->args = adaArgListToString(*args);
   }
   if (type)
   {
@@ -577,6 +632,7 @@ void AdaLanguageScanner::parseInput(const char * fileName,
   s_root = root;
   s_adaScanner = this;
   qcFileName = fileName;
+  yydebug = 1;
 
 
   inputFile.setName(fileName);

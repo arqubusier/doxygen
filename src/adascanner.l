@@ -75,28 +75,25 @@ B       [ \t]
 "=>"			return(REF);
 ";"             return(SEM);
 ","             return(COMMA);
-":"             {printf("colon\n");return(COLON);}
-"package"{B}*"body"  {printf("package_body\n");return(PACKAGE_BODY);}
-"package"  {printf("package\n");return(PACKAGE);}
-"private"       {printf("private\n");return(PRIVATE);}
-"is"            {printf("is\n");return(IS);}
-"end"           {printf("end\n");return(END);}
-"in"            {printf("in\n");return(IN);}
-"out"           {printf("out\n");return(OUT);}
-"procedure"     {printf("procedure\n");return(PROCEDURE);}
-"function"      {printf("function\n");return(FUNCTION);}
-"return"        {printf("return\n");return(RETURN);}
-")"          {printf("rpar\n");return(RPAR);}
-"("          {printf("lpar\n");return(LPAR);}
-"begin"          {printf("begin\n");return(BEGIN_);}
-"null"          {printf("null\n");return(Null);}
+":"             {return(COLON);}
+"package"{B}*"body"  {return(PACKAGE_BODY);}
+"package"  {return(PACKAGE);}
+"private"       {return(PRIVATE);}
+"is"            {return(IS);}
+"end"           {return(END);}
+"in"            {return(IN);}
+"out"           {return(OUT);}
+"procedure"     {return(PROCEDURE);}
+"function"      {return(FUNCTION);}
+"return"        {return(RETURN);}
+")"          {return(RPAR);}
+"("          {return(LPAR);}
+"begin"          {return(BEGIN_);}
+"null"          {return(Null);}
 "--!"                 {s_specialComment.resize(0); 
-                       printf("start doxycomment\n");
                        BEGIN(doxy_comment);}
-<doxy_comment>[^\n]*  {s_specialComment.append(adaYYtext);
-                        printf("more text %s\n", adaYYtext);}
-<doxy_comment>\n{B}*"--!" {s_specialComment.append("\n"); 
-                        printf("new line\n");}
+<doxy_comment>[^\n]*  {s_specialComment.append(adaYYtext);}
+<doxy_comment>\n{B}*"--!" {s_specialComment.append("\n");}
 
 <doxy_comment>\n    {/*Structural comments no not depend
                         on location in the syntax tree, and
@@ -105,22 +102,19 @@ B       [ \t]
                         Non-structural comments o.t.h. are
                         handeled by the parser.*/
                        BEGIN(INITIAL);
-                       printf("end doxycomment\n");
                        Entry *entry = new Entry;
                        bool is_non_struct;
                        handleComment(entry, is_non_struct);
                        if (is_non_struct)
                        {
-                         printf("return comment\n");
                          adaYYlval.entryPtr = entry;
                          return SPECIAL_COMMENT;
                        }
                       }
 "--"                 {BEGIN(comment);}
 <comment>[^\n]*     ;
-<comment>\n         {BEGIN(INITIAL);printf("end comment\n");}
-[a-zA-Z][a-zA-Z0-9_]* {printf("id\n");
-                        adaYYlval.cstrVal = strdup(adaYYtext);
+<comment>\n         {BEGIN(INITIAL);}
+[a-zA-Z][a-zA-Z0-9_]* {adaYYlval.cstrVal = strdup(adaYYtext);
                         return(IDENTIFIER);}
 [ \t\n\f]		;
 
@@ -151,14 +145,12 @@ void handleComment(Entry *non_struct_entry,
            newEntryNeeded))
   {
     if (newEntryNeeded){
-      printf("new entry \n");
       is_non_struct = false;
       parser_root->addSubEntry(current);
       current = new Entry;
     }
   }
   if (newEntryNeeded){
-      printf("new entry \n");
       is_non_struct = false;
       parser_root->addSubEntry(current);
       current = new Entry;
