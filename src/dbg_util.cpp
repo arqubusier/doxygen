@@ -4,7 +4,8 @@
 
 #include "message.h"
 
-void printQC(std::string pad, std::string name, QCString &str){
+
+void printQC(std::string pad, std::string name,const QCString &str){
     if (str.isNull())
        return;
 

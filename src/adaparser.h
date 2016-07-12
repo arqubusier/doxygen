@@ -80,11 +80,15 @@ class AdaLanguageScanner : public ParserInterface
 };
 
 void freeAdaScanner();
-void initAdaScanner(AdaLanguageScanner *parser, QCString fileName,
-                    Entry* parser_root);
 Entries *getStructuralComments();
 void setInputString(const char* input);
 void cleanupInputString();
 void adaFreeScanner();
+
+ArgumentList *handleParamSpec(Identifiers *ids,
+                              QCString *type,
+                              QCString *mode=NULL);
+ArgumentList *handleParams(ArgumentList *args, ArgumentList *new_args);
+QCString adaArgListToString(const ArgumentList &args);
 
 #endif //ADAPARSER_H

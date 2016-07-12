@@ -3639,8 +3639,8 @@ void parseCCode(CodeOutputInterface &od,const char *className,const QCString &s,
 		MemberDef *memberDef,bool showLineNumbers,Definition *searchCtx,
                 bool collectXRefs)
 {
-  //printf("***parseCode() exBlock=%d exName=%s fd=%p className=%s searchCtx=%s\n",
-  //      exBlock,exName,fd,className,searchCtx?searchCtx->name().data():"<none>");
+  printf("***parseCode() input %s, exBlock=%d exName=%s fd=%p className=%s searchCtx=%s\n",
+        s.data(), exBlock,exName,fd,className,searchCtx?searchCtx->name().data():"<none>");
 
   if (s.isEmpty()) return;
 

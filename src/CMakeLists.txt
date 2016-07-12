@@ -121,7 +121,8 @@ FLEX_TARGET(adascanner     adascanner.l     ${GENERATED_SRC}/adascanner.cpp     
 
 BISON_TARGET(vhdlparser    vhdlparser.y     ${GENERATED_SRC}/vhdlparser.cpp     COMPILE_FLAGS "${YACC_FLAGS} -l -p vhdlscannerYY")
 BISON_TARGET(constexp      constexp.y       ${GENERATED_SRC}/ce_parse.cpp       COMPILE_FLAGS "${YACC_FLAGS} -l -p constexpYY")
-BISON_TARGET(adaparser      adaparser.y       ${GENERATED_SRC}/adaparser.cpp       COMPILE_FLAGS "${YACC_FLAGS} -d -v -l -Dapi.prefix=adaYY")
+BISON_TARGET(adaparser      adaparser.y       ${GENERATED_SRC}/adaparser.cpp       COMPILE_FLAGS "${YACC_FLAGS} -v -l -Dapi.prefix=adaYY")
+BISON_TARGET(adacode      adacode.y       ${GENERATED_SRC}/adacode.cpp       COMPILE_FLAGS "${YACC_FLAGS} -v -l -Dapi.prefix=adacodeYY")
 
 add_library(doxycfg STATIC
     ${GENERATED_SRC}/lang_cfg.h
@@ -160,6 +161,7 @@ add_library(_doxygen STATIC
     ${GENERATED_SRC}/constexp.cpp
     ${GENERATED_SRC}/xmlcode.cpp
     ${GENERATED_SRC}/adaparser.cpp
+    ${GENERATED_SRC}/adacode.cpp
     ${GENERATED_SRC}/adascanner.cpp
     #
     ${GENERATED_SRC}/ce_parse.cpp
@@ -244,6 +246,7 @@ add_library(_doxygen STATIC
     xmlgen.cpp
     docbookvisitor.cpp
     docbookgen.cpp
+    adacommon.cpp
     #TODO CLEANME
     dbg_util.cpp
 )
