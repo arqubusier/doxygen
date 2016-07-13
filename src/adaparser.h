@@ -90,5 +90,4 @@ ArgumentList *handleParamSpec(Identifiers *ids,
                               QCString *mode=NULL);
 ArgumentList *handleParams(ArgumentList *args, ArgumentList *new_args);
 QCString adaArgListToString(const ArgumentList &args);
-
 #endif //ADAPARSER_H

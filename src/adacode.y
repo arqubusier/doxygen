@@ -23,17 +23,19 @@ enum NodeType
 };
 
 //from flex for bison to know about!
-extern int adacodeYYlex();
+extern int adaYYlex();
 extern int adacodeYYparse();
-extern int adacodeYYwrap();
-extern void adacodeYYrestart( FILE *new_file );
+int adacodeYYwrap();
+int adacodeYYlex();
+void adacodeYYrestart( FILE *new_file );
 void adacodeYYerror (char const *s);
 
 /** \brief an entity that needs to be linked.
  *
  * stores data needed to compute
  * links between entities.*/
-struct Node{
+struct Node
+{
   NodeType type;
   QCString name;
   QCString name_space;
@@ -46,7 +48,11 @@ struct Node{
  * Contains a location of the symbol and how the
  * symbol should be handeled.
  */
-struct syntaxSymbol;
+struct syntaxSymbol
+{
+  int line_n;
+  int col;
+};
 
 typedef std::list<Node*> Nodes;
 typedef Nodes::iterator NodesIter;
@@ -61,16 +67,16 @@ static Node* s_root;
 
 void printNodeTree(const Node& node, std::string pad="");
 
-Node* handlePackage(const char* name, Nodes *publics,
+static Node* handlePackage(const char* name, Nodes *publics,
                      Nodes *privates=NULL);
-Node* handleSubprogram(const char* name,
+static Node* handleSubprogram(const char* name,
                         ArgumentList *args=NULL, const char *type=NULL);
-Nodes *handleDeclsBase(Node *new_entry);
-Nodes *handleDeclsBase(Nodes *new_entries);
-Nodes *handleDecls(Node *new_entry, Nodes *entries);
-Nodes *handleDecls(Nodes *new_entries, Nodes *entries);
+static Nodes *handleDeclsBase(Node *new_entry);
+static Nodes *handleDeclsBase(Nodes *new_entries);
+static Nodes *handleDecls(Node *new_entry, Nodes *entries);
+static Nodes *handleDecls(Nodes *new_entries, Nodes *entries);
 
-Node *handlePackageBody(const char* name,
+static Node *handlePackageBody(const char* name,
                            Nodes *decls=NULL);
 %}
 
@@ -416,7 +422,7 @@ void printNodeTree(const Node& node, std::string pad)
   msg("%sCHILDREN:\n", pad.data());
 
   pad +=  "    "; 
-  NodesIter it = node.references.begin();
+  std::list<Node*>::const_iterator it = node.references.begin();
   for (; it!=node.references.end(); ++it)
   {
     printNodeTree(*(*it), pad);
@@ -431,38 +437,40 @@ Node* handlePackage(const char* name, Nodes *publics,
   n.name = name;
   n.type = ADA_PKG;
   
-  n.references.splice(n.end(), publics);
+  n.references.splice(n.references.end(), *publics);
 
   if (privates)
-    n.references.splice(n.end(), privates);
+    n.references.splice(n.references.end(), *privates);
 
   delete name;
-  s_nodes_mem.append(n);
+  s_nodes_mem.push_back(n);
   return &s_nodes_mem.back();
 }
 
 Node* handleSubprogram(const char* name,
-                        ArgumentList *args, const char *type);
+                        ArgumentList *args, const char *type)
 {
   Node n;
-  n.global_name = name;
+  n.name = name;
   n.type = ADA_SUBPROG;
 
   Argument *arg;
-  ArgumentListIterator it(args);
+  ArgumentListIterator it(*args);
   it.toFirst();
   for (; (arg=it.current()); ++it )
   {
-    var = Node{ADA_VAR, arg.name, QList<Node*>};
-    n.references.append(&var);
+    Node var;
+    var.type = ADA_VAR;
+    var.name = arg->name;
+    n.references.push_back(&var);
   }
 
   delete name;
-  s_nodes_mem.append(n);
+  s_nodes_mem.push_back(n);
   return &s_nodes_mem.back();
 }
 
-void parseAdaCode(CodeOutputInterface &codeOutIntf,
+void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
                    const char *scopeName,
                    const QCString &input,
                    SrcLangExt lang,
@@ -478,22 +486,18 @@ void parseAdaCode(CodeOutputInterface &codeOutIntf,
                    bool collectXrefs
                   )
 {
-  std::cout << "ADAPARSER" << std::endl;
+  std::cout << "ADA CODE PARSER" << std::endl;
 
-  if (inputFile.open(IO_ReadOnly))
-  {
-    setInputString(input);
-    adacodeYYparse();
-    cleanupInputString();
-    inputFile.close();
+  setInputString(input);
+  adacodeYYparse();
+  cleanupInputString();
 
-    printNodeTree(s_root);
+  printNodeTree(*s_root);
 
-    /* Clean up static variables */
-    s_nodes_mem.clear();
-    s_symbols_mem.clear();
-    s_root = NULL;
-  }
+  /* Clean up static variables */
+  s_nodes_mem.clear();
+  s_symbols_mem.clear();
+  s_root = NULL;
 }
 
 //called when yylex reaches end of file, returns 1 to stop yylex from continuing scan
@@ -507,7 +511,8 @@ void adacodeYYerror(const char *s)
 {
   printf("ERROR: ada parser\n");
 }
-void adacodeYYlex()
+
+int adacodeYYlex()
 {
-  adaYYlex()
+  adaYYlex();
 }
