@@ -68,6 +68,7 @@ static AdaLanguageScanner* s_adaScanner;
 
  %}
 
+/*
 %union {
   int intVal;
   char charVal;
@@ -78,6 +79,7 @@ static AdaLanguageScanner* s_adaScanner;
   ArgumentList* argsPtr;
   Identifiers* idsPtr;
 }
+*/
 
 /*KEYWORDS*/
 %token ABORT

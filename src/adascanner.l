@@ -26,7 +26,7 @@
 #include "commentscan.h"
 #include "message.h"
 
-#define YY_DECL extern int adaYYlex()
+//#define YY_DECL extern int adaYYlex()
 
 /*
  Static variables
@@ -109,7 +109,7 @@ B       [ \t]
 "null"          {return(Null);}
 "--!"                 {s_specialComment.resize(0); 
                        BEGIN(doxy_comment);}
-<doxy_comment>[^\n]*  {s_specialComment.append(adaYYtext);}
+<doxy_comment>[^\n]*  {s_specialComment.append(yytext);}
 <doxy_comment>\n{B}*"--!" {s_specialComment.append("\n");}
 
 <doxy_comment>\n    {/*Structural comments no not depend
@@ -131,7 +131,7 @@ B       [ \t]
 "--"                 {BEGIN(comment);}
 <comment>[^\n]*     ;
 <comment>\n         {BEGIN(INITIAL);}
-[a-zA-Z][a-zA-Z0-9_]* {adaYYlval.cstrVal = strdup(adaYYtext);
+[a-zA-Z][a-zA-Z0-9_]* {adaYYlval.cstrVal = strdup(yytext);
                         return(IDENTIFIER);}
 [ \t\n\f]		;
 

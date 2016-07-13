@@ -15,49 +15,10 @@
 #include "message.h"
 #define YYDEBUG 1
 
-enum NodeType
-{
-  ADA_PKG,
-  ADA_VAR,
-  ADA_SUBPROG
-};
-
 //from flex for bison to know about!
-extern int adaYYlex();
+extern int adacodeYYlex();
 extern int adacodeYYparse();
-int adacodeYYwrap();
-int adacodeYYlex();
-void adacodeYYrestart( FILE *new_file );
 void adacodeYYerror (char const *s);
-
-/** \brief an entity that needs to be linked.
- *
- * stores data needed to compute
- * links between entities.*/
-struct Node
-{
-  NodeType type;
-  QCString name;
-  QCString name_space;
-  std::list<Node*> references;
-};
-
-
-/** \brief a struct for marking special syntax symbols
- *
- * Contains a location of the symbol and how the
- * symbol should be handeled.
- */
-struct syntaxSymbol
-{
-  int line_n;
-  int col;
-};
-
-typedef std::list<Node*> Nodes;
-typedef Nodes::iterator NodesIter;
-typedef std::list<syntaxSymbol> SyntaxSymbols;
-typedef SyntaxSymbols::iterator SyntaxSymbolsIter;
 
 /* Statics */
 static std::vector<Node> s_nodes_mem;
@@ -65,6 +26,7 @@ static SyntaxSymbols s_symbols_mem;
 static Node* s_root;
 
 
+Node &newNode(NodeType type, QCString name);
 void printNodeTree(const Node& node, std::string pad="");
 
 static Node* handlePackage(const char* name, Nodes *publics,
@@ -79,7 +41,7 @@ static Nodes *handleDecls(Nodes *new_entries, Nodes *entries);
 static Node *handlePackageBody(const char* name,
                            Nodes *decls=NULL);
 %}
-
+/*
 %union {
   int intVal;
   char charVal;
@@ -92,6 +54,7 @@ static Node *handlePackageBody(const char* name,
   ArgumentList* argsPtr;
   Identifiers* idsPtr;
 }
+*/
 
 /*KEYWORDS*/
 %token ABORT
@@ -379,7 +342,7 @@ obj_decl_base:      identifier_list COLON
 identifier_list:    IDENTIFIER
                     {
                       QCString id = $1;
-                      std::cout << "New id " << id << std::endl;
+                      msg("New id %s\n", $1);
                       Identifiers *ids = new Identifiers;
                       ids->push_front(id);
 
@@ -389,7 +352,7 @@ identifier_list:    IDENTIFIER
                     }
                     |IDENTIFIER COMMA identifier_list
                     {
-                      std::cout << "New id " << $1 << std::endl;
+                      msg("New id %s\n", $1);
                       Identifiers *ids = $3;
                       ids->push_front(QCString($1));
 
@@ -416,7 +379,7 @@ void printNodeTree(const Node& node, std::string pad)
 {
   msg("%s====================\n", pad.data());
   msg("%sNODE:\n", pad.data());
-  msg("%ssection: %s", pad.data(), section2str(node.type).data()); 
+  msg("%ssection: %d\n", pad.data(), node.type); 
   printQC(pad, "name", node.name);
   printQC(pad, "namespace", node.name_space.data());
   msg("%sCHILDREN:\n", pad.data());
@@ -430,44 +393,47 @@ void printNodeTree(const Node& node, std::string pad)
   
 }
 
+Node &newNode(NodeType type, QCString name)
+{
+  Node n;
+  n.type = type;
+  n.name = name;
+  s_nodes_mem.push_back(n);
+  return s_nodes_mem.back();
+}
+
 Node* handlePackage(const char* name, Nodes *publics,
                      Nodes *privates)
 {
-  Node n;
-  n.name = name;
-  n.type = ADA_PKG;
-  
+  Node &n = newNode(ADA_PKG, name);
+
   n.references.splice(n.references.end(), *publics);
 
   if (privates)
     n.references.splice(n.references.end(), *privates);
 
   delete name;
-  s_nodes_mem.push_back(n);
-  return &s_nodes_mem.back();
+  return &n;
 }
 
 Node* handleSubprogram(const char* name,
                         ArgumentList *args, const char *type)
 {
-  Node n;
-  n.name = name;
-  n.type = ADA_SUBPROG;
+  Node &n = newNode(ADA_SUBPROG, name);
 
   Argument *arg;
   ArgumentListIterator it(*args);
   it.toFirst();
   for (; (arg=it.current()); ++it )
   {
-    Node var;
-    var.type = ADA_VAR;
-    var.name = arg->name;
+    Node &var = newNode(ADA_VAR, arg->name);
     n.references.push_back(&var);
   }
 
+  msg("s_node_mem\n");
+  printNodeTree(n);
   delete name;
-  s_nodes_mem.push_back(n);
-  return &s_nodes_mem.back();
+  return &n;
 }
 
 void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
@@ -500,19 +466,8 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
   s_root = NULL;
 }
 
-//called when yylex reaches end of file, returns 1 to stop yylex from continuing scan
-int adacodeYYwrap()
-{
-  return 1;
-}
-
 //for printing errors and type of error when encountered
 void adacodeYYerror(const char *s)
 {
-  printf("ERROR: ada parser\n");
-}
-
-int adacodeYYlex()
-{
-  adaYYlex();
+  printf("ERROR: ada code parser\n");
 }

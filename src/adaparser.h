@@ -39,6 +39,58 @@ typedef Entries::iterator EntriesIter;
 typedef std::list<QCString> Identifiers;
 typedef Identifiers::iterator IdentifiersIter;;
 
+enum NodeType
+{
+  ADA_PKG,
+  ADA_VAR,
+  ADA_SUBPROG
+};
+
+/** \brief an entity that needs to be linked.
+ *
+ * stores data needed to compute
+ * links between entities.*/
+struct Node
+{
+  NodeType type;
+  QCString name;
+  QCString name_space;
+  std::list<Node*> references;
+};
+
+
+/** \brief a struct for marking special syntax symbols
+ *
+ * Contains a location of the symbol and how the
+ * symbol should be handeled.
+ */
+struct syntaxSymbol
+{
+  int line_n;
+  int col;
+};
+
+typedef std::list<Node*> Nodes;
+typedef Nodes::iterator NodesIter;
+typedef std::list<syntaxSymbol> SyntaxSymbols;
+typedef SyntaxSymbols::iterator SyntaxSymbolsIter;
+
+/** \brief type of values moved between flex and bison. */
+union ADAYYSTYPE{
+  int intVal;
+  char charVal;
+  char* cstrVal;
+  Node* nodePtr;
+  Nodes* nodesPtr;
+  Entry* entryPtr;
+  QCString* qstrPtr;
+  Entries* entriesPtr;
+  ArgumentList* argsPtr;
+  Identifiers* idsPtr;
+};
+
+typedef ADAYYSTYPE ADACODEYYSTYPE;
+
 class AdaLanguageScanner : public ParserInterface
 {
   public:
