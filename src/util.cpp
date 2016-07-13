@@ -321,6 +321,7 @@ int guessSection(const char *name)
       n.right(4)==".cpp"  ||
       n.right(4)==".c++"  ||
       n.right(5)==".java" ||
+      n.right(4)==".adb"  ||
       n.right(2)==".m"    ||
       n.right(2)==".M"    ||
       n.right(3)==".mm"   ||
@@ -338,7 +339,8 @@ int guessSection(const char *name)
       n.right(4)==".h++" ||
       n.right(4)==".idl" ||
       n.right(4)==".ddl" ||
-      n.right(5)==".pidl"
+      n.right(5)==".pidl"||
+      n.right(4)==".ads"
      ) return Entry::HEADER_SEC;
   return 0;
 }

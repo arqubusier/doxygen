@@ -20,12 +20,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
-#include "adaparser.h"
+
+#include <list>
+#include <algorithm>
+
+#include "util.h"
 #include "entry.h"
 #include "types.h"
 #include "arguments.h"
-#include <list>
-#include <algorithm>
+#include "adaparser.h"
 #include "adacommon.h"
 
 #define YYDEBUG 1
@@ -567,6 +570,15 @@ void AdaLanguageScanner::parseInput(const char * fileName,
     adaYYparse();
     cleanupInputString();
     inputFile.close();
+
+    int sec = guessSection(fileName);
+    if (sec)
+    {
+      Entry *e = newEntry();
+      e->name = fileName;
+      e->section = sec;
+      s_root->addSubEntry(e);
+    }
   }
   s_root->printTree();
 }
