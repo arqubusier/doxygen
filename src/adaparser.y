@@ -40,19 +40,13 @@ extern int adaYYwrap();
 extern void adaYYrestart( FILE *new_file );
 void adaYYerror (char const *s);
 extern Entries structuralEntries;
+
+
 void initEntry (Entry *e, Entry *parent=NULL, Protection prot=Public,
                 MethodTypes mtype=Method, bool stat=false,
                 Specifier virt=Normal);
-Entry* handlePackage(const char* name, Entries *publics,
-                     Entries *privates=NULL);
-Entry* handleSubprogram(const char* name,
-                        ArgumentList *args=NULL, const char *type=NULL);
-Entries *handleDeclsBase(Entry *new_entry);
-Entries *handleDeclsBase(Entries *new_entries);
-Entries *handleDecls(Entry *new_entry, Entries *entries);
-Entries *handleDecls(Entries *new_entries, Entries *entries);
-Entry *handlePackageBody(const char* name,
-                           Entries *decls=NULL);
+
+
 /**
  * Takes the children from src and adds them to dst.
  * dst parent is removed.
@@ -63,8 +57,8 @@ void   addDocToEntries(Entry* doc, Entries* entries);
 void addDocToEntry(Entry *doc, Entry *entry);
 Entry* newEntry();
 
-static Entry* s_root;
-static AdaLanguageScanner* s_adaScanner;
+static Entry *s_root;
+static RuleHandler *s_handler;
 
  %}
 
@@ -209,6 +203,7 @@ static AdaLanguageScanner* s_adaScanner;
 %type<qstrPtr> mode
 
 %defines 
+
 /*
  NOTE: when receiving c strings from the lexer, the parser
  becomes responsible for deallocating them. Thus, they
@@ -224,9 +219,7 @@ start: library_item
        }
 
 /* TODO: add error handling */
-doxy_comment: SPECIAL_COMMENT{
-                     std::cout << "comment: " << $1->doc << std::endl;
-                     $$ = $1;}
+doxy_comment: SPECIAL_COMMENT
 
 library_item: library_item_decl| library_item_body
 
@@ -238,68 +231,69 @@ library_item_body: package_body| subprogram_body
 package_decl:      package_spec SEM{$$ = $1;}
 package_spec:      package_spec_base
                    |doxy_comment package_spec_base
-                     {addDocToEntry($1, $2);
-                      $$ = $2;}
+                     {$$ = s_handler->packageSpec($2, $1);}
 package_spec_base: PACKAGE IDENTIFIER IS
                    basic_decls END
                     IDENTIFIER
                       {
-                       $$ = handlePackage($2, $4);
+                       $$ = s_handler->packageSpecBase($2, $4);
                        delete $6;
                       }
                     | PACKAGE IDENTIFIER IS basic_decls
                       PRIVATE basic_decls END IDENTIFIER
                       {
-                       $$ = handlePackage($2, $4, $6);
+                       $$ = s_handler->packageSpecBase($2, $4, $6);
                        delete $8;
                       }
 
 subprogram_decl:   subprogram_spec SEM {$$ = $1;}
 subprogram_spec:   subprogram_spec_base|
                    doxy_comment subprogram_spec_base
-                     {addDocToEntry($1, $2);
+                     {s_handler->subprogramSpec($2, $1);
                       $$ = $2;}
 subprogram_spec_base:  PROCEDURE IDENTIFIER
                    {
-                     $$ = handleSubprogram($2);
+                     $$ = s_handler->subprogramSpecBase($2);
                    }
                    |PROCEDURE IDENTIFIER
                     LPAR parameters RPAR
                    {
-                     $$ = handleSubprogram($2, $4);
+                     $$ = s_handler->subprogramSpecBase($2, $4);
                    }
                    |FUNCTION IDENTIFIER RETURN
                     IDENTIFIER
                    {
-                     $$ = handleSubprogram($2, NULL, $4);
+                     $$ = s_handler->subprogramSpecBase($2, NULL, $4);
                    }
                    |FUNCTION IDENTIFIER
                     LPAR parameters RPAR RETURN
                     IDENTIFIER
                    {
-                     $$ = handleSubprogram($2, $4, $7);
+                     $$ = s_handler->subprogramSpecBase($2, $4, $7);
                    }
 body:              package_body {$$ = $1;}
                    |subprogram_body {$$ = $1;}
 
 package_body:      package_body_base
                    |doxy_comment package_body_base
-                     {addDocToEntry($1, $2);
+                     {s_handler->packageBody($2, $1);
                       $$ = $2;}
 package_body_base: PACKAGE_BODY IDENTIFIER IS
                    END IDENTIFIER SEM
                    {
-                     $$ = handlePackageBody($2); 
+                     $$ = s_handler->packageBodyBase($2); 
+                     delete $5;
                    }
                    |PACKAGE_BODY IDENTIFIER IS
                    decls END IDENTIFIER SEM
                    {
-                     $$ = handlePackageBody($2, $4); 
+                     $$ = s_handler->packageBodyBase($2, $4); 
+                     delete $6;
                    }
                    |PACKAGE_BODY IDENTIFIER IS
                    decls BEGIN_ statements END SEM
                    {
-                     $$ = handlePackageBody($2, $4); 
+                     $$ = s_handler->packageBodyBase($2, $4); 
                    }
 
 subprogram_body:  subprogram_spec IS
@@ -316,45 +310,51 @@ tail:             SEM| IDENTIFIER SEM {delete $1;}
 
 parameters:       parameter_spec
                   | parameter_specs parameter_spec
-                   {$$ = handleParams($1, $2);}
+                   {$$ = s_handler->params($1, $2);}
 parameter_specs:  parameter_spec SEM {$$ = $1;}
                   |parameter_specs parameter_spec SEM
-                   {$$ = handleParams($1, $2);}
+                   {$$ = s_handler->params($1, $2);}
 parameter_spec:    identifier_list COLON subtype
-                     {$$ = handleParamSpec($1, $3);}
+                     {$$ = s_handler->paramSpec($1, $3);}
                    |identifier_list COLON mode subtype
-                     {$$ = handleParamSpec($1, $4, $3);}
+                     {$$ = s_handler->paramSpec($1, $4, $3);}
 
 mode:              IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
                    | IN OUT {$$ = new QCString("in out");}
 
-decls:             body {$$ = handleDeclsBase($1);}
-                   |decl_item {$$ = handleDeclsBase($1);}
-                   |decl_items {$$ = handleDeclsBase($1);}
-                   |decls body {$$ = handleDecls($1, $1);}
-                   |decls decl_item {$$ = handleDecls($1, $1);}
-                   |decls decl_items {$$ = handleDecls($1, $1);}
+decls:             body {$$ = s_handler->declsBase($1);}
+                   |decl_item {$$ = s_handler->declsBase($1);}
+                   |decl_items {$$ = s_handler->declsBase($1);}
+                   |decls body {$$ = s_handler->decls($1, $1);}
+                   |decls decl_item {$$ = s_handler->decls($1, $1);}
+                   |decls decl_items {$$ = s_handler->decls($1, $1);}
 
-basic_decls:        decl_items {$$ = handleDeclsBase($1);}
-                    |decl_item {$$ = handleDeclsBase($1);}
-                    |basic_decls decl_items{$$ = handleDecls($2, $1);}
-                    |basic_decls decl_item{$$ = handleDecls($2, $1);}
+basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
+                    |decl_item {$$ = s_handler->declsBase($1);}
+                    |basic_decls decl_items
+                    {$$ = s_handler->decls($2, $1);}
+                    |basic_decls decl_item
+                    {$$ = s_handler->decls($2, $1);}
 
 decl_items:         obj_decl
 decl_item:          subprogram_decl| package_decl
 
 obj_decl:           obj_decl_base
                     |doxy_comment obj_decl_base
-                    {
+                    {$$ = s_handler->objDecl($2, $1);}
+                    /*
                       Entries *es = $2;
                       if (!es->empty())
                         addDocToEntry($1, es->back());
                       $$ = es;
                     }
+                    */
 obj_decl_base:      identifier_list COLON 
                     subtype expression SEM
-                    {
+                    {$$ = s_handler->objDeclBase($1, $3);}
+                     
+                    /*
                       Entries *entries = new Entries;
 
                       Identifiers *ids = $1;
@@ -369,10 +369,12 @@ obj_decl_base:      identifier_list COLON
                         entries->push_front(e);
                       }
 
+
                       $$ = entries;
                       delete type;;
                       delete ids;
-                    }
+                      */
+                      /* move to handlers */
 identifier_list:    IDENTIFIER
                     {
                       QCString id = $1;
@@ -394,6 +396,7 @@ identifier_list:    IDENTIFIER
                       delete $1;
                     }
                     
+                    /* move to handlers */
 subtype:            IDENTIFIER constraint
                     {
                       std::cout << "New type " << $1 << std::endl;
@@ -559,7 +562,8 @@ void AdaLanguageScanner::parseInput(const char * fileName,
 {
   std::cout << "ADAPARSER" << std::endl;
   s_root = root;
-  s_adaScanner = this;
+  EntryHandler eh;
+  s_handler = &eh;
   qcFileName = fileName;
   yydebug = 1;
 
@@ -583,6 +587,37 @@ void AdaLanguageScanner::parseInput(const char * fileName,
     }
   }
   s_root->printTree();
+}
+
+void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
+                   const char *scopeName,
+                   const QCString &input,
+                   SrcLangExt lang,
+                   bool isExampleBlock,
+                   const char *exampleName,
+                   FileDef *fileDef,
+                   int startLine,
+                   int endLine,
+                   bool inlineFragment,
+                   MemberDef *memberDef,
+                   bool showLineNumbers,
+                   Definition *searchCtx,
+                   bool collectXrefs
+                  )
+{
+  std::cout << "ADA CODE PARSER" << std::endl;
+  CodeHandler ch;
+  s_handler = &ch;
+  setInputString(input);
+  adacodeYYparse();
+  cleanupInputString();
+
+  //printNodeTree(*s_root);
+
+  /* Clean up static variables */
+  //s_nodes_mem.clear();
+  //s_symbols_mem.clear();
+  //s_root = NULL;
 }
 
 void adaFreeScanner()

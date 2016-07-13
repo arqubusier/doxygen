@@ -46,16 +46,31 @@ enum NodeType
   ADA_SUBPROG
 };
 
-/** \brief an entity that needs to be linked.
+/** \brief a node in the ADA AST.*/
+class Node
+{
+  virtual void add_child(Node* root, Node child)=0;
+}
+
+/** \brief wrapper for entity.*/
+class EntityNode: public Node, Entity
+{
+  void add_child(Node* root, Node *child);
+}
+
+/** \brief an entity used in "Code parsing".
  *
  * stores data needed to compute
- * links between entities.*/
-struct Node
+ * links between entities.
+ * and syntax highlighing*/
+struct CodeNode: public Node
 {
   NodeType type;
   QCString name;
   QCString name_space;
-  std::list<Node*> references;
+  std::list<CodeNode*> references;
+
+  void add_child(node* root, Node *child);
 };
 
 
