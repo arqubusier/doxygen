@@ -32,6 +32,7 @@
 #include "adacommon.h"
 #include "adarulehandler.h"
 #include "filedef.h"
+#include "message.h"
 
 #define YYDEBUG 1
 
@@ -380,6 +381,7 @@ void AdaLanguageScanner::parseInput(const char * fileName,
 {
   std::cout << "ADAPARSER" << std::endl;
   EntryHandler eh(root);
+  s_root = new EntryNode;//dynamic_cast<Node*>(root);
   s_handler = &eh;
   qcFileName = fileName;
   yydebug = 1;
@@ -392,11 +394,14 @@ void AdaLanguageScanner::parseInput(const char * fileName,
     initAdaScanner(this, fileName, root);
     setInputString(fileBuf);
     adaYYparse();
+    msg("parse complete\n");
     cleanupInputString();
     inputFile.close();
     eh.addFileSection(fileName);
   }
-  s_root->print();
+  msg("printing\n");
+  eh.printRoot();
+  msg("after print\n");
 }
 
 void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
