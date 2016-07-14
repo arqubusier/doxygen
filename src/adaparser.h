@@ -28,14 +28,13 @@
 #include <list>
 #include <qfile.h>
 #include "arguments.h"
+#include "entry.h"
 
 /** \brief Ada Language parser using state-based lexical scanning.
  *
  * This is the Ada language parser for doxygen.
  */
 
-typedef std::list<Entry*> Entries;
-typedef Entries::iterator EntriesIter;
 typedef std::list<QCString> Identifiers;
 typedef Identifiers::iterator IdentifiersIter;;
 
@@ -49,30 +48,43 @@ enum NodeType
 /** \brief a node in the ADA AST.*/
 class Node
 {
-  virtual void add_child(Node* root, Node child)=0;
-}
+public:
+  virtual void addChild(Node *child)=0;
+  virtual void print() = 0;
+};
 
 /** \brief wrapper for entity.*/
-class EntityNode: public Node, Entity
+class EntryNode: public Node, public Entry
 {
-  void add_child(Node* root, Node *child);
-}
+public:
+  virtual void addChild(Node *child);
+  virtual void print();
+};
+
+typedef std::list<EntryNode*> Entries;
+typedef Entries::iterator EntriesIter;
 
 /** \brief an entity used in "Code parsing".
  *
  * stores data needed to compute
  * links between entities.
  * and syntax highlighing*/
-struct CodeNode: public Node
+class CodeNode: public Node
 {
+public:
   NodeType type;
   QCString name;
   QCString name_space;
   std::list<CodeNode*> references;
 
-  void add_child(node* root, Node *child);
+  virtual void addChild(Node *child);
+  virtual void print();
+private:
+  void print_(std::string pad);
 };
 
+typedef std::list<CodeNode*> CodeNodes;;
+typedef CodeNodes::iterator CodeNodesIter;
 
 /** \brief a struct for marking special syntax symbols
  *
@@ -89,22 +101,6 @@ typedef std::list<Node*> Nodes;
 typedef Nodes::iterator NodesIter;
 typedef std::list<syntaxSymbol> SyntaxSymbols;
 typedef SyntaxSymbols::iterator SyntaxSymbolsIter;
-
-/** \brief type of values moved between flex and bison. */
-union ADAYYSTYPE{
-  int intVal;
-  char charVal;
-  char* cstrVal;
-  Node* nodePtr;
-  Nodes* nodesPtr;
-  Entry* entryPtr;
-  QCString* qstrPtr;
-  Entries* entriesPtr;
-  ArgumentList* argsPtr;
-  Identifiers* idsPtr;
-};
-
-typedef ADAYYSTYPE ADACODEYYSTYPE;
 
 class AdaLanguageScanner : public ParserInterface
 {
@@ -152,9 +148,9 @@ void setInputString(const char* input);
 void cleanupInputString();
 void adaFreeScanner();
 
-ArgumentList *handleParamSpec(Identifiers *ids,
-                              QCString *type,
-                              QCString *mode=NULL);
-ArgumentList *handleParams(ArgumentList *args, ArgumentList *new_args);
+void initAdaScanner(AdaLanguageScanner *parser, QCString fileName,
+                    Entry *root);
 QCString adaArgListToString(const ArgumentList &args);
+
+void printNodeTree(const Node& node, std::string pad="");
 #endif //ADAPARSER_H

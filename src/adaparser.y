@@ -30,6 +30,8 @@
 #include "arguments.h"
 #include "adaparser.h"
 #include "adacommon.h"
+#include "adarulehandler.h"
+#include "filedef.h"
 
 #define YYDEBUG 1
 
@@ -39,30 +41,27 @@ extern int adaYYparse();
 extern int adaYYwrap();
 extern void adaYYrestart( FILE *new_file );
 void adaYYerror (char const *s);
-extern Entries structuralEntries;
 
+/** \brief type of values moved between flex and bison. */
+typedef union ADAYYSTYPE_{
+  int intVal;
+  char charVal;
+  char* cstrVal;
+  Node* nodePtr;
+  Nodes* nodesPtr;
+  Entry* entryPtr;
+  QCString* qstrPtr;
+  Entries* entriesPtr;
+  ArgumentList* argsPtr;
+  Identifiers* idsPtr;
+}ADAYYSTYPE_;
+#define ADAYYSTYPE ADAYYSTYPE_
 
-void initEntry (Entry *e, Entry *parent=NULL, Protection prot=Public,
-                MethodTypes mtype=Method, bool stat=false,
-                Specifier virt=Normal);
-
-
-/**
- * Takes the children from src and adds them to dst.
- * dst parent is removed.
- */
-void   moveEntries(Entries *dst_entries, Entries* src_entries); 
-void   moveEntriesToEntry(Entry *entry, Entries* entries); 
-void   addDocToEntries(Entry* doc, Entries* entries);
-void addDocToEntry(Entry *doc, Entry *entry);
-Entry* newEntry();
-
-static Entry *s_root;
+static Node *s_root;
 static RuleHandler *s_handler;
 
  %}
 
-/*
 %union {
   int intVal;
   char charVal;
@@ -73,7 +72,6 @@ static RuleHandler *s_handler;
   ArgumentList* argsPtr;
   Identifiers* idsPtr;
 }
-*/
 
 /*KEYWORDS*/
 %token ABORT
@@ -154,7 +152,7 @@ static RuleHandler *s_handler;
 %token START_COMMENT
 %token START_DOXY_COMMENT
 %token <cstrVal>COMMENT_BODY
-%token <entryPtr>SPECIAL_COMMENT
+%token <nodePtr>SPECIAL_COMMENT
 %token LINE
 %token NEWLINE
 %token TIC
@@ -175,27 +173,27 @@ static RuleHandler *s_handler;
 %token RPAR
 
 /*non-terminals*/
-%type<entryPtr> doxy_comment
-%type<entryPtr> package_spec
-%type<entryPtr> package_spec_base
-%type<entryPtr> package_decl
-%type<entryPtr> subprogram_spec
-%type<entryPtr> subprogram_spec_base
-%type<entryPtr> subprogram_decl
-%type<entryPtr> body
-%type<entryPtr> package_body
-%type<entryPtr> package_body_base
-%type<entryPtr> subprogram_body
-%type<entriesPtr> basic_decls
-%type<entriesPtr> decls
-%type<entriesPtr> obj_decl
-%type<entriesPtr> obj_decl_base
-%type<entryPtr> decl_item
-%type<entriesPtr> decl_items
+%type<nodePtr> doxy_comment
+%type<nodePtr> package_spec
+%type<nodePtr> package_spec_base
+%type<nodePtr> package_decl
+%type<nodePtr> subprogram_spec
+%type<nodePtr> subprogram_spec_base
+%type<nodePtr> subprogram_decl
+%type<nodePtr> body
+%type<nodePtr> package_body
+%type<nodePtr> package_body_base
+%type<nodePtr> subprogram_body
+%type<nodesPtr> basic_decls
+%type<nodesPtr> decls
+%type<nodesPtr> obj_decl
+%type<nodesPtr> obj_decl_base
+%type<nodePtr> decl_item
+%type<nodesPtr> decl_items
 %type<idsPtr> identifier_list
-%type<entryPtr> library_item
-%type<entryPtr> library_item_decl
-%type<entryPtr> library_item_body
+%type<nodePtr> library_item
+%type<nodePtr> library_item_decl
+%type<nodePtr> library_item_body
 %type<qstrPtr> subtype
 %type<argsPtr> parameter_spec
 %type<argsPtr> parameter_specs
@@ -213,9 +211,7 @@ static RuleHandler *s_handler;
 
 start: library_item
        {
-         Entry *item = $1;
-         printf("item %s\n", item->name.data()); 
-         s_root->addSubEntry(item);
+         s_handler->addToRoot($1);
        }
 
 /* TODO: add error handling */
@@ -271,9 +267,7 @@ subprogram_spec_base:  PROCEDURE IDENTIFIER
                    {
                      $$ = s_handler->subprogramSpecBase($2, $4, $7);
                    }
-body:              package_body {$$ = $1;}
-                   |subprogram_body {$$ = $1;}
-
+body:              package_body| subprogram_body
 package_body:      package_body_base
                    |doxy_comment package_body_base
                      {s_handler->packageBody($2, $1);
@@ -298,14 +292,8 @@ package_body_base: PACKAGE_BODY IDENTIFIER IS
 
 subprogram_body:  subprogram_spec IS
                   BEGIN_ statements END tail
-                  {
-                    $$ = $1;
-                  }
                   |subprogram_spec IS decls
                   BEGIN_ statements END tail
-                  {
-                    $$ = $1;
-                  }
 tail:             SEM| IDENTIFIER SEM {delete $1;}
 
 parameters:       parameter_spec
@@ -327,15 +315,15 @@ decls:             body {$$ = s_handler->declsBase($1);}
                    |decl_item {$$ = s_handler->declsBase($1);}
                    |decl_items {$$ = s_handler->declsBase($1);}
                    |decls body {$$ = s_handler->decls($1, $1);}
-                   |decls decl_item {$$ = s_handler->decls($1, $1);}
-                   |decls decl_items {$$ = s_handler->decls($1, $1);}
+                   |decls decl_item {$$ = s_handler->decls($1, $2);}
+                   |decls decl_items {$$ = s_handler->decls($1, $2);}
 
 basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
                     |decl_item {$$ = s_handler->declsBase($1);}
                     |basic_decls decl_items
-                    {$$ = s_handler->decls($2, $1);}
+                    {$$ = s_handler->decls($1, $2);}
                     |basic_decls decl_item
-                    {$$ = s_handler->decls($2, $1);}
+                    {$$ = s_handler->decls($1, $2);}
 
 decl_items:         obj_decl
 decl_item:          subprogram_decl| package_decl
@@ -343,37 +331,10 @@ decl_item:          subprogram_decl| package_decl
 obj_decl:           obj_decl_base
                     |doxy_comment obj_decl_base
                     {$$ = s_handler->objDecl($2, $1);}
-                    /*
-                      Entries *es = $2;
-                      if (!es->empty())
-                        addDocToEntry($1, es->back());
-                      $$ = es;
-                    }
-                    */
 obj_decl_base:      identifier_list COLON 
                     subtype expression SEM
                     {$$ = s_handler->objDeclBase($1, $3);}
                      
-                    /*
-                      Entries *entries = new Entries;
-
-                      Identifiers *ids = $1;
-                      QCString *type = $3;
-                      IdentifiersIter it = ids->begin();
-                      for (;it != ids->end(); ++it)
-                      {
-                        Entry *e = newEntry();
-                        e->name = (*it);
-                        e->type = *type;
-                        e->section = Entry::VARIABLE_SEC;
-                        entries->push_front(e);
-                      }
-
-
-                      $$ = entries;
-                      delete type;;
-                      delete ids;
-                      */
                       /* move to handlers */
 identifier_list:    IDENTIFIER
                     {
@@ -411,149 +372,6 @@ expression:;
                     
 %%
 
-
-Entry* newEntry()
-{
-    Entry* e = new Entry;
-    initEntry(e);
-    return e;
-}
-
-void addDocToEntry(Entry *doc, Entry *entry){
-  if( doc ){
-    entry->doc = doc->doc;
-    entry->brief = doc->brief;
-    printf("doc");
-  }
-  else
-    printf("no doc");
-}
-
-void   addDocToEntries(Entry *doc, Entries* entries)
-{
-  if (!entries->empty())
-  {
-    Entry *entry = entries->back();
-    addDocToEntry(doc, entry);
-  }
-}
-
-void   moveEntries(Entries* dst_entries, Entries* src_entries)
-{
-  dst_entries->splice(dst_entries->begin(), *src_entries);
-  printf("before delete\n");
-  delete src_entries;
-  printf("after delete\n");
-}
-
-void moveEntriesToEntry(Entry* entry, Entries *entries)
-{
-  EntriesIter it;
-  for (it=entries->begin(); it!=entries->end(); ++it)
-  {
-    entry->addSubEntry(*it);
-  } 
-  delete entries;
-}
-
-Entry *handlePackage(const char* name, Entries *publics,
-                     Entries *privates)
-{
-  printf("New package \n");
-  Entry *pkg = newEntry();
-  pkg->section = Entry::NAMESPACE_SEC;
-  pkg->name = QCString(name);
-  pkg->type = QCString("namespace");
-
-  EntriesIter it = publics->begin();
-    for (;it != publics->end(); ++it)
-      (*it)->protection = Public;
-
-  moveEntriesToEntry(pkg, publics);
-  printf("parser: added publics\n");
-  if (privates)
-  {
-    printf("parser: adding privates\n");
-    it = privates->begin();
-    for (;it != privates->end(); ++it)
-      (*it)->protection = Private;
-    moveEntriesToEntry(pkg, privates);
-  }   
-
-  printf("parser: returning\n");
-  delete name;
-  return pkg;
-}
-
-Entry* handleSubprogram(const char* name,
-                        ArgumentList *args, const char *type)
-{
-  Entry *fun = newEntry();
-  fun->name = name;
-  delete name;
-
-  if (args)
-  {
-    fun->argList = args;
-    fun->args = adaArgListToString(*args);
-  }
-  if (type)
-  {
-    fun->type = type;
-    delete type;
-  }
-  fun->section = Entry::FUNCTION_SEC;
-  return fun;
-}
-
-Entries *handleDeclsBase(Entry *new_entry)
-{
-  Entries *es = new Entries;
-  es->push_front(new_entry);
-  return es;
-}
-
-Entries *handleDeclsBase(Entries *new_entries)
-{
-  Entries *es = new Entries;
-  moveEntries(es, new_entries);
-  return es;
-}
-
-Entries *handleDecls(Entry *new_entry, Entries *entries)
-{ 
-  entries->push_front(new_entry);
-  return entries;
-}
-
-Entries *handleDecls(Entries *new_entries, Entries *entries)
-{ 
-  moveEntries(entries, new_entries);
-  return entries;
-}
-
-
-Entry *handlePackageBody(const char* name, Entries *decls)
-{
-  printf("New package body\n");
-  Entry *pkg = newEntry();
-  pkg->section = Entry::NAMESPACE_SEC;
-  pkg->name = QCString(name);
-  pkg->type = QCString("namespace");
-
-  if (decls)
-  {
-    moveEntriesToEntry(pkg, decls);
-  }
-
-  delete name;
-  
-  return pkg;
-}
-
-void addDeclItems(Entry *root){
-}
-
 void AdaLanguageScanner::parseInput(const char * fileName, 
                 const char *fileBuf, 
                 Entry *root,
@@ -561,8 +379,7 @@ void AdaLanguageScanner::parseInput(const char * fileName,
                 QStrList &filesInSameTranslationUnit)
 {
   std::cout << "ADAPARSER" << std::endl;
-  s_root = root;
-  EntryHandler eh;
+  EntryHandler eh(root);
   s_handler = &eh;
   qcFileName = fileName;
   yydebug = 1;
@@ -572,21 +389,14 @@ void AdaLanguageScanner::parseInput(const char * fileName,
 
   if (inputFile.open(IO_ReadOnly))
   {
+    initAdaScanner(this, fileName, root);
     setInputString(fileBuf);
     adaYYparse();
     cleanupInputString();
     inputFile.close();
-
-    int sec = guessSection(fileName);
-    if (sec)
-    {
-      Entry *e = newEntry();
-      e->name = fileName;
-      e->section = sec;
-      s_root->addSubEntry(e);
-    }
+    eh.addFileSection(fileName);
   }
-  s_root->printTree();
+  s_root->print();
 }
 
 void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
@@ -606,10 +416,12 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
                   )
 {
   std::cout << "ADA CODE PARSER" << std::endl;
+  /* CHECK IF CAN REMOVE THIS */
+  //initAdaScanner(this, fileDef->name(), root);
   CodeHandler ch;
   s_handler = &ch;
   setInputString(input);
-  adacodeYYparse();
+  adaYYparse();
   cleanupInputString();
 
   //printNodeTree(*s_root);
@@ -638,16 +450,4 @@ int adaYYwrap()
 void adaYYerror(const char *s)
 {
   printf("ERROR: ada parser\n");
-}
-
-void initEntry (Entry *e, Entry *parent, Protection prot,
-                MethodTypes mtype, bool stat,
-                Specifier virt)
-{
-  e->protection = prot;
-  e->mtype      = mtype;
-  e->virt       = virt;
-  e->stat       = stat;
-  e->lang       = SrcLangExt_Ada; 
-  e->setParent(parent);
 }

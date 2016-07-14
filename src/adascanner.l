@@ -163,14 +163,20 @@ void handleComment(Entry *non_struct_entry,
   {
     if (newEntryNeeded){
       is_non_struct = false;
-      parser_root->addSubEntry(current);
-      current = new Entry;
+      if (parser_root)
+      {
+        parser_root->addSubEntry(current);
+        current = new Entry;
+      }
     }
   }
   if (newEntryNeeded){
       is_non_struct = false;
-      parser_root->addSubEntry(current);
-      current = new Entry;
+      if (parser_root)
+      {
+        parser_root->addSubEntry(current);
+        current = new Entry;
+      }
   }
 }
 
