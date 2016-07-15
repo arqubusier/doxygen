@@ -43,21 +43,6 @@ extern int adaYYwrap();
 extern void adaYYrestart( FILE *new_file );
 void adaYYerror (char const *s);
 
-/** \brief type of values moved between flex and bison. */
-typedef union ADAYYSTYPE_{
-  int intVal;
-  char charVal;
-  char* cstrVal;
-  Node* nodePtr;
-  Nodes* nodesPtr;
-  Entry* entryPtr;
-  QCString* qstrPtr;
-  Entries* entriesPtr;
-  ArgumentList* argsPtr;
-  Identifiers* idsPtr;
-}ADAYYSTYPE_;
-#define ADAYYSTYPE ADAYYSTYPE_
-
 static RuleHandler *s_handler;
 
  %}
@@ -71,6 +56,8 @@ static RuleHandler *s_handler;
   Entries* entriesPtr;
   ArgumentList* argsPtr;
   Identifiers* idsPtr;
+  Node* nodePtr;
+  Nodes* nodesPtr;
 }
 
 /*KEYWORDS*/
@@ -245,8 +232,7 @@ package_spec_base: PACKAGE IDENTIFIER IS
 subprogram_decl:   subprogram_spec SEM {$$ = $1;}
 subprogram_spec:   subprogram_spec_base|
                    doxy_comment subprogram_spec_base
-                     {s_handler->subprogramSpec($2, $1);
-                      $$ = $2;}
+                     {$$ = s_handler->subprogramSpec($2, $1);}
 subprogram_spec_base:  PROCEDURE IDENTIFIER
                    {
                      $$ = s_handler->subprogramSpecBase($2);
@@ -401,7 +387,7 @@ void AdaLanguageScanner::parseInput(const char * fileName,
       Entries::const_iterator it = structComments.begin();
       for (;it!=structComments.end();++it)
       {
-         root->addSubEntry((*it));
+         root->addSubEntry(&(*it)->entry);
       }
       
       // Structural comments are not detroyed; the parser

@@ -54,7 +54,7 @@ public:
 };
 
 /** \brief wrapper for entity.*/
-class EntryNode: public Node, public Entry
+class EntryNode: public Node
 {
 public:
   EntryNode();

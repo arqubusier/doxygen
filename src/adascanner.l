@@ -130,7 +130,7 @@ B       [ \t]
                          handleComment(entry, is_non_struct);
                          if (is_non_struct)
                          {
-                           adaYYlval.entryPtr = entry;
+                           adaYYlval.nodePtr = entry;
                            return SPECIAL_COMMENT;
                          }
                        }
