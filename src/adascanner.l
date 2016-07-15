@@ -31,12 +31,14 @@
 /*
  Static variables
  */
-static const char *     inputString;
-static int		        inputPosition;
-static QCString         s_specialComment;
+static const char         *inputString;
+static int		           inputPosition;
+static QCString            s_specialComment;
 static AdaLanguageScanner *s_parser;
-static QCString         s_fileName;
-YY_BUFFER_STATE         s_bufferState;
+static QCString            s_fileName;
+YY_BUFFER_STATE            s_bufferState;
+static Entries             s_structDoxyComments;
+static bool                s_should_save_comments;
 
 /*
  Global variables
@@ -56,9 +58,11 @@ void cleanupInputString(){
   yy_delete_buffer(s_bufferState);
 }
 
-void handleComment(Entry *non_struct_entry,
+void handleComment(EntryNode *non_struct_entry,
               bool  &is_non_struct);
 
+const Entries& getStructDoxyComments();
+void resetStructDoxyComments();
 %}
 %option caseless
 
@@ -119,13 +123,16 @@ B       [ \t]
                         Non-structural comments o.t.h. are
                         handeled by the parser.*/
                        BEGIN(INITIAL);
-                       Entry *entry = new Entry;
-                       bool is_non_struct;
-                       handleComment(entry, is_non_struct);
-                       if (is_non_struct)
+                       if (s_should_save_comments)
                        {
-                         adaYYlval.entryPtr = entry;
-                         return SPECIAL_COMMENT;
+                         EntryNode *entry = new EntryNode;
+                         bool is_non_struct;
+                         handleComment(entry, is_non_struct);
+                         if (is_non_struct)
+                         {
+                           adaYYlval.entryPtr = entry;
+                           return SPECIAL_COMMENT;
+                         }
                        }
                       }
 "--"                 {BEGIN(comment);}
@@ -137,20 +144,36 @@ B       [ \t]
 
 
 %%
+const Entries &getStructDoxyComments()
+{
+  return s_structDoxyComments;
+}
 
-void handleComment(Entry *non_struct_entry,
-              bool  &is_non_struct)
+/**
+* \brief Discard current references to doxygen comments.
+* 
+* Should be called after the parser has taken over the
+* references.
+*/
+void resetStructDoxyComments()
+{
+  s_structDoxyComments.resize(0);
+}
+
+void handleComment(EntryNode *non_struct_entry,
+                   bool  &is_non_struct)
 {
   int pos=0;
   int lineNum=0;
   Protection protection = Public;
   bool newEntryNeeded;
-  Entry *current = non_struct_entry;
+  EntryNode *current = non_struct_entry;
+
 
   is_non_struct = true;
   while (parseCommentBlock(
            s_parser,
-           current,
+           &current->entry,
            s_specialComment,
            s_fileName,
            lineNum,
@@ -163,28 +186,22 @@ void handleComment(Entry *non_struct_entry,
   {
     if (newEntryNeeded){
       is_non_struct = false;
-      if (parser_root)
-      {
-        parser_root->addSubEntry(current);
-        current = new Entry;
-      }
+      s_structDoxyComments.push_back(current);
+      current = new EntryNode;
     }
   }
   if (newEntryNeeded){
-      is_non_struct = false;
-      if (parser_root)
-      {
-        parser_root->addSubEntry(current);
-        current = new Entry;
-      }
+    is_non_struct = false;
+    s_structDoxyComments.push_back(current);
   }
 }
 
 void initAdaScanner(AdaLanguageScanner *parser, QCString fileName,
-                    Entry *root){
-  parser_root = root;
-  s_fileName = fileName;
+                    bool should_save_comments){
+
   s_parser = parser;
+  s_fileName = fileName;
+  s_should_save_comments = should_save_comments;
 }
 
 void upper_string(char *str)

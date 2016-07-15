@@ -57,8 +57,11 @@ public:
 class EntryNode: public Node, public Entry
 {
 public:
+  EntryNode();
+  EntryNode(Entry &entryRef);
   virtual void addChild(Node *child);
   virtual void print();
+  Entry &entry;
 };
 
 typedef std::list<EntryNode*> Entries;
@@ -143,14 +146,18 @@ class AdaLanguageScanner : public ParserInterface
 };
 
 void freeAdaScanner();
-Entries *getStructuralComments();
 void setInputString(const char* input);
 void cleanupInputString();
 void adaFreeScanner();
 
 void initAdaScanner(AdaLanguageScanner *parser, QCString fileName,
-                    Entry *root);
+                    bool should_save_comments);
 QCString adaArgListToString(const ArgumentList &args);
 
-void printNodeTree(const Node& node, std::string pad="");
+const Entries& getStructDoxyComments();
+void resetStructDoxyComments();
+
+void initEntry (Entry &e, Entry *parent=NULL, Protection prot=Public,
+                MethodTypes mtype=Method, bool stat=false,
+                Specifier virt=Normal);
 #endif //ADAPARSER_H

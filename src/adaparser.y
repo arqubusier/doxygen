@@ -58,7 +58,6 @@ typedef union ADAYYSTYPE_{
 }ADAYYSTYPE_;
 #define ADAYYSTYPE ADAYYSTYPE_
 
-static Node *s_root;
 static RuleHandler *s_handler;
 
  %}
@@ -380,8 +379,8 @@ void AdaLanguageScanner::parseInput(const char * fileName,
                 QStrList &filesInSameTranslationUnit)
 {
   std::cout << "ADAPARSER" << std::endl;
+
   EntryHandler eh(root);
-  s_root = new EntryNode;//dynamic_cast<Node*>(root);
   s_handler = &eh;
   qcFileName = fileName;
   yydebug = 1;
@@ -391,10 +390,24 @@ void AdaLanguageScanner::parseInput(const char * fileName,
 
   if (inputFile.open(IO_ReadOnly))
   {
-    initAdaScanner(this, fileName, root);
+    bool should_save_comments = true;
+    initAdaScanner(this, fileName, should_save_comments);
     setInputString(fileBuf);
     adaYYparse();
     msg("parse complete\n");
+    const Entries& structComments = getStructDoxyComments();
+    if (!structComments.empty())
+    {
+      Entries::const_iterator it = structComments.begin();
+      for (;it!=structComments.end();++it)
+      {
+         root->addSubEntry((*it));
+      }
+      
+      // Structural comments are not detroyed; the parser
+      // is responsible for deallocating them.
+      resetStructDoxyComments();
+    }
     cleanupInputString();
     inputFile.close();
     eh.addFileSection(fileName);
@@ -421,15 +434,14 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
                   )
 {
   std::cout << "ADA CODE PARSER" << std::endl;
-  /* CHECK IF CAN REMOVE THIS */
-  //initAdaScanner(this, fileDef->name(), root);
-  CodeHandler ch;
+  bool should_save_comments = false;
+  initAdaScanner(this, fileDef->name(), should_save_comments );
+  CodeNode root;
+  CodeHandler ch(&root);
   s_handler = &ch;
   setInputString(input);
   adaYYparse();
   cleanupInputString();
-
-  //printNodeTree(*s_root);
 
   /* Clean up static variables */
   //s_nodes_mem.clear();
