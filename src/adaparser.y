@@ -414,24 +414,30 @@ expression: expression_part {Expression *e = new Expression;}
        |IDENTIFIER {Expression *e = new Expression;
                     e->str = $1;
                     e->ids.push_front($1);
-                    delete $1;}
+                    delete $1;
+                    $$ = e;}
        |function_call
-       |expression_part expression {Expression *e = $2;
+       | expression expression_part{Expression *e = $1;
                     e->str.prepend(" ");
-                    e->str.prepend(*$1);}
-       |function_call expression
+                    e->str.prepend(*$2);
+                    delete $2;
+                    $$ = e;}
+       | expression function_call
         {
-         Expression *e = $2;
-         Expression *f = $1;
+         Expression *e = $1;
+         Expression *f = $2;
          e->str.prepend(" ");
          e->str.prepend(f->str);
          e->ids.splice(e->ids.begin(), f->ids);
+         delete f;
+         $$ = e;
         }
-       |IDENTIFIER expression {Expression *e = $2;
+       |expression IDENTIFIER {Expression *e = $1;
                     e->str.prepend(" ");
-                    e->str.prepend($1);
-                    e->ids.push_front($1);
-                    delete $1;}
+                    e->str.prepend($2);
+                    e->ids.push_front($2);
+                    delete $2;
+                    $$ = e;}
 
 function_call: IDENTIFIER LPAR RPAR
              {Expression *e = new Expression;
