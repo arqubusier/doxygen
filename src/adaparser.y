@@ -197,16 +197,17 @@ static RuleHandler *s_handler;
 %type<argsPtr> parameters
 %type<qstrPtr> mode
 %type<exprPtr> expression
+%type<qstrPtr> expression_part
 %type<idsPtr> statement
+%type<idsPtr> statement_part
+%type<idsPtr> statement_parts
 %type<idsPtr> statements
 %type<exprPtr> function_call
 %type<exprPtr> call_params
 %type<exprPtr> param_assoc
-%type<qstrPtr> word
 %type<qstrPtr> logical
-%type<qstrPtr> relational
 %type<qstrPtr> operator
-%type<qstrPtr> compound
+%type<idsPtr> compound
 
 %defines 
 
@@ -383,34 +384,54 @@ statements: statement
             delete s;}
             
 
-statement:  expression SEM {$$ = new Identifiers($1->ids);
-                            delete $1;
-                            printf("EXPR %s\n", $1->str.data());}
+statement:  statement_parts SEM {$$ = $1;}
+      
+statement_parts: statement_part
+                |statement_part statement_parts
+                 {Identifiers *s = $1;
+                  Identifiers *ss = $2;
+                  ss->splice(ss->begin(), *s);
+                  $$ = ss;
+                  delete s;}
+
+statement_part: expression
+                {Identifiers *ids = new Identifiers;
+                 ids->splice(ids->begin(), $1->ids);
+                 $$ = ids;
+                 delete $1;}
+                |relational {$$ = new Identifiers;}
+                |compound_part {$$ = new Identifiers;}
+                |compound
+
+compound: IF statements END IF {$$ = $2;}
+          |WHILE statements END LOOP {$$ = $2;}
+          |FOR statements END LOOP {$$ = $2;}
+          |CASE statements END CASE {$$ = $2;}
 
 /* Note, this is an extremely permissive version of expression
    But enough  for doxygen's purposes. */
-expression: word {Expression *e = new Expression;
-                  e->str = *$1;
-                  delete $1;}
+expression: expression_part {Expression *e = new Expression;}
        |IDENTIFIER {Expression *e = new Expression;
                     e->str = $1;
                     e->ids.push_front($1);
                     delete $1;}
        |function_call
-       |word expression {Expression *e = $2;
+       |expression_part expression {Expression *e = $2;
                     e->str.prepend(" ");
                     e->str.prepend(*$1);}
+       |function_call expression
+        {
+         Expression *e = $2;
+         Expression *f = $1;
+         e->str.prepend(" ");
+         e->str.prepend(f->str);
+         e->ids.splice(e->ids.begin(), f->ids);
+        }
        |IDENTIFIER expression {Expression *e = $2;
                     e->str.prepend(" ");
                     e->str.prepend($1);
-                    e->ids.push_front($1);}
-       |function_call expression {
-                    Expression *e = $2;
-                    Expression *f = $1;
-                    e->ids.splice(e->ids.begin(), f->ids);
-                    e->str.prepend(" ");
-                    e->str.prepend(f->str);
-                    delete f;}
+                    e->ids.push_front($1);
+                    delete $1;}
 
 function_call: IDENTIFIER LPAR RPAR
              {Expression *e = new Expression;
@@ -447,18 +468,13 @@ param_assoc: expression
              $$ = e;
              delete $1;}
 
-word: logical| relational| operator| compound
+expression_part: logical| operator
       |Null {$$ =  new QCString("NULL");}
       |TIC {$$ =  new QCString("'");}
 logical: AND {$$ =  new QCString("AND");}
        | OR {$$ =  new QCString("OR");}
        | XOR {$$ =  new QCString("XOR");}
-relational: EQ {$$ =  new QCString("=");}
-          | NEQ {$$ =  new QCString("\\=");}
-          | LT {$$ =  new QCString("<");}
-          | LTEQ {$$ =  new QCString("<=");}
-          | GT {$$ =  new QCString(">");}
-          | GTEQ {$$ =  new QCString(">=");}
+relational: EQ  | NEQ  | LT  | LTEQ  | GT  | GTEQ
 operator: ADD {$$ =  new QCString("-");}
         | MINUS {$$ =  new QCString("+");}
         | AMB {$$ =  new QCString("&");}
@@ -469,21 +485,7 @@ operator: ADD {$$ =  new QCString("-");}
         | EXP {$$ =  new QCString("**");}
         | ABS {$$ =  new QCString("ABS");}
         | NOT {$$ =  new QCString("NOT");}
-compound: IF {$$ =  new QCString("IF");}
-        | THEN {$$ =  new QCString("THEN");}
-        | ELSIF {$$ =  new QCString("ELSIF");}
-        | ELSE {$$ =  new QCString("ELSE");}
-        | END IF {$$ =  new QCString("END IF");}
-        | CASE {$$ =  new QCString("CASE");}
-        | WHEN {$$ =  new QCString("WHEN");}
-        | END CASE {$$ =  new QCString("END CASE");}
-        | OTHERS {$$ =  new QCString("OTHERS");}
-        | LOOP {$$ =  new QCString("LOOP");}
-        | END LOOP {$$ =  new QCString("END LOOP");}
-        | WHILE {$$ =  new QCString("WHILE");}
-        | FOR {$$ =  new QCString("FOR");}
-        | IN {$$ =  new QCString("IN");}
-        | REVERSE {$$ =  new QCString("REVERSE");}
+compound_part: THEN| ELSIF| ELSE| WHEN| OTHERS| LOOP| IN| REVERSE
 constraint:;
                     
 %%
