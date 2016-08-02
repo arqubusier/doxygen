@@ -30,13 +30,19 @@
 #include "arguments.h"
 #include "entry.h"
 
-/** \brief Ada Language parser using state-based lexical scanning.
+/** \brief Ada Language parser using flex and bison.
  *
  * This is the Ada language parser for doxygen.
  */
 
 typedef std::list<QCString> Identifiers;
 typedef Identifiers::iterator IdentifiersIter;;
+
+struct Expression
+{
+  Identifiers ids;
+  QCString str;
+};
 
 enum NodeType
 {

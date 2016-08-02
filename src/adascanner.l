@@ -83,6 +83,29 @@ B       [ \t]
 
 %%
 
+"and"           {return(AND);}
+"or"            {return(OR);}
+"xor"           {return(XOR);}
+"+"             return(ADD);
+"-"             return(MINUS);
+"&"             return(AMB);
+"/"             return(DIV);
+"mod"           return(MOD);
+"rem"           return(REM);
+"abs"           return(ABS);
+"not"           return(NOT);
+"exit"          return(EXIT);
+"if"            return(IF);
+"then"          return(THEN);
+"elsif"         return(ELSIF);
+"else"          return(ELSE);
+"case"          return(CASE);
+"when"          return(WHEN);
+"others"        return(OTHERS);
+"loop"          return(LOOP);
+"while"         return(WHILE);
+"for"           return(FOR);
+"reverse"       return(REVERSE);
 "'"			    return(TIC);
 ".."			return(DDOT);
 "<<"			return(MLT);
@@ -92,6 +115,9 @@ B       [ \t]
 "/="			return(NEQ);
 ">>"			return(MGT);
 ">="			return(GTEQ);
+"<"             return(LT);
+">"             return(GT);
+"="			    return(EQ);
 ":="			return(ASS);
 "=>"			return(REF);
 ";"             return(SEM);

@@ -58,6 +58,7 @@ static RuleHandler *s_handler;
   Identifiers* idsPtr;
   Node* nodePtr;
   Nodes* nodesPtr;
+  Expression* exprPtr;
 }
 
 /*KEYWORDS*/
@@ -86,6 +87,7 @@ static RuleHandler *s_handler;
 %token EXCEPTION
 %token EXIT
 %token FUNCTION
+%token FOR
 %token GENERIC
 %token GOTO
 %token IF
@@ -146,11 +148,14 @@ static RuleHandler *s_handler;
 %token DDOT
 %token MLT
 %token BOX
+%token EQ
 %token LTEQ
 %token EXP
 %token NEQ
 %token MGT
 %token GTEQ
+%token LT
+%token GT
 %token ASS
 %token REF
 %token SEM
@@ -158,6 +163,11 @@ static RuleHandler *s_handler;
 %token COLON
 %token LPAR
 %token RPAR
+%token ADD
+%token MUL
+%token MINUS
+%token AMB
+%token DIV
 
 /*non-terminals*/
 %type<nodePtr> doxy_comment
@@ -186,6 +196,17 @@ static RuleHandler *s_handler;
 %type<argsPtr> parameter_specs
 %type<argsPtr> parameters
 %type<qstrPtr> mode
+%type<exprPtr> expression
+%type<idsPtr> statement
+%type<idsPtr> statements
+%type<exprPtr> function_call
+%type<exprPtr> call_params
+%type<exprPtr> param_assoc
+%type<qstrPtr> word
+%type<qstrPtr> logical
+%type<qstrPtr> relational
+%type<qstrPtr> operator
+%type<qstrPtr> compound
 
 %defines 
 
@@ -320,6 +341,8 @@ obj_decl:           obj_decl_base
 obj_decl_base:      identifier_list COLON 
                     subtype expression SEM
                     {$$ = s_handler->objDeclBase($1, $3);}
+                    |identifier_list COLON subtype SEM
+                    {$$ = s_handler->objDeclBase($1, $3);}
                      
                       /* move to handlers */
 identifier_list:    IDENTIFIER
@@ -350,11 +373,118 @@ subtype:            IDENTIFIER constraint
                       $$ = new QCString($1);
                       delete $1;
                     }
-statements: statements statement| statement
-statement:  null_statement;
-null_statement: Null SEM;
+
+statements: statement
+           |statement statements
+           {Identifiers *s = $1;
+            Identifiers *ss = $2;
+            ss->splice(ss->begin(), *s);
+            $$ = ss;
+            delete s;}
+            
+
+statement:  expression SEM {$$ = new Identifiers($1->ids);
+                            delete $1;
+                            printf("EXPR %s\n", $1->str.data());}
+
+/* Note, this is an extremely permissive version of expression
+   But enough  for doxygen's purposes. */
+expression: word {Expression *e = new Expression;
+                  e->str = *$1;
+                  delete $1;}
+       |IDENTIFIER {Expression *e = new Expression;
+                    e->str = $1;
+                    e->ids.push_front($1);
+                    delete $1;}
+       |function_call
+       |word expression {Expression *e = $2;
+                    e->str.prepend(" ");
+                    e->str.prepend(*$1);}
+       |IDENTIFIER expression {Expression *e = $2;
+                    e->str.prepend(" ");
+                    e->str.prepend($1);
+                    e->ids.push_front($1);}
+       |function_call expression {
+                    Expression *e = $2;
+                    Expression *f = $1;
+                    e->ids.splice(e->ids.begin(), f->ids);
+                    e->str.prepend(" ");
+                    e->str.prepend(f->str);
+                    delete f;}
+
+function_call: IDENTIFIER LPAR RPAR
+             {Expression *e = new Expression;
+              QCString call($1);
+              call.append("()");
+              e->ids.push_front(call);
+              $$ = e;
+              delete $1;}
+             |IDENTIFIER LPAR call_params RPAR
+             {Expression *e = $3;
+              QCString call($1);
+              call.append("(");
+              call.append(e->str);
+              call.append(")");
+              e->str = call;
+              e->ids.push_front(call);
+              $$ = e;
+              delete $1;}
+call_params: param_assoc
+           |param_assoc COMMA call_params
+           {Expression *pa = $1;
+            Expression *cp = $3;
+            cp->str.prepend(" , ");
+            cp->str.prepend($1->str);
+            cp->ids.splice(cp->ids.begin(), pa->ids);
+            $$ = cp;
+            delete pa;
+           }
+param_assoc: expression
+            |IDENTIFIER REF expression
+            {Expression *e = $3;
+             e->str.prepend(" => ");
+             e->str.prepend($1);
+             $$ = e;
+             delete $1;}
+
+word: logical| relational| operator| compound
+      |Null {$$ =  new QCString("NULL");}
+      |TIC {$$ =  new QCString("'");}
+logical: AND {$$ =  new QCString("AND");}
+       | OR {$$ =  new QCString("OR");}
+       | XOR {$$ =  new QCString("XOR");}
+relational: EQ {$$ =  new QCString("=");}
+          | NEQ {$$ =  new QCString("\\=");}
+          | LT {$$ =  new QCString("<");}
+          | LTEQ {$$ =  new QCString("<=");}
+          | GT {$$ =  new QCString(">");}
+          | GTEQ {$$ =  new QCString(">=");}
+operator: ADD {$$ =  new QCString("-");}
+        | MINUS {$$ =  new QCString("+");}
+        | AMB {$$ =  new QCString("&");}
+        | MUL {$$ =  new QCString("MUL");}
+        | DIV {$$ =  new QCString("/");}
+        | MOD {$$ =  new QCString("MOD");}
+        | REM {$$ =  new QCString("REM");}
+        | EXP {$$ =  new QCString("**");}
+        | ABS {$$ =  new QCString("ABS");}
+        | NOT {$$ =  new QCString("NOT");}
+compound: IF {$$ =  new QCString("IF");}
+        | THEN {$$ =  new QCString("THEN");}
+        | ELSIF {$$ =  new QCString("ELSIF");}
+        | ELSE {$$ =  new QCString("ELSE");}
+        | END IF {$$ =  new QCString("END IF");}
+        | CASE {$$ =  new QCString("CASE");}
+        | WHEN {$$ =  new QCString("WHEN");}
+        | END CASE {$$ =  new QCString("END CASE");}
+        | OTHERS {$$ =  new QCString("OTHERS");}
+        | LOOP {$$ =  new QCString("LOOP");}
+        | END LOOP {$$ =  new QCString("END LOOP");}
+        | WHILE {$$ =  new QCString("WHILE");}
+        | FOR {$$ =  new QCString("FOR");}
+        | IN {$$ =  new QCString("IN");}
+        | REVERSE {$$ =  new QCString("REVERSE");}
 constraint:;
-expression:;
                     
 %%
 
