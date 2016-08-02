@@ -295,13 +295,24 @@ package_body_base: PACKAGE_BODY IDENTIFIER IS
                    |PACKAGE_BODY IDENTIFIER IS
                    decls BEGIN_ statements END SEM
                    {
-                     $$ = s_handler->packageBodyBase($2, $4); 
+                     $$ = s_handler->packageBodyBase($2, $4, $6); 
+                   }
+                   |PACKAGE_BODY IDENTIFIER IS
+                   BEGIN_ statements END SEM
+                   {
+                     $$ = s_handler->packageBodyBase($2, NULL, $5); 
                    }
 
 subprogram_body:  subprogram_spec IS
                   BEGIN_ statements END tail
+                  {
+                    $$ = s_handler->subprogramBody($1, NULL, $4);
+                  }
                   |subprogram_spec IS decls
                   BEGIN_ statements END tail
+                  {
+                    $$ = s_handler->subprogramBody($1, $3, $5);
+                  }
 tail:             SEM| IDENTIFIER SEM {delete $1;}
 
 parameters:       parameter_spec
@@ -341,7 +352,7 @@ obj_decl:           obj_decl_base
                     {$$ = s_handler->objDecl($2, $1);}
 obj_decl_base:      identifier_list COLON 
                     subtype expression SEM
-                    {$$ = s_handler->objDeclBase($1, $3);}
+                    {$$ = s_handler->objDeclBase($1, $3, $4);}
                     |identifier_list COLON subtype SEM
                     {$$ = s_handler->objDeclBase($1, $3);}
                      
@@ -382,25 +393,36 @@ statements: statement
             ss->splice(ss->begin(), *s);
             $$ = ss;
             delete s;}
-            
 
 statement:  statement_parts SEM {$$ = $1;}
       
 statement_parts: statement_part
+                |expression
+                {Identifiers *ids = new Identifiers;
+                 ids->splice(ids->begin(), $1->ids);
+                 $$ = ids;
+                 delete $1;}
+
                 |statement_part statement_parts
                  {Identifiers *s = $1;
                   Identifiers *ss = $2;
                   ss->splice(ss->begin(), *s);
                   $$ = ss;
                   delete s;}
+                |expression statement_part statement_parts
+                {Identifiers *ss = $3;
+                 Identifiers *s = $2;
+                 Expression *e = $1;
+                 ss->splice(ss->begin(), *s);
+                 ss->splice(ss->begin(), e->ids);
+                 delete s;
+                 delete e;
+                 $$ = ss;}
 
-statement_part: expression
-                {Identifiers *ids = new Identifiers;
-                 ids->splice(ids->begin(), $1->ids);
-                 $$ = ids;
-                 delete $1;}
-                |relational {$$ = new Identifiers;}
+
+statement_part: relational {$$ = new Identifiers;}
                 |compound_part {$$ = new Identifiers;}
+                |ASS {$$ = new Identifiers;}
                 |compound
 
 compound: IF statements END IF {$$ = $2;}
@@ -410,7 +432,11 @@ compound: IF statements END IF {$$ = $2;}
 
 /* Note, this is an extremely permissive version of expression
    But enough  for doxygen's purposes. */
-expression: expression_part {Expression *e = new Expression;}
+expression: expression_part
+        {Expression *e = new Expression;
+         e->str = *$1;
+         delete $1;
+         $$ = e;}
        |IDENTIFIER {Expression *e = new Expression;
                     e->str = $1;
                     e->ids.push_front($1);
