@@ -325,6 +325,10 @@ parameter_spec:    identifier_list COLON subtype
                      {$$ = s_handler->paramSpec($1, $3);}
                    |identifier_list COLON mode subtype
                      {$$ = s_handler->paramSpec($1, $4, $3);}
+                   |identifier_list COLON subtype ASS expression
+                     {$$ = s_handler->paramSpec($1, $3, NULL, $5);}
+                   |identifier_list COLON mode subtype ASS expression
+                     {$$ = s_handler->paramSpec($1, $4, $3, $6);}
 
 mode:              IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
@@ -351,8 +355,8 @@ obj_decl:           obj_decl_base
                     |doxy_comment obj_decl_base
                     {$$ = s_handler->objDecl($2, $1);}
 obj_decl_base:      identifier_list COLON 
-                    subtype expression SEM
-                    {$$ = s_handler->objDeclBase($1, $3, $4);}
+                    subtype ASS expression SEM
+                    {$$ = s_handler->objDeclBase($1, $3, $5);}
                     |identifier_list COLON subtype SEM
                     {$$ = s_handler->objDeclBase($1, $3);}
                      
@@ -507,8 +511,8 @@ logical: AND {$$ =  new QCString("AND");}
        | OR {$$ =  new QCString("OR");}
        | XOR {$$ =  new QCString("XOR");}
 relational: EQ  | NEQ  | LT  | LTEQ  | GT  | GTEQ
-operator: ADD {$$ =  new QCString("-");}
-        | MINUS {$$ =  new QCString("+");}
+operator: ADD {$$ =  new QCString("+");}
+        | MINUS {$$ =  new QCString("-");}
         | AMB {$$ =  new QCString("&");}
         | MUL {$$ =  new QCString("MUL");}
         | DIV {$$ =  new QCString("/");}
