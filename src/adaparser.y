@@ -59,6 +59,7 @@ static RuleHandler *s_handler;
   Node* nodePtr;
   Nodes* nodesPtr;
   Expression* exprPtr;
+  Parameters *paramsPtr;
 }
 
 /*KEYWORDS*/
@@ -192,9 +193,9 @@ static RuleHandler *s_handler;
 %type<nodePtr> library_item_decl
 %type<nodePtr> library_item_body
 %type<qstrPtr> subtype
-%type<argsPtr> parameter_spec
-%type<argsPtr> parameter_specs
-%type<argsPtr> parameters
+%type<paramsPtr> parameter_spec
+%type<paramsPtr> parameter_specs
+%type<paramsPtr> parameters
 %type<qstrPtr> mode
 %type<exprPtr> expression
 %type<qstrPtr> expression_part

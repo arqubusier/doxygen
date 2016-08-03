@@ -44,6 +44,12 @@ struct Expression
   QCString str;
 };
 
+struct Parameters
+{
+  Identifiers refs;
+  ArgumentList *args;
+};
+
 enum NodeType
 {
   ADA_PKG,
