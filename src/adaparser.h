@@ -36,7 +36,7 @@
  */
 
 typedef std::list<QCString> Identifiers;
-typedef Identifiers::iterator IdentifiersIter;;
+typedef Identifiers::iterator IdentifiersIter;
 
 struct Expression
 {
@@ -54,7 +54,8 @@ enum NodeType
 {
   ADA_PKG,
   ADA_VAR,
-  ADA_SUBPROG
+  ADA_SUBPROG,
+  ADA_UNKNOWN
 };
 
 /** \brief a node in the ADA AST.*/
@@ -90,15 +91,21 @@ public:
   NodeType type;
   QCString name;
   QCString name_space;
-  std::list<CodeNode*> references;
+  Identifiers refs;
+  std::list<CodeNode*> children;
 
+  CodeNode();
+  CodeNode(
+    NodeType type,
+    const QCString &name, const QCString &name_space);
   virtual void addChild(Node *child);
   virtual void print();
+  void appendRefs(Identifiers *new_refs);
 private:
   void print_(std::string pad);
 };
 
-typedef std::list<CodeNode*> CodeNodes;;
+typedef std::list<CodeNode*> CodeNodes;
 typedef CodeNodes::iterator CodeNodesIter;
 
 /** \brief a struct for marking special syntax symbols
@@ -130,7 +137,6 @@ class AdaLanguageScanner : public ParserInterface
                     bool sameTranslationUnit,
                     QStrList &filesInSameTranslationUnit);
     bool needsPreprocessing(const QCString &extension);
-    //TODO IMPLEMENT
     void parseCode(CodeOutputInterface &codeOutIntf,
                    const char *scopeName,
                    const QCString &input,

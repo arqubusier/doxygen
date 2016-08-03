@@ -598,6 +598,8 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
   adaYYparse();
   cleanupInputString();
 
+  s_handler->printRoot();
+
   /* Clean up static variables */
   //s_nodes_mem.clear();
   //s_symbols_mem.clear();
