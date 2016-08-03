@@ -448,23 +448,23 @@ expression: expression_part
                     $$ = e;}
        |function_call
        | expression expression_part{Expression *e = $1;
-                    e->str.prepend(" ");
-                    e->str.prepend(*$2);
+                    e->str.append(" ");
+                    e->str.append(*$2);
                     delete $2;
                     $$ = e;}
        | expression function_call
         {
          Expression *e = $1;
          Expression *f = $2;
-         e->str.prepend(" ");
-         e->str.prepend(f->str);
+         e->str.append(" ");
+         e->str.append(f->str);
          e->ids.splice(e->ids.begin(), f->ids);
          delete f;
          $$ = e;
         }
        |expression IDENTIFIER {Expression *e = $1;
-                    e->str.prepend(" ");
-                    e->str.prepend($2);
+                    e->str.append(" ");
+                    e->str.append($2);
                     e->ids.push_front($2);
                     delete $2;
                     $$ = e;}
@@ -490,8 +490,8 @@ call_params: param_assoc
            |param_assoc COMMA call_params
            {Expression *pa = $1;
             Expression *cp = $3;
-            cp->str.prepend(" , ");
-            cp->str.prepend($1->str);
+            cp->str.append(" , ");
+            cp->str.append($1->str);
             cp->ids.splice(cp->ids.begin(), pa->ids);
             $$ = cp;
             delete pa;
@@ -499,8 +499,8 @@ call_params: param_assoc
 param_assoc: expression
             |IDENTIFIER REF expression
             {Expression *e = $3;
-             e->str.prepend(" => ");
-             e->str.prepend($1);
+             e->str.append(" => ");
+             e->str.append($1);
              $$ = e;
              delete $1;}
 
