@@ -33,8 +33,10 @@
 #include "adarulehandler.h"
 #include "filedef.h"
 #include "message.h"
+#include "namespacedef.h"
 
 #define YYDEBUG 1
+#define NEW_ID(VAL, LOC) Identifier(VAL, LOC.first_line, LOC.first_column)
 
 //from flex for bison to know about!
 extern int adaYYlex();
@@ -42,6 +44,11 @@ extern int adaYYparse();
 extern int adaYYwrap();
 extern void adaYYrestart( FILE *new_file );
 void adaYYerror (char const *s);
+
+/**
+ * \brief identify references in a CodeNode tree.
+ */
+void addCrossRef(CodeNode *root, QCString scope="");
 
 static RuleHandler *s_handler;
 
@@ -53,6 +60,7 @@ static RuleHandler *s_handler;
   char* cstrVal;
   Entry* entryPtr;
   QCString* qstrPtr;
+  Identifier* idPtr;
   Entries* entriesPtr;
   ArgumentList* argsPtr;
   Identifiers* idsPtr;
@@ -307,11 +315,13 @@ package_body_base: PACKAGE_BODY IDENTIFIER IS
 subprogram_body:  subprogram_spec IS
                   BEGIN_ statements END tail
                   {
+                    printf("PROG\n");
                     $$ = s_handler->subprogramBody($1, NULL, $4);
                   }
                   |subprogram_spec IS decls
                   BEGIN_ statements END tail
                   {
+                    printf("PROG\n");
                     $$ = s_handler->subprogramBody($1, $3, $5);
                   }
 tail:             SEM| IDENTIFIER SEM {delete $1;}
@@ -364,10 +374,8 @@ obj_decl_base:      identifier_list COLON
                       /* move to handlers */
 identifier_list:    IDENTIFIER
                     {
-                      QCString id = $1;
-                      std::cout << "New id " << id << std::endl;
                       Identifiers *ids = new Identifiers;
-                      ids->push_front(id);
+                      ids->push_front(NEW_ID($1, @1));
 
                       printf("identifier list\n");
                       $$ = ids;
@@ -375,9 +383,8 @@ identifier_list:    IDENTIFIER
                     }
                     |IDENTIFIER COMMA identifier_list
                     {
-                      std::cout << "New id " << $1 << std::endl;
                       Identifiers *ids = $3;
-                      ids->push_front(QCString($1));
+                      ids->push_front(NEW_ID($1, @1));
 
                       $$ = ids;
                       delete $1;
@@ -444,7 +451,7 @@ expression: expression_part
          $$ = e;}
        |IDENTIFIER {Expression *e = new Expression;
                     e->str = $1;
-                    e->ids.push_front($1);
+                    e->ids.push_front(NEW_ID($1, @1));
                     delete $1;
                     $$ = e;}
        |function_call
@@ -466,25 +473,25 @@ expression: expression_part
        |expression IDENTIFIER {Expression *e = $1;
                     e->str.append(" ");
                     e->str.append($2);
-                    e->ids.push_front($2);
+                    e->ids.push_front(NEW_ID($2, @2));
                     delete $2;
                     $$ = e;}
 
 function_call: IDENTIFIER LPAR RPAR
              {Expression *e = new Expression;
-              QCString call($1);
-              call.append("()");
+              Identifier call = NEW_ID($1, @1);
+              call.str.append("()");
               e->ids.push_front(call);
               $$ = e;
               delete $1;}
              |IDENTIFIER LPAR call_params RPAR
              {Expression *e = $3;
-              QCString call($1);
+              QCString call = $1;
               call.append("(");
               call.append(e->str);
               call.append(")");
               e->str = call;
-              e->ids.push_front(call);
+              e->ids.push_front(NEW_ID(call, @1));
               $$ = e;
               delete $1;}
 call_params: param_assoc
@@ -599,11 +606,60 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
   cleanupInputString();
 
   s_handler->printRoot();
+  std::cout << "ADDING CROSS REFS" << std::endl;
+  addCrossRef(&root, "");
 
   /* Clean up static variables */
   //s_nodes_mem.clear();
   //s_symbols_mem.clear();
   //s_root = NULL;
+}
+
+void addCrossRef(CodeNode *root, QCString scope)
+{
+  root->name_space = scope;
+  IdentifiersIter rit = root->refs.begin();
+
+  if (root->type == ADA_PKG)
+  {
+    NamespaceDef *nd = getResolvedNamespace(
+       QCString(scope + root->name).data());
+    printf("package: %s.%s\n", scope.data(), root->name.data());
+    if (nd)
+    {
+      printf("FOUND NAMESPACE");
+      printf("nd %s\n", nd->name().data());
+    }
+  }
+
+  for (;rit != root->refs.end(); ++rit)
+  {
+    //CALL GRAPH + code link
+    //root func ref func
+    //root pac ref func
+
+    //Code link
+    // ref func
+    // header
+  }
+
+  CodeNodesIter cit = root->children.begin();
+  CodeNode *cn;
+
+  QCString newScope;
+  if (root->type == ADA_PKG)
+    newScope = scope + root->name + "::";
+  else
+    newScope = scope;
+
+  for (;cit != root->children.end(); ++cit)
+  {
+    cn = *cit;
+    if (cn->type == ADA_PKG || cn->type == ADA_SUBPROG)
+    {
+      addCrossRef(cn, newScope);
+    }
+  }
 }
 
 void adaFreeScanner()

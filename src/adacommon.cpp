@@ -51,8 +51,15 @@ void CodeNode::print_(std::string pad)
   msg("%ssection: %d\n", pad.data(), type); 
   printQC(pad, "name", name);
   printQC(pad, "namespace", name_space.data());
-  msg("%sCHILDREN:\n", pad.data());
 
+  msg("%sREFS:\n", pad.data());
+  IdentifiersIter RefsIt = refs.begin();
+  for (;RefsIt != refs.end(); ++RefsIt)
+  {
+      RefsIt->print(pad);
+  }
+
+  msg("%sCHILDREN:\n", pad.data());
   pad +=  "    "; 
   CodeNodesIter it = children.begin();
   for (; it!=children.end(); ++it)
@@ -77,6 +84,15 @@ void CodeNode::appendRefs(Identifiers *new_refs)
 
 CodeNode::CodeNode():type(ADA_UNKNOWN), name(""), name_space("") {}
 /* =================== Misc ======================= */
+void Identifier::print(std::string pad)
+{
+  msg("CCCCccc\n");
+  msg("%s%s @ l%d,c%d\n", pad.data(), str.data(), line, col); 
+}
+Identifier::Identifier(QCString str_, int line_, int col_)
+      :str(str_), line(line_), col(col_){}
+Identifier::Identifier(QCString str_):str(str_), line(-1), col(-1){}
+
 QCString adaArgListToString(const ArgumentList &args)
 {
   QCString res = "()";

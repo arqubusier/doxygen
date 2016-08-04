@@ -60,12 +60,25 @@ Nodes *RuleHandler::decls(Nodes *nodes, Nodes *new_nodes)
 
 Parameters *RuleHandler::params(Parameters *params, Parameters *new_params)
 {
-  ArgumentListIterator it(*(new_params->args));
-  Argument *arg;
-  for ( it.toFirst(); (arg=it.current()); ++it )
+  if (params)
   {
-    params->args->append(arg);
+    params->refs->splice(params->refs->begin(), *(new_params->refs));
   }
+  else
+      params = new Parameters;
+
+  if (!params->refs->empty())
+  {
+    printf("BBBBBBBBBBBBBB\n");
+    params->refs->front().print();
+  }
+
+  if (!new_params->refs->empty())
+  {
+    printf("BBBBBBBBBBBBBB\n");
+    new_params->refs->front().print();
+  }
+
   return params;
 }
 
@@ -75,8 +88,7 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
                               Expression *defval)
 {
   Parameters *params = new Parameters;
-  ArgumentList *args = new ArgumentList;
-  params->args = args;
+
   IdentifiersIter it = ids->begin();
   for (; it != ids->end(); ++it)
   {
@@ -84,11 +96,11 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
     if (mode)
       a->type = *mode;
     a->type += " " + *type;
-    a->name = (*it);
+    a->name = (it->str);
     a->defval = "";
     if (defval)
       a->defval = defval->str;
-    args->append(a);
+    params->args->append(a);
   }
   delete type;
   if (mode)
@@ -96,7 +108,9 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
 
   if (defval)
   {
-    params->refs = defval->ids;
+    printf("AAAAAAAAAAAAAAAA\n");
+    params->refs->splice(params->refs->begin(), defval->ids);
+    params->refs->front().print();
     delete defval;
   }
 
@@ -188,7 +202,7 @@ Node* EntryHandler::subprogramBody(Node *base,
     IdentifiersIter it = refs->begin();
     for (;it != refs->end(); ++it)
     {
-        printf("%s\n", it->data());
+        it->print();
     }
   }
   return base;
@@ -203,7 +217,7 @@ Nodes *EntryHandler::objDeclBase(Identifiers *refs, QCString *type,
   for (;it != refs->end(); ++it)
   {
     EntryNode *e = newEntryNode();
-    e->entry.name = (*it);
+    e->entry.name = it->str;
     e->entry.type = *type;
     e->entry.section = Entry::VARIABLE_SEC;
     nodes->push_front(e);
@@ -240,10 +254,11 @@ Node *EntryHandler::packageBodyBase(const char* name,
     IdentifiersIter it = ids->begin();
     for (;it != ids->end(); ++it)
     {
-        printf("%s\n", it->data());
+      it->print();
     }
   }
 
+  delete ids;
   delete name;
   
   return pkg;
@@ -311,7 +326,7 @@ Node* CodeHandler::subprogramSpecBase(const char* name,
 {
   /* TODO ADD PARAMETERS AND TYPE TO NAME */
   CodeNode *fun = newCodeNode(ADA_SUBPROG, name, "");
-  fun->refs = params->refs;
+  fun->appendRefs(params->refs);
   delete params;
 
   return fun;
@@ -327,7 +342,7 @@ Node* CodeHandler::subprogramBody(Node *base,
     IdentifiersIter it = refs->begin();
     for (;it != refs->end(); ++it)
     {
-        printf("%s\n", it->data());
+       it->print();
     }
     CodeNode *base_code = dynamic_cast<CodeNode*>(base);
     base_code->appendRefs(refs);
@@ -348,10 +363,9 @@ Node* CodeHandler::packageBodyBase(
     IdentifiersIter it = refs->begin();
     for (;it != refs->end(); ++it)
     {
-        printf("%s\n", it->data());
+        it->print();
     }
-    pkg->refs = *refs;
-    delete refs;
+    pkg->appendRefs(refs);
   }
 
   return pkg;
@@ -375,7 +389,7 @@ Nodes *CodeHandler::objDeclBase(Identifiers *ids, QCString *type,
   for (;it != ids->end();++it)
   {
     /* TODO ADD EXPRESSION AND TYPE */
-    n = newCodeNode(ADA_VAR, *it, "");
+    n = newCodeNode(ADA_VAR, it->str, "");
     nodes->push_back(n);
   }
 

@@ -14,12 +14,6 @@
  * input used in their production; they are not affected by this license.
  *
  */
-/*  This code is based on the work done by the MoxyPyDoxy team
- *  (Linda Leong, Mike Rivera, Kim Truong, and Gabriel Estrada)
- *  in Spring 2005 as part of CS 179E: Compiler Design Project
- *  at the University of California, Riverside; the course was
- *  taught by Peter H. Froehlich <phf@acm.org>.
- */
 
 #ifndef ADAPARSER_H
 #define ADAPARSER_H
@@ -35,7 +29,20 @@
  * This is the Ada language parser for doxygen.
  */
 
-typedef std::list<QCString> Identifiers;
+
+struct Identifier
+{
+  Identifier(QCString str_, int line_, int col_);
+  Identifier(QCString str_);
+
+  QCString str;
+  int line;
+  int col;
+
+  void print(std::string pad="");
+};
+
+typedef std::list<Identifier> Identifiers;
 typedef Identifiers::iterator IdentifiersIter;
 
 struct Expression
@@ -46,7 +53,13 @@ struct Expression
 
 struct Parameters
 {
-  Identifiers refs;
+  Parameters()
+  {
+    args = new ArgumentList;
+    refs = new Identifiers;
+  }
+
+  Identifiers *refs;
   ArgumentList *args;
 };
 
@@ -55,6 +68,7 @@ enum NodeType
   ADA_PKG,
   ADA_VAR,
   ADA_SUBPROG,
+  ADA_RECORD,
   ADA_UNKNOWN
 };
 
