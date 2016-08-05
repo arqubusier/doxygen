@@ -24,6 +24,7 @@
 #include "arguments.h"
 #include "entry.h"
 
+
 /** \brief Ada Language parser using flex and bison.
  *
  * This is the Ada language parser for doxygen.
@@ -192,4 +193,18 @@ void resetStructDoxyComments();
 void initEntry (Entry &e, Entry *parent=NULL, Protection prot=Public,
                 MethodTypes mtype=Method, bool stat=false,
                 Specifier virt=Normal);
+
+template<typename T>
+void dealloc(T*& memPtr)
+{
+  if (memPtr)
+  {
+    delete memPtr;
+    memPtr = NULL;
+  }
+}
+
+/*TODO: create specialization for: Node, Nodes, Params, Identifiers,
+ * QCString, char* .*/
+
 #endif //ADAPARSER_H

@@ -34,6 +34,7 @@
 #include "filedef.h"
 #include "message.h"
 #include "namespacedef.h"
+#include "classdef.h"
 
 #define YYDEBUG 1
 #define NEW_ID(VAL, LOC) Identifier(VAL, LOC.first_line, LOC.first_column)
@@ -44,6 +45,8 @@ extern int adaYYparse();
 extern int adaYYwrap();
 extern void adaYYrestart( FILE *new_file );
 void adaYYerror (char const *s);
+
+static FileDef *s_sourceFile;
 
 /**
  * \brief identify references in a CodeNode tree.
@@ -595,6 +598,8 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
                    bool collectXrefs
                   )
 {
+  s_sourceFile = fileDef;
+
   std::cout << "ADA CODE PARSER" << std::endl;
   bool should_save_comments = false;
   initAdaScanner(this, fileDef->name(), should_save_comments );
@@ -615,11 +620,34 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
   //s_root = NULL;
 }
 
+bool canAddRef(NodeType type,
+                  MemberDef    *md,
+                  ClassDef     *cd,
+                  FileDef      *fd,
+                  NamespaceDef *nd,
+                  GroupDef     *gd)
+{
+  return ((type == ADA_SUBPROG && md)||
+          (type == ADA_PKG && nd));
+
+}
+
 void addCrossRef(CodeNode *root, QCString scope)
 {
+  NodeType type = root->type;
+  QCString name = root->name;
   root->name_space = scope;
-  IdentifiersIter rit = root->refs.begin();
 
+  MemberDef    *md;
+  ClassDef     *cd;
+  FileDef      *fd;
+  NamespaceDef *nd;
+  GroupDef     *gd;
+
+  printf("ROOT %s, SCOPE%s\n", root->name.data(), scope.data());
+  bool foundDef = getDefs(scope, name, "()", md,cd,fd,nd,gd,FALSE,s_sourceFile);
+  
+  /*
   if (root->type == ADA_PKG)
   {
     NamespaceDef *nd = getResolvedNamespace(
@@ -631,26 +659,90 @@ void addCrossRef(CodeNode *root, QCString scope)
       printf("nd %s\n", nd->name().data());
     }
   }
-
-  for (;rit != root->refs.end(); ++rit)
-  {
-    //CALL GRAPH + code link
-    //root func ref func
-    //root pac ref func
-
-    //Code link
-    // ref func
-    // header
-  }
-
-  CodeNodesIter cit = root->children.begin();
-  CodeNode *cn;
+  */
 
   QCString newScope;
   if (root->type == ADA_PKG)
     newScope = scope + root->name + "::";
   else
     newScope = scope;
+  printf("NEW SCOPE %s\n", newScope.data());
+
+  if (foundDef && canAddRef(type, md, cd, fd, nd, gd))
+  {
+    printf("FOUND_DEF\n");
+    MemberDef    *mdRef;
+    ClassDef     *cdRef;
+    FileDef      *fdRef;
+    NamespaceDef *ndRef;
+    GroupDef     *gdRef;
+
+    /* add link to current node */
+
+    IdentifiersIter rit = root->refs.begin();
+    for (;rit != root->refs.end(); ++rit)
+    {
+      printf("REF %s\n", rit->str.data()); 
+      bool foundRefDef = getDefs(
+            newScope, rit->str,"()",md,cd,fd,nd,gd,
+            FALSE,s_sourceFile);
+      if (foundRefDef)
+      {
+        printf("FOUND REF DEF\n");
+        if (md)
+        {
+          if (mdRef && mdRef->isLinkable())
+          {
+            printf("MD MD\n");
+            addDocCrossReference(md, mdRef);
+          }
+          else if (cdRef && cdRef->isLinkable())
+          {
+            printf("MD cD\n");
+            addDocCrossReference(md, mdRef);
+          }
+          else if (fdRef && fdRef->isLinkable())
+          {
+            printf("MD fD\n");
+            addDocCrossReference(md, mdRef);
+
+          }
+        }
+        else if (nd)
+        {
+          if (mdRef && mdRef->isLinkable())
+          {
+            printf("ND MD\n");
+            addDocCrossReference(md, mdRef);
+          }
+          else if (cdRef && cdRef->isLinkable())
+          {
+            printf("ND CD\n");
+            addDocCrossReference(md, mdRef);
+          }
+          else if (fdRef && fdRef->isLinkable())
+          {
+            printf("ND FD\n");
+            addDocCrossReference(md, mdRef);
+          }
+
+        }
+      }
+      //CALL GRAPH + code link
+      //root func ref func
+      //root pac ref func
+
+      //Code link
+      // ref func
+      // header
+    }
+  }
+
+
+  /* recurse over all children */
+  CodeNodesIter cit = root->children.begin();
+  CodeNode *cn;
+
 
   for (;cit != root->children.end(); ++cit)
   {

@@ -19,7 +19,16 @@ void RuleHandler::moveNodes(Nodes* dst,
                            Nodes* src)
 {
   dst->splice(dst->begin(), *src);
-  delete src;
+  if (dst && src)
+  {
+    NodesIter it = src->begin();
+    for (;it!=src->end(); ++it)
+    {
+      src->push_back(*it);
+    }
+
+    dealloc(src);
+  }
 }
 
 void RuleHandler::moveUnderNode(Node *node, Nodes *nodes)
@@ -29,11 +38,12 @@ void RuleHandler::moveUnderNode(Node *node, Nodes *nodes)
   {
     node->addChild(*it);
   } 
-  delete nodes;
+  dealloc(nodes);
 }
 
 Nodes *RuleHandler::declsBase(Node *new_node)
 {
+  printf("aaaa\n");
   Nodes *es = new Nodes;
   es->push_front(new_node);
   return es;
@@ -41,6 +51,7 @@ Nodes *RuleHandler::declsBase(Node *new_node)
 
 Nodes *RuleHandler::declsBase(Nodes *new_nodes)
 {
+  printf("bbbb\n");
   Nodes *es = new Nodes;
   moveNodes(es, new_nodes);
   return es;
@@ -48,13 +59,16 @@ Nodes *RuleHandler::declsBase(Nodes *new_nodes)
 
 Nodes *RuleHandler::decls(Nodes *nodes, Node *new_node)
 { 
+  printf("cccc\n");
   nodes->push_front(new_node);
   return nodes;
 }
 
 Nodes *RuleHandler::decls(Nodes *nodes, Nodes *new_nodes)
 { 
+  printf("dddd\n");
   moveNodes(nodes, new_nodes);
+  printf("dddd2\n");
   return nodes;
 }
 
@@ -102,16 +116,16 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
       a->defval = defval->str;
     params->args->append(a);
   }
-  delete type;
+  dealloc(type);
   if (mode)
-    delete mode;
+    dealloc( mode);
 
   if (defval)
   {
     printf("AAAAAAAAAAAAAAAA\n");
     params->refs->splice(params->refs->begin(), defval->ids);
     params->refs->front().print();
-    delete defval;
+    dealloc( defval);
   }
 
   return params;
@@ -165,7 +179,7 @@ Node *EntryHandler::packageSpecBase(const char* name, Nodes *publics,
   }    
 
 
-  delete name; 
+  dealloc( name);
   return pkg; 
 } 
 
@@ -175,18 +189,18 @@ Node* EntryHandler::subprogramSpecBase(const char* name,
 {
   EntryNode *fun = newEntryNode();
   fun->entry.name = name;
-  delete name;
+  dealloc( name);
 
   if (params)
   {
     fun->entry.argList = params->args;
     fun->entry.args = adaArgListToString(*(params->args));
-    delete params;
+    dealloc( params);
   }
   if (type)
   {
     fun->entry.type = type;
-    delete type;
+    dealloc( type);
   }
   fun->entry.section = Entry::FUNCTION_SEC;
   return fun;
@@ -226,11 +240,11 @@ Nodes *EntryHandler::objDeclBase(Identifiers *refs, QCString *type,
   if (expr)
   {
     printf("default value %s\n", expr->str.data());
-    delete expr;
+    dealloc( expr);
   }
 
-  delete type;
-  delete refs;
+  dealloc( type);
+  dealloc( refs);
   return nodes;
 }
 
@@ -258,8 +272,8 @@ Node *EntryHandler::packageBodyBase(const char* name,
     }
   }
 
-  delete ids;
-  delete name;
+  dealloc( ids);
+  dealloc( name);
   
   return pkg;
 }
@@ -327,7 +341,7 @@ Node* CodeHandler::subprogramSpecBase(const char* name,
   /* TODO ADD PARAMETERS AND TYPE TO NAME */
   CodeNode *fun = newCodeNode(ADA_SUBPROG, name, "");
   fun->appendRefs(params->refs);
-  delete params;
+  dealloc( params);
 
   return fun;
 }
