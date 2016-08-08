@@ -204,9 +204,12 @@ void dealloc(T*& memPtr)
   }
 }
 
+
+void printIds(Identifiers* ids, std::string pad="");
+
 inline void printNodes(Nodes* nodes)
 {
-  if (nodes && nodes->empty())
+  if (nodes && !nodes->empty())
   {
     printf("PRINTING NODES\n");
     printf("START\n");
@@ -221,7 +224,6 @@ inline void printNodes(Nodes* nodes)
       printf("Nodes empty\n");
 
 }
-
 /*TODO: create specialization for: Node, Nodes, Params, Identifiers,
  * QCString, char* .*/
 

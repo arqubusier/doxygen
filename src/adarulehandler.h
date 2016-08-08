@@ -104,7 +104,10 @@ private:
   void addDocToEntries(Node *doc, Nodes *base);
   EntryNode *newEntryNode();
 };
+
 /* code handler */
+void addObjRefsToParent(Node* parent, Nodes* decls);
+
 class CodeHandler: public RuleHandler
 {
 public:

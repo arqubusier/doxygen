@@ -232,32 +232,32 @@ class Entry
   public:
 
     // identification
-    int          section;     //!< entry type (see Sections); HOW DOES THIS WORK??
+    int          section;     //!< entry type (see Sections);
     QCString	 type;        //!< member type DATA TYPE/ RETURN TYPE
-    QCString	 name;        //!< member name HOW DOES THIS WORK??
-    TagInfo     *tagInfo;     //!< tag file info HOW DOES THIS WORK??
+    QCString	 name;        //!< member name
+    TagInfo     *tagInfo;     //!< tag file info
 
     // content
     Protection protection;    //!< class protection
     MethodTypes mtype;        //!< signal, slot, (dcop) method, or property? TODO
-    uint64 spec;              //!< class/member specifiers TODO
+    uint64 spec;              //!< class/member specifiers
     int  initLines;           //!< define/variable initializer lines to show 
     bool stat;                //!< static ?
-    bool explicitExternal;    //!< explicitly defined as external? TODO
+    bool explicitExternal;    //!< explicitly defined as external?
     bool proto;               //!< prototype ?
     bool subGrouping;         //!< automatically group class members?
     bool callGraph;           //!< do we need to draw the call graph?
     bool callerGraph;         //!< do we need to draw the caller graph?
     Specifier    virt;        //!< virtualness of the entry 
-    QCString     args;        //!< member argument string TODO
-    QCString     bitfields;   //!< member's bit fields TODO
-    ArgumentList *argList;    //!< member arguments as a list TODO
-    QList<ArgumentList> *tArgLists; //!< template argument declarations TODO
+    QCString     args;        //!< member argument string
+    QCString     bitfields;   //!< member's bit fields
+    ArgumentList *argList;    //!< member arguments as a list
+    QList<ArgumentList> *tArgLists; //!< template argument declarations
     QGString	 program;     //!< the program text
-    QGString     initializer; //!< initial value (for variables) TODO
-    QCString     includeFile; //!< include file (2 arg of \\class, must be unique) TODO
-    QCString     includeName; //!< include name (3 arg of \\class) TODO
-    QCString     doc;         //!< documentation block (partly parsed) TODO
+    QGString     initializer; //!< initial value (for variables)
+    QCString     includeFile; //!< include file (2 arg of \\class, must be unique)
+    QCString     includeName; //!< include name (3 arg of \\class)
+    QCString     doc;         //!< documentation block (partly parsed)
     int          docLine;     //!< line number at which the documentation was found
     QCString     docFile;     //!< file in which the documentation was found
     QCString     brief;       //!< brief description (doc block)

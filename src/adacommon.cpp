@@ -53,11 +53,7 @@ void CodeNode::print_(std::string pad)
   printQC(pad, "namespace", name_space.data());
 
   msg("%sREFS:\n", pad.data());
-  IdentifiersIter RefsIt = refs.begin();
-  for (;RefsIt != refs.end(); ++RefsIt)
-  {
-      RefsIt->print(pad);
-  }
+  printIds(&refs, pad);
 
   msg("%sCHILDREN:\n", pad.data());
   pad +=  "    "; 
@@ -84,6 +80,23 @@ void CodeNode::appendRefs(Identifiers *new_refs)
 
 CodeNode::CodeNode():type(ADA_UNKNOWN), name(""), name_space("") {}
 /* =================== Misc ======================= */
+void printIds(Identifiers *ids, std::string pad)
+{
+  if(ids && !ids->empty())
+  {
+    printf("PRINTING NODES\n");
+    printf("START\n");
+    IdentifiersIter it = ids->begin();
+    for (;it != ids->end();++it)
+    {
+      it->print(pad);
+    }
+    printf("END\n");
+  }
+  else
+    printf("Identifiers empty\n");
+}
+
 void Identifier::print(std::string pad)
 {
   msg("CCCCccc\n");

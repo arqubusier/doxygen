@@ -254,13 +254,13 @@ package_spec_base: PACKAGE IDENTIFIER IS
                     IDENTIFIER
                       {
                        $$ = s_handler->packageSpecBase($2, $4);
-                       delete $6;
+                       dealloc($6);
                       }
                     | PACKAGE IDENTIFIER IS basic_decls
                       PRIVATE basic_decls END IDENTIFIER
                       {
                        $$ = s_handler->packageSpecBase($2, $4, $6);
-                       delete $8;
+                       dealloc( $8);
                       }
 
 subprogram_decl:   subprogram_spec SEM {$$ = $1;}
@@ -296,13 +296,13 @@ package_body_base: PACKAGE_BODY IDENTIFIER IS
                    END IDENTIFIER SEM
                    {
                      $$ = s_handler->packageBodyBase($2); 
-                     delete $5;
+                     dealloc( $5);
                    }
                    |PACKAGE_BODY IDENTIFIER IS
                    decls END IDENTIFIER SEM
                    {
                      $$ = s_handler->packageBodyBase($2, $4); 
-                     delete $6;
+                     dealloc( $6);
                    }
                    |PACKAGE_BODY IDENTIFIER IS
                    decls BEGIN_ statements END SEM
@@ -318,13 +318,14 @@ package_body_base: PACKAGE_BODY IDENTIFIER IS
                    decls BEGIN_ statements END IDENTIFIER SEM
                    {
                      $$ = s_handler->packageBodyBase($2, $4, $6); 
-                     delete $8;
+                     dealloc( $8);
+                     printf("e\n");
                    }
                    |PACKAGE_BODY IDENTIFIER IS
                    BEGIN_ statements END IDENTIFIER SEM
                    {
                      $$ = s_handler->packageBodyBase($2, NULL, $5); 
-                     delete $7;
+                     dealloc( $7);
                    }
 
 subprogram_body:  subprogram_spec IS
@@ -339,7 +340,7 @@ subprogram_body:  subprogram_spec IS
                     printf("PROG\n");
                     $$ = s_handler->subprogramBody($1, $3, $5);
                   }
-tail:             SEM| IDENTIFIER SEM {delete $1;}
+tail:             SEM| IDENTIFIER SEM {dealloc( $1);}
 
 parameters:       parameter_spec
                   | parameter_specs parameter_spec
@@ -394,7 +395,7 @@ identifier_list:    IDENTIFIER
 
                       printf("identifier list\n");
                       $$ = ids;
-                      delete $1;
+                      dealloc($1);
                     }
                     |IDENTIFIER COMMA identifier_list
                     {
@@ -402,7 +403,7 @@ identifier_list:    IDENTIFIER
                       ids->push_front(NEW_ID($1, @1));
 
                       $$ = ids;
-                      delete $1;
+                      dealloc($1);
                     }
                     
                     /* move to handlers */
@@ -410,7 +411,7 @@ subtype:            IDENTIFIER constraint
                     {
                       std::cout << "New type " << $1 << std::endl;
                       $$ = new QCString($1);
-                      delete $1;
+                      dealloc( $1);
                     }
 
 statements: statement
@@ -419,7 +420,7 @@ statements: statement
             Identifiers *ss = $2;
             ss->splice(ss->begin(), *s);
             $$ = ss;
-            delete s;}
+            dealloc( s);}
 
 statement:  statement_parts SEM {$$ = $1;}
       
@@ -428,22 +429,22 @@ statement_parts: statement_part
                 {Identifiers *ids = new Identifiers;
                  ids->splice(ids->begin(), $1->ids);
                  $$ = ids;
-                 delete $1;}
+                 dealloc( $1);}
 
                 |statement_part statement_parts
                  {Identifiers *s = $1;
                   Identifiers *ss = $2;
                   ss->splice(ss->begin(), *s);
                   $$ = ss;
-                  delete s;}
+                  dealloc( s);}
                 |expression statement_part statement_parts
                 {Identifiers *ss = $3;
                  Identifiers *s = $2;
                  Expression *e = $1;
                  ss->splice(ss->begin(), *s);
                  ss->splice(ss->begin(), e->ids);
-                 delete s;
-                 delete e;
+                 dealloc( s);
+                 dealloc( e);
                  $$ = ss;}
 
 
@@ -462,18 +463,18 @@ compound: IF statements END IF {$$ = $2;}
 expression: expression_part
         {Expression *e = new Expression;
          e->str = *$1;
-         delete $1;
+         dealloc( $1);
          $$ = e;}
        |IDENTIFIER {Expression *e = new Expression;
                     e->str = $1;
                     e->ids.push_front(NEW_ID($1, @1));
-                    delete $1;
+                    dealloc( $1);
                     $$ = e;}
        |function_call
        | expression expression_part{Expression *e = $1;
                     e->str.append(" ");
                     e->str.append(*$2);
-                    delete $2;
+                    dealloc( $2);
                     $$ = e;}
        | expression function_call
         {
@@ -482,14 +483,14 @@ expression: expression_part
          e->str.append(" ");
          e->str.append(f->str);
          e->ids.splice(e->ids.begin(), f->ids);
-         delete f;
+         dealloc( f);
          $$ = e;
         }
        |expression IDENTIFIER {Expression *e = $1;
                     e->str.append(" ");
                     e->str.append($2);
                     e->ids.push_front(NEW_ID($2, @2));
-                    delete $2;
+                    dealloc( $2);
                     $$ = e;}
 
 function_call: IDENTIFIER LPAR RPAR
@@ -498,7 +499,7 @@ function_call: IDENTIFIER LPAR RPAR
               call.str.append("()");
               e->ids.push_front(call);
               $$ = e;
-              delete $1;}
+              dealloc( $1);}
              |IDENTIFIER LPAR call_params RPAR
              {Expression *e = $3;
               QCString call = $1;
@@ -508,7 +509,7 @@ function_call: IDENTIFIER LPAR RPAR
               e->str = call;
               e->ids.push_front(NEW_ID(call, @1));
               $$ = e;
-              delete $1;}
+              dealloc( $1);}
 call_params: param_assoc
            |param_assoc COMMA call_params
            {Expression *pa = $1;
@@ -517,15 +518,14 @@ call_params: param_assoc
             cp->str.append($1->str);
             cp->ids.splice(cp->ids.begin(), pa->ids);
             $$ = cp;
-            delete pa;
-           }
+            dealloc( pa);}
 param_assoc: expression
             |IDENTIFIER REF expression
             {Expression *e = $3;
              e->str.append(" => ");
              e->str.append($1);
              $$ = e;
-             delete $1;}
+             dealloc( $1);}
 
 expression_part: logical| operator
       |Null {$$ =  new QCString("NULL");}
@@ -632,18 +632,6 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
   //s_root = NULL;
 }
 
-bool canAddRef(NodeType type,
-                  MemberDef    *md,
-                  ClassDef     *cd,
-                  FileDef      *fd,
-                  NamespaceDef *nd,
-                  GroupDef     *gd)
-{
-  return ((type == ADA_SUBPROG && md)||
-          (type == ADA_PKG && nd));
-
-}
-
 void addCrossRef(CodeNode *root, QCString scope)
 {
   NodeType type = root->type;
@@ -656,7 +644,7 @@ void addCrossRef(CodeNode *root, QCString scope)
   NamespaceDef *nd;
   GroupDef     *gd;
 
-  printf("ROOT %s, SCOPE%s\n", root->name.data(), scope.data());
+  printf("ROOT %s, SCOPE%s\n", name.data(), scope.data());
   bool foundDef = getDefs(scope, name, "()", md,cd,fd,nd,gd,FALSE,s_sourceFile);
   
   /*
@@ -680,7 +668,7 @@ void addCrossRef(CodeNode *root, QCString scope)
     newScope = scope;
   printf("NEW SCOPE %s\n", newScope.data());
 
-  if (foundDef && canAddRef(type, md, cd, fd, nd, gd))
+  if (foundDef)
   {
     printf("FOUND_DEF\n");
     MemberDef    *mdRef;

@@ -22,8 +22,6 @@ void RuleHandler::moveNodes(Nodes* dst,
     printf("DST EMPTY");
   if (!src)
     printf("SRC EMPTY");
-  printNodes(dst);
-  printNodes(src);
 
   dst->splice(dst->begin(), *src);
 
@@ -42,7 +40,6 @@ void RuleHandler::moveUnderNode(Node *node, Nodes *nodes)
 
 Nodes *RuleHandler::declsBase(Node *new_node)
 {
-  printf("aaaa\n");
   Nodes *es = new Nodes;
   es->push_front(new_node);
   return es;
@@ -149,8 +146,6 @@ void EntryHandler::addFileSection(const char *fileName)
   }
 }
 
-
-
 Node *EntryHandler::packageSpecBase(const char* name, Nodes *publics, 
                      Nodes *privates) 
 { 
@@ -209,15 +204,6 @@ Node* EntryHandler::subprogramBody(Node *base,
                                    Nodes *decls,
                                    Identifiers *refs)
 {
-  if (refs)
-  {
-    printf("function refs\n");
-    IdentifiersIter it = refs->begin();
-    for (;it != refs->end(); ++it)
-    {
-        it->print();
-    }
-  }
   return base;
 }
 
@@ -286,11 +272,8 @@ EntryNode* EntryHandler::newEntryNode()
 
 void EntryHandler::addDocToEntry(Node *doc, Node *entry){
   if( doc ){
-    printf("before doc\n");
     EntryNode *e_doc = dynamic_cast<EntryNode*>(doc);
-    printf("before entry\n");
     EntryNode *e_entry = dynamic_cast<EntryNode*>(entry);
-    printf("after\n");
     e_entry->entry.doc = e_doc->entry.doc;
     e_entry->entry.brief = e_doc->entry.brief;
   }
@@ -319,14 +302,16 @@ Node* CodeHandler::packageSpecBase(
           Nodes *privates)
 {
   CodeNode *pkg = newCodeNode(ADA_PKG, name, "");
-  printf("a\n");
-  moveUnderNode(pkg, publics);
+  if(publics)
+  {
+    addObjRefsToParent(pkg, publics);
+    moveUnderNode(pkg, publics);
+  }
   if (privates)
   {
-    printf("b\n");
+    addObjRefsToParent(pkg, privates);
     moveUnderNode(pkg, privates);
   }
-    printf("c\n");
   return pkg;
 }
 
@@ -334,10 +319,11 @@ Node* CodeHandler::subprogramSpec(Node *base, Node* doc)
 {
   return base;
 }
+
 Node* CodeHandler::subprogramSpecBase(const char* name,
                         Parameters *params, const char *type)
 {
-  /* TODO ADD PARAMETERS AND TYPE TO NAME */
+  /* TODO handle type */
   CodeNode *fun = newCodeNode(ADA_SUBPROG, name, "");
   if (params)
   {
@@ -352,14 +338,14 @@ Node* CodeHandler::subprogramBody(Node *base,
                                   Nodes *decls,
                                   Identifiers *refs)
 {
+  if (decls)
+  {
+    addObjRefsToParent(base, decls);
+    moveUnderNode(base, decls);
+  }
+
   if (refs)
   {
-    printf("function refs\n");
-    IdentifiersIter it = refs->begin();
-    for (;it != refs->end(); ++it)
-    {
-       it->print();
-    }
     CodeNode *base_code = dynamic_cast<CodeNode*>(base);
     base_code->appendRefs(refs);
   }
@@ -373,19 +359,18 @@ Node* CodeHandler::packageBodyBase(
 {
   CodeNode *pkg = newCodeNode(ADA_PKG, name, "");
 
-  if (refs)
+  if (decls)
   {
-    printf("package refs\n");
-    IdentifiersIter it = refs->begin();
-    for (;it != refs->end(); ++it)
-    {
-        it->print();
-    }
-    pkg->appendRefs(refs);
+    addObjRefsToParent(pkg, decls);
+    moveUnderNode(pkg, decls);
   }
+
+  if (refs)
+    pkg->appendRefs(refs);
 
   return pkg;
 }
+
 Node* CodeHandler::packageBody(Node *base, Node* doc)
 {
     return base;
@@ -399,17 +384,32 @@ Nodes *CodeHandler::objDeclBase(Identifiers *ids, QCString *type,
                                 Expression *expr)
 {
   Nodes* nodes = new Nodes;
-  Node* n;
+  CodeNode* n;
 
   IdentifiersIter it = ids->begin();
   for (;it != ids->end();++it)
   {
-    /* TODO ADD EXPRESSION AND TYPE */
+    /* TODO ADD TYPE */
     n = newCodeNode(ADA_VAR, it->str, "");
+    if (expr)
+      n->appendRefs(&expr->ids);
     nodes->push_back(n);
   }
 
   return nodes;
+}
+
+void addObjRefsToParent(Node* parent, Nodes* decls)
+{
+  NodesIter nit = decls->begin();
+  CodeNode *parentCode = dynamic_cast<CodeNode*>(parent);
+  CodeNode *cn;
+  for(;nit != decls->end();++nit)
+  {
+    cn = dynamic_cast<CodeNode*>(*nit);
+    if (cn->type == ADA_VAR && &cn->refs && !cn->refs.empty())
+      parentCode->appendRefs(&cn->refs);
+  }
 }
 
 CodeNode *CodeHandler::newCodeNode(
