@@ -314,6 +314,18 @@ package_body_base: PACKAGE_BODY IDENTIFIER IS
                    {
                      $$ = s_handler->packageBodyBase($2, NULL, $5); 
                    }
+                   |PACKAGE_BODY IDENTIFIER IS
+                   decls BEGIN_ statements END IDENTIFIER SEM
+                   {
+                     $$ = s_handler->packageBodyBase($2, $4, $6); 
+                     delete $8;
+                   }
+                   |PACKAGE_BODY IDENTIFIER IS
+                   BEGIN_ statements END IDENTIFIER SEM
+                   {
+                     $$ = s_handler->packageBodyBase($2, NULL, $5); 
+                     delete $7;
+                   }
 
 subprogram_body:  subprogram_spec IS
                   BEGIN_ statements END tail
@@ -351,7 +363,7 @@ mode:              IN {$$ = new QCString("in");}
 decls:             body {$$ = s_handler->declsBase($1);}
                    |decl_item {$$ = s_handler->declsBase($1);}
                    |decl_items {$$ = s_handler->declsBase($1);}
-                   |decls body {$$ = s_handler->decls($1, $1);}
+                   |decls body {$$ = s_handler->decls($1, $2);}
                    |decls decl_item {$$ = s_handler->decls($1, $2);}
                    |decls decl_items {$$ = s_handler->decls($1, $2);}
 

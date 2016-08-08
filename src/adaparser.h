@@ -204,6 +204,24 @@ void dealloc(T*& memPtr)
   }
 }
 
+inline void printNodes(Nodes* nodes)
+{
+  if (nodes && nodes->empty())
+  {
+    printf("PRINTING NODES\n");
+    printf("START\n");
+    NodesIter it = nodes->begin();
+    for (;it != nodes->end();++it)
+    {
+      (*it)->print();
+    }
+    printf("END\n");
+  }
+  else
+      printf("Nodes empty\n");
+
+}
+
 /*TODO: create specialization for: Node, Nodes, Params, Identifiers,
  * QCString, char* .*/
 

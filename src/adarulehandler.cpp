@@ -18,17 +18,16 @@ void RuleHandler::addToRoot(Node* child)
 void RuleHandler::moveNodes(Nodes* dst,
                            Nodes* src)
 {
-  dst->splice(dst->begin(), *src);
-  if (dst && src)
-  {
-    NodesIter it = src->begin();
-    for (;it!=src->end(); ++it)
-    {
-      src->push_back(*it);
-    }
+  if (!dst)
+    printf("DST EMPTY");
+  if (!src)
+    printf("SRC EMPTY");
+  printNodes(dst);
+  printNodes(src);
 
-    dealloc(src);
-  }
+  dst->splice(dst->begin(), *src);
+
+  dealloc(src);
 }
 
 void RuleHandler::moveUnderNode(Node *node, Nodes *nodes)
