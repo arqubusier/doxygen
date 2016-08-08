@@ -319,7 +319,6 @@ package_body_base: PACKAGE_BODY IDENTIFIER IS
                    {
                      $$ = s_handler->packageBodyBase($2, $4, $6); 
                      dealloc( $8);
-                     printf("e\n");
                    }
                    |PACKAGE_BODY IDENTIFIER IS
                    BEGIN_ statements END IDENTIFIER SEM
@@ -632,6 +631,13 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
   //s_root = NULL;
 }
 
+void removeArgs(QCString &fun)
+{
+   int idx = fun.find('(');
+   if (idx != -1)
+      fun.truncate(idx);
+}
+
 void addCrossRef(CodeNode *root, QCString scope)
 {
   NodeType type = root->type;
@@ -682,9 +688,10 @@ void addCrossRef(CodeNode *root, QCString scope)
     IdentifiersIter rit = root->refs.begin();
     for (;rit != root->refs.end(); ++rit)
     {
+      removeArgs(rit->str);
       printf("REF %s\n", rit->str.data()); 
       bool foundRefDef = getDefs(
-            newScope, rit->str,"()",md,cd,fd,nd,gd,
+            newScope, rit->str,"()",mdRef,cdRef,fdRef,ndRef,gdRef,
             FALSE,s_sourceFile);
       if (foundRefDef)
       {
