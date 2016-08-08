@@ -7942,6 +7942,7 @@ static void generateFileSources()
           if (fd->generateSourceFile() && !g_useOutputTemplate) // sources need to be shown in the output
           {
             msg("Generating code for file %s...\n",fd->docName().data());
+            printf("SRC 1");
             fd->writeSource(*g_outputList,FALSE,filesInSameTu);
 
           }
@@ -7949,6 +7950,7 @@ static void generateFileSources()
             // we needed to parse the sources even if we do not show them
           {
             msg("Parsing code for file %s...\n",fd->docName().data());
+            printf("SRC 2");
             fd->parseSource(FALSE,filesInSameTu);
           }
           fd->finishParsing();

@@ -339,8 +339,11 @@ Node* CodeHandler::subprogramSpecBase(const char* name,
 {
   /* TODO ADD PARAMETERS AND TYPE TO NAME */
   CodeNode *fun = newCodeNode(ADA_SUBPROG, name, "");
-  fun->appendRefs(params->refs);
-  dealloc( params);
+  if (params)
+  {
+    fun->appendRefs(params->refs);
+    dealloc( params);
+  }
 
   return fun;
 }
