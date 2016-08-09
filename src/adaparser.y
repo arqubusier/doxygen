@@ -227,6 +227,7 @@ static RuleHandler *s_handler;
 %type<qstrPtr> operator
 %type<qstrPtr>literal
 %type<idsPtr> compound
+%type<qstrPtr> library_name
 
 %defines 
 
@@ -248,11 +249,15 @@ context_clause: with_clause
 with_clause: WITH library_names SEM
 use_clause: USE library_names SEM
 
-library_names: library_name
-              |library_names COMMA library_name
-library_name: IDENTIFIER
-             |library_name DOT IDENTIFIER
-
+library_names: library_name {dealloc($1);}
+              |library_names COMMA library_name {dealloc($3);}
+library_name: IDENTIFIER {$$ = new QCString($1); delete $1;}
+             |library_name DOT IDENTIFIER {
+              QCString *name = $1;
+              name->append(".");
+              name->append($3);
+              $$ = name;
+              dealloc($3);}
 
 doxy_comment: SPECIAL_COMMENT
 
@@ -482,9 +487,9 @@ expression: expression_part
          e->str = *$1;
          dealloc( $1);
          $$ = e;}
-       |IDENTIFIER {Expression *e = new Expression;
-                    e->str = $1;
-                    e->ids.push_front(NEW_ID($1, @1));
+       |library_name {Expression *e = new Expression;
+                    e->str = *$1;
+                    e->ids.push_front(NEW_ID(*$1, @1));
                     dealloc( $1);
                     $$ = e;}
        |function_call
@@ -503,23 +508,23 @@ expression: expression_part
          dealloc( f);
          $$ = e;
         }
-       |expression IDENTIFIER {Expression *e = $1;
+       |expression library_name {Expression *e = $1;
                     e->str.append(" ");
-                    e->str.append($2);
-                    e->ids.push_front(NEW_ID($2, @2));
+                    e->str.append(*$2);
+                    e->ids.push_front(NEW_ID(*$2, @2));
                     dealloc( $2);
                     $$ = e;}
 
-function_call: IDENTIFIER LPAR RPAR
+function_call: library_name LPAR RPAR
              {Expression *e = new Expression;
-              Identifier call = NEW_ID($1, @1);
+              Identifier call = NEW_ID(*$1, @1);
               call.str.append("()");
               e->ids.push_front(call);
               $$ = e;
               dealloc( $1);}
-             |IDENTIFIER LPAR call_params RPAR
+             |library_name LPAR call_params RPAR
              {Expression *e = $3;
-              QCString call = $1;
+              QCString call = *$1;
               call.append("(");
               call.append(e->str);
               call.append(")");
@@ -537,10 +542,10 @@ call_params: param_assoc
             $$ = cp;
             dealloc( pa);}
 param_assoc: expression
-            |IDENTIFIER REF expression
+            |library_name REF expression
             {Expression *e = $3;
              e->str.append(" => ");
-             e->str.append($1);
+             e->str.append(*$1);
              $$ = e;
              dealloc( $1);}
 
