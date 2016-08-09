@@ -106,6 +106,7 @@ Identifier::Identifier(QCString str_, int line_, int col_)
       :str(str_), line(line_), col(col_){}
 Identifier::Identifier(QCString str_):str(str_), line(-1), col(-1){}
 
+
 QCString adaArgListToString(const ArgumentList &args)
 {
   QCString res = "()";

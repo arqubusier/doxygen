@@ -205,6 +205,12 @@ void dealloc(T*& memPtr)
 }
 
 
+inline void moveExprIds(Expression *e1, Expression *e2)
+{
+  e1->ids.splice(e1->ids.begin(), e2->ids);
+  dealloc(e2);
+}
+
 void printIds(Identifiers* ids, std::string pad="");
 
 inline void printNodes(Nodes* nodes)

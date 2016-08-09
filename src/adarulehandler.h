@@ -31,7 +31,7 @@ public:
   virtual Nodes *decls(Nodes *nodes, Node *new_node);
   virtual Nodes *decls(Nodes *nodes, Nodes *new_nodes);
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL) = 0;
-  virtual Nodes *objDeclBase(Identifiers *ids, QCString *type,
+  virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
                              Expression *expr=NULL) = 0;
   Parameters *params(Parameters *params, Parameters *new_params);
   Parameters *paramSpec(Identifiers *ids,
@@ -97,7 +97,7 @@ public:
     addDocToEntries(doc, base);
     return base;
   }
-  virtual Nodes *objDeclBase(Identifiers *ids, QCString *type,
+  virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
                              Expression *expr=NULL);
 private:
   void addDocToEntry(Node *doc, Node *base);
@@ -136,6 +136,6 @@ public:
             Nodes *decls=NULL,
             Identifiers *ids=NULL);
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL);
-  virtual Nodes *objDeclBase(Identifiers *ids, QCString *type,
+  virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
                              Expression *expr=NULL);
 };

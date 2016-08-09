@@ -207,7 +207,7 @@ Node* EntryHandler::subprogramBody(Node *base,
   return base;
 }
 
-Nodes *EntryHandler::objDeclBase(Identifiers *refs, QCString *type,
+Nodes *EntryHandler::objDeclBase(Identifiers *refs, Expression *type,
                                  Expression *expr)
 {
   Nodes *nodes = new Nodes;
@@ -217,7 +217,7 @@ Nodes *EntryHandler::objDeclBase(Identifiers *refs, QCString *type,
   {
     EntryNode *e = newEntryNode();
     e->entry.name = it->str;
-    e->entry.type = *type;
+    e->entry.type = type->str;
     e->entry.section = Entry::VARIABLE_SEC;
     nodes->push_front(e);
   }
@@ -380,7 +380,7 @@ Nodes *CodeHandler::objDecl(Nodes *base, Node *doc)
 {
   return base;
 }
-Nodes *CodeHandler::objDeclBase(Identifiers *ids, QCString *type,
+Nodes *CodeHandler::objDeclBase(Identifiers *ids, Expression *type,
                                 Expression *expr)
 {
   Nodes* nodes = new Nodes;

@@ -209,7 +209,9 @@ static RuleHandler *s_handler;
 %type<nodePtr> library_item
 %type<nodePtr> library_item_decl
 %type<nodePtr> library_item_body
+%type<exprPtr> type
 %type<qstrPtr> subtype
+%type<exprPtr> array_type
 %type<paramsPtr> parameter_spec
 %type<paramsPtr> parameter_specs
 %type<paramsPtr> parameters
@@ -228,6 +230,10 @@ static RuleHandler *s_handler;
 %type<qstrPtr>literal
 %type<idsPtr> compound
 %type<qstrPtr> library_name
+%type<exprPtr> array_subtype_definitions
+%type<exprPtr> array_subtype_definition
+%type<exprPtr> range
+%type<exprPtr> range_attribute
 
 %defines 
 
@@ -404,10 +410,84 @@ obj_decl:           obj_decl_base
                     |doxy_comment obj_decl_base
                     {$$ = s_handler->objDecl($2, $1);}
 obj_decl_base:      identifier_list COLON 
-                    subtype ASS expression SEM
+                    type ASS expression SEM
                     {$$ = s_handler->objDeclBase($1, $3, $5);}
-                    |identifier_list COLON subtype SEM
+                    |identifier_list COLON type SEM
                     {$$ = s_handler->objDeclBase($1, $3);}
+
+type:               subtype
+                    {Expression *e = new Expression;
+                     e->str = *$1;
+                     e->ids.push_back(NEW_ID(*$1, @1));
+                     $$ = e;
+                     dealloc($1);}|array_type
+
+array_type:         ARRAY LPAR array_subtype_definitions RPAR
+                    OF subtype
+                    {Expression *e = $3;
+                     e->str.prepend("array (");
+                     e->str.append(") of aliased ");
+                     e->str.append(*$6);
+                     $$ = e;
+                     dealloc($6);
+                    }
+                    |ARRAY LPAR array_subtype_definitions RPAR
+                    OF ALIASED subtype
+                    {Expression *e = $3;
+                     e->str.prepend("array (");
+                     e->str.append(") of aliased ");
+                     e->str.append(*$7);
+                     $$ = e;
+                     dealloc($7);
+                    }
+
+array_subtype_definitions: array_subtype_definition
+                          |array_subtype_definitions COMMA
+                           array_subtype_definition
+                        {Expression *e1 = $1;
+                         Expression *e2 = $3;
+                         e1->str.append(", ");
+                         e1->str.append(e2->str);
+                         moveExprIds(e1, e2);
+                         $$ = e1;}
+array_subtype_definition: subtype RANGE BOX
+                        {Expression *e = new Expression;
+                         e->ids.push_back(NEW_ID(*$1, @1));
+                         e->str.append(*$1);
+                         e->str.append(" range <>");
+                         dealloc($1);
+                         $$ = e;}
+                        |range
+                        |subtype
+                        {Expression *e = new Expression;
+                         e->ids.push_back(NEW_ID(*$1, @1));
+                         e->str.append(*$1);
+                         dealloc($1);
+                         $$ = e;}
+
+range:                  range_attribute
+                        |expression DDOT expression
+                        {Expression *e1 = $1;
+                         Expression *e2 = $3;
+                         e1->str.append(" .. ");
+                         e1->str.append(e2->str);
+                         moveExprIds(e1, e2);
+                         $$ = e1;}
+range_attribute:        library_name TIC RANGE
+                        {Expression *e = new Expression;
+                         e->ids.push_back(NEW_ID(*$1, @1));
+                         e->str.append(*$1);
+                         e->str.append("'Range");
+                         dealloc($1);
+                         $$ = e;}
+                        |library_name TIC RANGE LPAR expression RPAR
+                        {Expression *e = $5;
+                         e->ids.push_back(NEW_ID(*$1, @1));
+                         e->str.prepend("'Range(");
+                         e->str.prepend(*$1);
+                         e->str.append(")");
+                         dealloc($1);
+                         $$ = e;}
                      
                       /* move to handlers */
 identifier_list:    IDENTIFIER
@@ -551,7 +631,6 @@ param_assoc: expression
 
 expression_part: logical| operator|literal
       |Null {$$ =  new QCString("NULL");}
-      |TIC {$$ =  new QCString("'");}
 logical: AND {$$ =  new QCString("AND");}
        | OR {$$ =  new QCString("OR");}
        | XOR {$$ =  new QCString("XOR");}

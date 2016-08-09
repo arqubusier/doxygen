@@ -86,10 +86,14 @@ B       [ \t]
 
 
 %%
-{STRING_LITERAL}  {printf("STRIIIIIIIIIIIIIIIIIIIIIING\n");TEXT_TO_QSTR; return(STRING_LITERAL);}
+{STRING_LITERAL}  {TEXT_TO_QSTR; return(STRING_LITERAL);}
 {INTEGER}         {TEXT_TO_QSTR; return(INTEGER);}
 {DECIMAL_LITERAL} {TEXT_TO_QSTR; return(DECIMAL_LITERAL);}
 {BASED_LITERAL}   {TEXT_TO_QSTR; return(BASED_LITERAL);}
+"aliased"       {return(ALIASED);}
+"<>"            {return(BOX);}
+"range"         {return(RANGE);}
+"array"         {return(ARRAY);}
 "and"           {return(AND);}
 "or"            {return(OR);}
 "xor"           {return(XOR);}
@@ -115,11 +119,11 @@ B       [ \t]
 "reverse"       return(REVERSE);
 "with"          return(WITH);
 "use"           return(USE);
+"of"            return(OF);
 "'"			    return(TIC);
 ".."			return(DDOT);
 "."             return(DOT);
 "<<"			return(MLT);
-"<>"			return(BOX);
 "<="			return(LTEQ);
 "**"			return(EXP);
 "/="			return(NEQ);
