@@ -180,6 +180,10 @@ static RuleHandler *s_handler;
 %token MINUS
 %token AMB
 %token DIV
+%token <qstrPtr>INTEGER
+%token <qstrPtr>DECIMAL_LITERAL
+%token <qstrPtr>BASED_LITERAL
+%token <qstrPtr>STRING_LITERAL
 
 /*non-terminals*/
 %type<nodePtr> doxy_comment
@@ -526,12 +530,13 @@ param_assoc: expression
              $$ = e;
              dealloc( $1);}
 
-expression_part: logical| operator
+expression_part: logical| operator|literal
       |Null {$$ =  new QCString("NULL");}
       |TIC {$$ =  new QCString("'");}
 logical: AND {$$ =  new QCString("AND");}
        | OR {$$ =  new QCString("OR");}
        | XOR {$$ =  new QCString("XOR");}
+literal: STRING_LITERAL|INTEGER|DECIMAL_LITERAL|BASED_LITERAL
 relational: EQ  | NEQ  | LT  | LTEQ  | GT  | GTEQ
 operator: ADD {$$ =  new QCString("+");}
         | MINUS {$$ =  new QCString("-");}

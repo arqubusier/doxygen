@@ -58,6 +58,8 @@ void cleanupInputString(){
   yy_delete_buffer(s_bufferState);
 }
 
+#define TEXT_TO_QSTR adaYYlval.qstrPtr = new QCString(yytext)
+
 void handleComment(EntryNode *non_struct_entry,
               bool  &is_non_struct);
 
@@ -74,6 +76,8 @@ DECIMAL_LITERAL		{INTEGER}(\.?{INTEGER})?{EXPONENT}?
 BASE			{INTEGER}
 BASED_INTEGER		{EXTENDED_DIGIT}(_?{EXTENDED_DIGIT})*
 BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
+STRING_CHAR     ([^'"]|\\.)
+STRING_LITERAL  \"{STRING_CHAR}*\"
 B       [ \t]
 
 
@@ -82,7 +86,10 @@ B       [ \t]
 
 
 %%
-
+{STRING_LITERAL}  {printf("STRIIIIIIIIIIIIIIIIIIIIIING\n");TEXT_TO_QSTR; return(STRING_LITERAL);}
+{INTEGER}         {TEXT_TO_QSTR; return(INTEGER);}
+{DECIMAL_LITERAL} {TEXT_TO_QSTR; return(DECIMAL_LITERAL);}
+{BASED_LITERAL}   {TEXT_TO_QSTR; return(BASED_LITERAL);}
 "and"           {return(AND);}
 "or"            {return(OR);}
 "xor"           {return(XOR);}
@@ -106,6 +113,8 @@ B       [ \t]
 "while"         return(WHILE);
 "for"           return(FOR);
 "reverse"       return(REVERSE);
+"with"          return(WITH);
+"use"           return(USE);
 "'"			    return(TIC);
 ".."			return(DDOT);
 "<<"			return(MLT);
