@@ -35,6 +35,7 @@
 #include "message.h"
 #include "namespacedef.h"
 #include "classdef.h"
+#include "doxygen.h"
 
 #define YYDEBUG 1
 #define NEW_ID(VAL, LOC) Identifier(VAL, LOC.first_line, LOC.first_column)
@@ -158,6 +159,7 @@ static RuleHandler *s_handler;
 %token NEWLINE
 %token TIC
 %token DDOT
+%token DOT
 %token MLT
 %token BOX
 %token EQ
@@ -223,6 +225,7 @@ static RuleHandler *s_handler;
 %type<exprPtr> param_assoc
 %type<qstrPtr> logical
 %type<qstrPtr> operator
+%type<qstrPtr>literal
 %type<idsPtr> compound
 
 %defines 
@@ -234,12 +237,23 @@ static RuleHandler *s_handler;
 */
 %%
 
-start: library_item
-       {
-         s_handler->addToRoot($1);
-       }
+start: context_clause library_item{s_handler->addToRoot($2);}
+       |library_item{s_handler->addToRoot($1);}
 
 /* TODO: add error handling */
+context_clause: with_clause
+               |use_clause
+               |context_clause with_clause
+               |context_clause use_clause
+with_clause: WITH library_names SEM
+use_clause: USE library_names SEM
+
+library_names: library_name
+              |library_names COMMA library_name
+library_name: IDENTIFIER
+             |library_name DOT IDENTIFIER
+
+
 doxy_comment: SPECIAL_COMMENT
 
 library_item: library_item_decl| library_item_body
@@ -565,7 +579,6 @@ void AdaLanguageScanner::parseInput(const char * fileName,
   s_handler = &eh;
   qcFileName = fileName;
   yydebug = 1;
-
 
   inputFile.setName(fileName);
 

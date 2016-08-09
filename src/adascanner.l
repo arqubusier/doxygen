@@ -117,6 +117,7 @@ B       [ \t]
 "use"           return(USE);
 "'"			    return(TIC);
 ".."			return(DDOT);
+"."             return(DOT);
 "<<"			return(MLT);
 "<>"			return(BOX);
 "<="			return(LTEQ);
