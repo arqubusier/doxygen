@@ -217,18 +217,19 @@ static RuleHandler *s_handler;
 %type<paramsPtr> parameters
 %type<qstrPtr> mode
 %type<exprPtr> expression
-%type<qstrPtr> expression_part
+%type<exprPtr> primary
 %type<idsPtr> statement
-%type<idsPtr> statement_part
-%type<idsPtr> statement_parts
 %type<idsPtr> statements
+%type<qstrPtr> expression_sep
 %type<exprPtr> function_call
 %type<exprPtr> call_params
 %type<exprPtr> param_assoc
 %type<qstrPtr> logical
 %type<qstrPtr> operator
+%type<qstrPtr> relational
 %type<qstrPtr>literal
 %type<idsPtr> compound
+%type<qstrPtr> compound_part
 %type<qstrPtr> library_name
 %type<exprPtr> array_subtype_definitions
 %type<exprPtr> array_subtype_definition
@@ -426,7 +427,7 @@ array_type:         ARRAY LPAR array_subtype_definitions RPAR
                     OF subtype
                     {Expression *e = $3;
                      e->str.prepend("array (");
-                     e->str.append(") of aliased ");
+                     e->str.append(") of ");
                      e->str.append(*$6);
                      $$ = e;
                      dealloc($6);
@@ -524,36 +525,9 @@ statements: statement
             $$ = ss;
             dealloc( s);}
 
-statement:  statement_parts SEM {$$ = $1;}
-      
-statement_parts: statement_part
-                |expression
-                {Identifiers *ids = new Identifiers;
-                 ids->splice(ids->begin(), $1->ids);
-                 $$ = ids;
-                 dealloc( $1);}
-
-                |statement_part statement_parts
-                 {Identifiers *s = $1;
-                  Identifiers *ss = $2;
-                  ss->splice(ss->begin(), *s);
-                  $$ = ss;
-                  dealloc( s);}
-                |expression statement_part statement_parts
-                {Identifiers *ss = $3;
-                 Identifiers *s = $2;
-                 Expression *e = $1;
-                 ss->splice(ss->begin(), *s);
-                 ss->splice(ss->begin(), e->ids);
-                 dealloc( s);
-                 dealloc( e);
-                 $$ = ss;}
-
-
-statement_part: relational {$$ = new Identifiers;}
-                |compound_part {$$ = new Identifiers;}
-                |ASS {$$ = new Identifiers;}
-                |compound
+statement:  expression SEM {$$ = new Identifiers($1->ids);
+                            dealloc($1);}
+            |compound SEM
 
 compound: IF statements END IF {$$ = $2;}
           |WHILE statements END LOOP {$$ = $2;}
@@ -562,38 +536,43 @@ compound: IF statements END IF {$$ = $2;}
 
 /* Note, this is an extremely permissive version of expression
    But enough  for doxygen's purposes. */
-expression: expression_part
-        {Expression *e = new Expression;
-         e->str = *$1;
-         dealloc( $1);
-         $$ = e;}
-       |library_name {Expression *e = new Expression;
-                    e->str = *$1;
-                    e->ids.push_front(NEW_ID(*$1, @1));
-                    dealloc( $1);
-                    $$ = e;}
-       |function_call
-       | expression expression_part{Expression *e = $1;
-                    e->str.append(" ");
-                    e->str.append(*$2);
-                    dealloc( $2);
-                    $$ = e;}
-       | expression function_call
-        {
-         Expression *e = $1;
-         Expression *f = $2;
-         e->str.append(" ");
-         e->str.append(f->str);
-         e->ids.splice(e->ids.begin(), f->ids);
-         dealloc( f);
-         $$ = e;
+expression:primary
+          |expression_sep primary {Expression *e = $2;
+                                e->str.prepend(*$1);
+                                dealloc($1);
+                                $$ = e;}
+
+          |expression  expression_sep primary
+          {Expression *e1 = $1;
+           Expression *e2 = $3;
+           e1->str.append(*$2);
+           e1->str.append(e1->str);
+           moveExprIds(e1, e2);
+           $$=e1;
+           dealloc($2);}
+          |expression  expression_sep expression_sep primary
+          {Expression *e1 = $1;
+           Expression *e2 = $4;
+           e1->str.append(*$2);
+           e1->str.append(*$3);
+           e1->str.append(e1->str);
+           moveExprIds(e1, e2);
+           $$=e1;
+           dealloc($2);
+           dealloc($3);}
+
+primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
+        |function_call
+        |LPAR expression RPAR {
+            Expression *e = $2;
+            e->str.prepend("(");
+            e->str.append(")");
+            $$ = e;
         }
-       |expression library_name {Expression *e = $1;
-                    e->str.append(" ");
-                    e->str.append(*$2);
-                    e->ids.push_front(NEW_ID(*$2, @2));
-                    dealloc( $2);
-                    $$ = e;}
+        |literal {$$=new Expression(*$1); dealloc($1);}
+
+expression_sep: logical|operator|relational|compound_part
+              |ASS{$$=new QCString(" := ");}
 
 function_call: library_name LPAR RPAR
              {Expression *e = new Expression;
@@ -629,24 +608,36 @@ param_assoc: expression
              $$ = e;
              dealloc( $1);}
 
-expression_part: logical| operator|literal
-      |Null {$$ =  new QCString("NULL");}
-logical: AND {$$ =  new QCString("AND");}
-       | OR {$$ =  new QCString("OR");}
-       | XOR {$$ =  new QCString("XOR");}
-literal: STRING_LITERAL|INTEGER|DECIMAL_LITERAL|BASED_LITERAL
-relational: EQ  | NEQ  | LT  | LTEQ  | GT  | GTEQ
-operator: ADD {$$ =  new QCString("+");}
-        | MINUS {$$ =  new QCString("-");}
-        | AMB {$$ =  new QCString("&");}
-        | MUL {$$ =  new QCString("MUL");}
-        | DIV {$$ =  new QCString("/");}
-        | MOD {$$ =  new QCString("MOD");}
-        | REM {$$ =  new QCString("REM");}
-        | EXP {$$ =  new QCString("**");}
-        | ABS {$$ =  new QCString("ABS");}
-        | NOT {$$ =  new QCString("NOT");}
-compound_part: THEN| ELSIF| ELSE| WHEN| OTHERS| LOOP| IN| REVERSE
+logical: AND {$$ =  new QCString(" AND ");}
+       | OR {$$ =  new QCString(" OR ");}
+       | XOR {$$ =  new QCString(" XOR ");}
+literal: STRING_LITERAL|INTEGER|DECIMAL_LITERAL|BASED_LITERAL|
+       Null{$$= new QCString(" Null ");}
+relational: EQ{$$= new QCString(" = ");}
+          | NEQ{$$= new QCString(" /= ");} 
+          | LT{$$= new QCString(" < ");}
+          | LTEQ {$$= new QCString(" <= ");}
+          | GT{$$= new QCString(" > ");}
+          | GTEQ{$$= new QCString(" >= ");}
+
+operator: ADD {$$ =  new QCString(" + ");}
+        | MINUS {$$ =  new QCString(" - ");}
+        | AMB {$$ =  new QCString(" & ");}
+        | MUL {$$ =  new QCString(" MUL ");}
+        | DIV {$$ =  new QCString(" / ");}
+        | MOD {$$ =  new QCString(" MOD ");}
+        | REM {$$ =  new QCString(" REM ");}
+        | EXP {$$ =  new QCString(" ** ");}
+        | ABS {$$ =  new QCString(" ABS ");}
+        | NOT {$$ =  new QCString(" NOT ");}
+compound_part: THEN {$$ = new QCString(" THEN ");}
+             | ELSIF {$$ = new QCString(" ELSIF ");}
+             | ELSE {$$ = new QCString(" ELSE ");}
+             | WHEN {$$ = new QCString(" WHEN ");}
+             | OTHERS {$$ = new QCString(" OTHERS ");}
+             | LOOP {$$ = new QCString(" LOOP ");}
+             | IN {$$ = new QCString(" IN ");}
+             | REVERSE {$$ = new QCString(" REVERSE ");}
 constraint:;
                     
 %%

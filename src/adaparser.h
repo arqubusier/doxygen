@@ -48,6 +48,9 @@ typedef Identifiers::iterator IdentifiersIter;
 
 struct Expression
 {
+  Expression(){};
+  Expression(QCString str_);
+  Expression(QCString str_, Identifier id);
   Identifiers ids;
   QCString str;
 };
@@ -205,10 +208,10 @@ void dealloc(T*& memPtr)
 }
 
 
-inline void moveExprIds(Expression *e1, Expression *e2)
+inline void moveExprIds(Expression *src, Expression *dst)
 {
-  e1->ids.splice(e1->ids.begin(), e2->ids);
-  dealloc(e2);
+  src->ids.splice(src->ids.begin(), dst->ids);
+  dealloc(dst);
 }
 
 void printIds(Identifiers* ids, std::string pad="");

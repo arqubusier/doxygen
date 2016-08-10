@@ -106,6 +106,10 @@ Identifier::Identifier(QCString str_, int line_, int col_)
       :str(str_), line(line_), col(col_){}
 Identifier::Identifier(QCString str_):str(str_), line(-1), col(-1){}
 
+Expression::Expression(QCString str_):str(str_){}
+Expression::Expression(QCString str_, Identifier id):
+    str(str_),ids(1, id){}
+
 
 QCString adaArgListToString(const ArgumentList &args)
 {
@@ -137,8 +141,11 @@ QCString adaArgListToString(const ArgumentList &args)
     {
       res += ": ";
       res += prev_type;
-      res += " := ";
-      res += defval;
+      if (!defval.isEmpty())
+      {
+        res += " := ";
+        res += defval;
+      }
       res += ";\n";
       res += arg->name;
       prev_type = type;
@@ -146,8 +153,11 @@ QCString adaArgListToString(const ArgumentList &args)
   }
   res += ": ";
   res += prev_type;
-  res += " := ";
-  res += defval;
+  if (!defval.isEmpty())
+  {
+    res += " := ";
+    res += defval;
+  }
   res += ")";
 
 }

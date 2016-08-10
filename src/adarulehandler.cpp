@@ -188,7 +188,7 @@ Node* EntryHandler::subprogramSpecBase(const char* name,
   if (params)
   {
     fun->entry.argList = params->args;
-    fun->entry.args = adaArgListToString(*(params->args));
+    fun->entry.args = adaArgListToString(*params->args);
     dealloc( params);
   }
   if (type)
@@ -219,14 +219,15 @@ Nodes *EntryHandler::objDeclBase(Identifiers *refs, Expression *type,
     e->entry.name = it->str;
     e->entry.type = type->str;
     e->entry.section = Entry::VARIABLE_SEC;
+    if (expr)
+    {
+      // Default value
+      //e->entry.args = ":= " + expr->str;
+      dealloc( expr);
+    }
     nodes->push_front(e);
   }
 
-  if (expr)
-  {
-    printf("default value %s\n", expr->str.data());
-    dealloc( expr);
-  }
 
   dealloc( type);
   dealloc( refs);
