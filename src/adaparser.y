@@ -155,6 +155,7 @@ static RuleHandler *s_handler;
 %token START_DOXY_COMMENT
 %token <cstrVal>COMMENT_BODY
 %token <nodePtr>SPECIAL_COMMENT
+%token PIPE
 %token LINE
 %token NEWLINE
 %token TIC
@@ -221,7 +222,7 @@ static RuleHandler *s_handler;
 %type<idsPtr> statement
 %type<idsPtr> statements
 %type<qstrPtr> expression_sep
-%type<exprPtr> function_call
+/*%type<exprPtr> function_call*/
 %type<exprPtr> call_params
 %type<exprPtr> param_assoc
 %type<qstrPtr> logical
@@ -229,12 +230,22 @@ static RuleHandler *s_handler;
 %type<qstrPtr> relational
 %type<qstrPtr>literal
 %type<idsPtr> compound
-%type<qstrPtr> compound_part
 %type<qstrPtr> library_name
 %type<exprPtr> array_subtype_definitions
 %type<exprPtr> array_subtype_definition
 %type<exprPtr> range
 %type<exprPtr> range_attribute
+/*%type<exprPtr> discrete_subtype*/
+%type<exprPtr> discrete_choice_list
+%type<exprPtr> discrete_choice
+%type<idsPtr> loop_statement
+%type<idsPtr> case_statement
+%type<idsPtr> case
+%type<idsPtr> cases
+%type<idsPtr> if_statement
+%type<idsPtr> if_clause
+%type<idsPtr> elsif_clause
+%type<idsPtr> if_clauses
 
 %defines 
 
@@ -465,7 +476,16 @@ array_subtype_definition: subtype RANGE BOX
                          e->str.append(*$1);
                          dealloc($1);
                          $$ = e;}
+                         /*
+discrete_subtype: range
+                |subtype
+                {Expression *e = new Expression;
+                 e->ids.push_back(NEW_ID(*$1, @1));
+                 e->str.append(*$1);
+                 dealloc($1);
+                 $$ = e;}
 
+*/
 range:                  range_attribute
                         |expression DDOT expression
                         {Expression *e1 = $1;
@@ -474,6 +494,7 @@ range:                  range_attribute
                          e1->str.append(e2->str);
                          moveExprIds(e1, e2);
                          $$ = e1;}
+
 range_attribute:        library_name TIC RANGE
                         {Expression *e = new Expression;
                          e->ids.push_back(NEW_ID(*$1, @1));
@@ -510,9 +531,13 @@ identifier_list:    IDENTIFIER
                     }
                     
                     /* move to handlers */
-subtype:            IDENTIFIER constraint
+subtype:            /*IDENTIFIER constraint
                     {
-                      std::cout << "New type " << $1 << std::endl;
+                      $$ = new QCString($1);
+                      dealloc( $1);
+                    }
+                    |*/IDENTIFIER
+                    {
                       $$ = new QCString($1);
                       dealloc( $1);
                     }
@@ -527,12 +552,82 @@ statements: statement
 
 statement:  expression SEM {$$ = new Identifiers($1->ids);
                             dealloc($1);}
+            | IDENTIFIER COLON expression SEM
+                {$$ = new Identifiers($3->ids);
+                dealloc($3);}
             |compound SEM
+            |IDENTIFIER COLON compound SEM {$$ = $3;}
 
-compound: IF statements END IF {$$ = $2;}
-          |WHILE statements END LOOP {$$ = $2;}
-          |FOR statements END LOOP {$$ = $2;}
-          |CASE statements END CASE {$$ = $2;}
+compound:   case_statement{$$=$1;}
+            |loop_statement
+            |if_statement{;}
+
+if_statement: if_clause if_clauses END IF
+              {$$ = moveIds($2, $1);}
+            |IF if_clause END IF {$$ = $2;}
+            |IF if_clause if_clauses ELSE statements END IF
+            {moveIds($5,$3);
+             $$=moveIds($5,$2);}
+            |IF if_clause ELSE statements END IF
+            {$$=moveIds($4, $2);}
+
+if_clause: IF expression THEN statements
+           {$$ = moveExprToIds($4, $2);}
+
+elsif_clause:  ELSIF expression THEN statements
+            {$$= moveExprToIds($4, $2);}
+
+if_clauses: elsif_clause
+            |if_clauses elsif_clause
+            {$$= moveIds($1, $2);}
+
+loop_statement: WHILE expression LOOP statements END LOOP
+            {$$ = moveExprToIds($4, $2);}
+              |FOR library_name IN range
+               LOOP statements END LOOP 
+              {
+               $$ =moveExprToIds($6, $4);
+              }
+              |FOR library_name IN subtype
+               LOOP statements END LOOP 
+              {
+                $6->push_back(NEW_ID(*$4, @5));
+               $$ = $6;
+               dealloc($4);
+              }
+
+case_statement: CASE expression IS cases END CASE
+              {
+               $$ =moveExprToIds($4, $2);
+              }
+case:        WHEN discrete_choice_list REF statements
+              {
+               $$ =moveExprToIds($4, $2);
+              }
+cases:       case
+            |cases case
+               {$$ = moveIds($1, $2);}
+
+discrete_choice_list: discrete_choice
+                      |discrete_choice_list discrete_choice
+                      {
+                       Expression *e1 = $1;
+                       Expression *e2 = $2;
+                       e1->str.append (" | ");
+                       e1->str.append(e2->str);
+                       moveExprIds(e1, e2);
+                      }
+
+discrete_choice: /*| expression*/
+                        range
+                        |subtype
+                        {Expression *e = new Expression;
+                         e->ids.push_back(NEW_ID(*$1, @1));
+                         e->str.append(*$1);
+                         dealloc($1);
+                         $$ = e;}
+               |OTHERS{$$ = new Expression("others");}
+                
 
 /* Note, this is an extremely permissive version of expression
    But enough  for doxygen's purposes. */
@@ -542,6 +637,7 @@ expression:primary
                                 dealloc($1);
                                 $$ = e;}
 
+           /*
           |expression  expression_sep primary
           {Expression *e1 = $1;
            Expression *e2 = $3;
@@ -560,20 +656,38 @@ expression:primary
            $$=e1;
            dealloc($2);
            dealloc($3);}
+           */
 
 primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
-        |function_call
         |LPAR expression RPAR {
             Expression *e = $2;
             e->str.prepend("(");
             e->str.append(")");
             $$ = e;
         }
+        |library_name LPAR RPAR
+             {Expression *e = new Expression;
+              Identifier call = NEW_ID(*$1, @1);
+              call.str.append("()");
+              e->ids.push_front(call);
+              $$ = e;
+              dealloc( $1);}
+             |library_name LPAR call_params RPAR
+             {Expression *e = $3;
+              QCString call = *$1;
+              call.append("(");
+              call.append(e->str);
+              call.append(")");
+              e->str = call;
+              e->ids.push_front(NEW_ID(call, @1));
+              $$ = e;
+              dealloc( $1);}
         |literal {$$=new Expression(*$1); dealloc($1);}
 
-expression_sep: logical|operator|relational|compound_part
+expression_sep: logical|operator|relational
               |ASS{$$=new QCString(" := ");}
 
+/*
 function_call: library_name LPAR RPAR
              {Expression *e = new Expression;
               Identifier call = NEW_ID(*$1, @1);
@@ -591,6 +705,7 @@ function_call: library_name LPAR RPAR
               e->ids.push_front(NEW_ID(call, @1));
               $$ = e;
               dealloc( $1);}
+              */
 call_params: param_assoc
            |param_assoc COMMA call_params
            {Expression *pa = $1;
@@ -630,15 +745,7 @@ operator: ADD {$$ =  new QCString(" + ");}
         | EXP {$$ =  new QCString(" ** ");}
         | ABS {$$ =  new QCString(" ABS ");}
         | NOT {$$ =  new QCString(" NOT ");}
-compound_part: THEN {$$ = new QCString(" THEN ");}
-             | ELSIF {$$ = new QCString(" ELSIF ");}
-             | ELSE {$$ = new QCString(" ELSE ");}
-             | WHEN {$$ = new QCString(" WHEN ");}
-             | OTHERS {$$ = new QCString(" OTHERS ");}
-             | LOOP {$$ = new QCString(" LOOP ");}
-             | IN {$$ = new QCString(" IN ");}
-             | REVERSE {$$ = new QCString(" REVERSE ");}
-constraint:;
+/* constraint: ;*/
                     
 %%
 

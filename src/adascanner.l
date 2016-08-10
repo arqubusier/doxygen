@@ -90,6 +90,7 @@ B       [ \t]
 {INTEGER}         {TEXT_TO_QSTR; return(INTEGER);}
 {DECIMAL_LITERAL} {TEXT_TO_QSTR; return(DECIMAL_LITERAL);}
 {BASED_LITERAL}   {TEXT_TO_QSTR; return(BASED_LITERAL);}
+"|"             {return(PIPE);}
 "aliased"       {return(ALIASED);}
 "<>"            {return(BOX);}
 "range"         {return(RANGE);}

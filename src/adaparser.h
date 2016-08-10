@@ -208,11 +208,27 @@ void dealloc(T*& memPtr)
 }
 
 
-inline void moveExprIds(Expression *src, Expression *dst)
+inline Expression *moveExprIds(Expression *dst, Expression *src)
 {
-  src->ids.splice(src->ids.begin(), dst->ids);
-  dealloc(dst);
+  dst->ids.splice(dst->ids.begin(), src->ids);
+  dealloc(src);
+  return dst;
 }
+
+inline Identifiers *moveExprToIds(Identifiers *dst, Expression *src)
+{
+  dst->splice(dst->begin(), src->ids);
+  dealloc(src);
+  return dst;
+}
+
+inline Identifiers *moveIds(Identifiers *dst, Identifiers *src)
+{
+  dst->splice(dst->begin(), *src);
+  dealloc(src);
+  return dst;
+}
+
 
 void printIds(Identifiers* ids, std::string pad="");
 
@@ -233,6 +249,7 @@ inline void printNodes(Nodes* nodes)
       printf("Nodes empty\n");
 
 }
+
 /*TODO: create specialization for: Node, Nodes, Params, Identifiers,
  * QCString, char* .*/
 

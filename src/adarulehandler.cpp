@@ -231,7 +231,7 @@ Nodes *EntryHandler::objDeclBase(Identifiers *refs, Expression *type,
 
   dealloc( type);
   dealloc( refs);
-  return nodes;
+  return nodes; 
 }
 
 Node *EntryHandler::packageBodyBase(const char* name,
