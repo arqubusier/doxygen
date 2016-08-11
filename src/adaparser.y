@@ -336,38 +336,24 @@ package_body:      package_body_base
                      {s_handler->packageBody($2, $1);
                       $$ = $2;}
 package_body_base: PACKAGE_BODY IDENTIFIER IS
-                   END IDENTIFIER SEM
+                   END tail
                    {
                      $$ = s_handler->packageBodyBase($2); 
-                     dealloc( $5);
                    }
                    |PACKAGE_BODY IDENTIFIER IS
-                   decls END IDENTIFIER SEM
+                   decls END tail
                    {
                      $$ = s_handler->packageBodyBase($2, $4); 
-                     dealloc( $6);
                    }
                    |PACKAGE_BODY IDENTIFIER IS
-                   decls BEGIN_ statements END SEM
+                   decls BEGIN_ statements END tail
                    {
                      $$ = s_handler->packageBodyBase($2, $4, $6); 
                    }
                    |PACKAGE_BODY IDENTIFIER IS
-                   BEGIN_ statements END SEM
+                   BEGIN_ statements END tail
                    {
                      $$ = s_handler->packageBodyBase($2, NULL, $5); 
-                   }
-                   |PACKAGE_BODY IDENTIFIER IS
-                   decls BEGIN_ statements END IDENTIFIER SEM
-                   {
-                     $$ = s_handler->packageBodyBase($2, $4, $6); 
-                     dealloc( $8);
-                   }
-                   |PACKAGE_BODY IDENTIFIER IS
-                   BEGIN_ statements END IDENTIFIER SEM
-                   {
-                     $$ = s_handler->packageBodyBase($2, NULL, $5); 
-                     dealloc( $7);
                    }
 
 subprogram_body:  subprogram_spec IS
@@ -576,20 +562,21 @@ if_clauses: elsif_clause
             |if_clauses elsif_clause
             {$$= moveIds($1, $2);}
 
-loop_statement: WHILE expression LOOP statements END LOOP
+loop_statement: WHILE expression LOOP statements loop_tail
             {$$ = moveExprToIds($4, $2);}
               |FOR library_name IN range
-               LOOP statements END LOOP 
+               LOOP statements loop_tail
               {
                $$ =moveExprToIds($6, $4);
               }
               |FOR library_name IN subtype
-               LOOP statements END LOOP 
+               LOOP statements loop_tail
               {
                 $6->push_back(NEW_ID(*$4, @5));
                $$ = $6;
                dealloc($4);
               }
+loop_tail: END LOOP| END LOOP IDENTIFIER {dealloc($3);}
 
 case_statement: CASE expression IS cases END CASE
               {
