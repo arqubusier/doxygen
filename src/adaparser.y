@@ -149,6 +149,8 @@ static RuleHandler *s_handler;
 %token WHILE
 %token WITH
 %token XOR
+%token True
+%token False
 
  /*OTHER */
 %token START_COMMENT
@@ -681,8 +683,10 @@ param_assoc: expression
 logical: AND {$$ =  new QCString(" AND ");}
        | OR {$$ =  new QCString(" OR ");}
        | XOR {$$ =  new QCString(" XOR ");}
-literal: STRING_LITERAL|INTEGER|DECIMAL_LITERAL|BASED_LITERAL|
-       Null{$$= new QCString(" Null ");}
+literal: STRING_LITERAL|INTEGER|DECIMAL_LITERAL|BASED_LITERAL
+       |True{$$= new QCString(" True ");}
+       |False{$$= new QCString(" False ");}
+       |Null{$$= new QCString(" Null ");}
 relational: EQ{$$= new QCString(" = ");}
           | NEQ{$$= new QCString(" /= ");} 
           | LT{$$= new QCString(" < ");}
