@@ -212,19 +212,23 @@ static RuleHandler *s_handler;
 %type<nodePtr> library_item_body
 %type<exprPtr> type
 %type<qstrPtr> subtype
+/*
 %type<exprPtr> array_type
+*/
 %type<paramsPtr> parameter_spec
 %type<paramsPtr> parameter_specs
 %type<paramsPtr> parameters
 %type<qstrPtr> mode
 %type<exprPtr> expression
+/*
 %type<exprPtr> primary
+*/
 %type<idsPtr> statement
 %type<idsPtr> statements
 %type<qstrPtr> expression_sep
-/*%type<exprPtr> function_call*/
-%type<exprPtr> call_params
-%type<exprPtr> param_assoc
+%type<exprPtr> function_call
+/*%type<exprPtr> call_params
+%type<exprPtr> param_assoc*/
 %type<qstrPtr> logical
 %type<qstrPtr> operator
 %type<qstrPtr> relational
@@ -312,6 +316,7 @@ subprogram_spec_base:  PROCEDURE IDENTIFIER
                    {
                      $$ = s_handler->subprogramSpecBase($2);
                    }
+                   /*
                    |PROCEDURE IDENTIFIER
                     LPAR parameters RPAR
                    {
@@ -328,6 +333,7 @@ subprogram_spec_base:  PROCEDURE IDENTIFIER
                    {
                      $$ = s_handler->subprogramSpecBase($2, $4, $7);
                    }
+                   */
 body:              package_body| subprogram_body
 package_body:      package_body_base
                    |doxy_comment package_body_base
@@ -392,10 +398,12 @@ parameter_spec:    identifier_list COLON subtype
                      {$$ = s_handler->paramSpec($1, $3);}
                    |identifier_list COLON mode subtype
                      {$$ = s_handler->paramSpec($1, $4, $3);}
+                     /*
                    |identifier_list COLON subtype ASS expression
                      {$$ = s_handler->paramSpec($1, $3, NULL, $5);}
                    |identifier_list COLON mode subtype ASS expression
                      {$$ = s_handler->paramSpec($1, $4, $3, $6);}
+                     */
 
 mode:              IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
@@ -432,8 +440,9 @@ type:               subtype
                      e->str = *$1;
                      e->ids.push_back(NEW_ID(*$1, @1));
                      $$ = e;
-                     dealloc($1);}|array_type
+                     dealloc($1);}/*|array_type*/
 
+/*
 array_type:         ARRAY LPAR array_subtype_definitions RPAR
                     OF subtype
                     {Expression *e = $3;
@@ -452,6 +461,7 @@ array_type:         ARRAY LPAR array_subtype_definitions RPAR
                      $$ = e;
                      dealloc($7);
                     }
+                    */
 
 array_subtype_definitions: array_subtype_definition
                           |array_subtype_definitions COMMA
@@ -502,6 +512,7 @@ range_attribute:        library_name TIC RANGE
                          e->str.append("'Range");
                          dealloc($1);
                          $$ = e;}
+                         /*
                         |library_name TIC RANGE LPAR expression RPAR
                         {Expression *e = $5;
                          e->ids.push_back(NEW_ID(*$1, @1));
@@ -510,6 +521,7 @@ range_attribute:        library_name TIC RANGE
                          e->str.append(")");
                          dealloc($1);
                          $$ = e;}
+                         */
                      
                       /* move to handlers */
 identifier_list:    IDENTIFIER
@@ -609,10 +621,10 @@ cases:       case
                {$$ = moveIds($1, $2);}
 
 discrete_choice_list: discrete_choice
-                      |discrete_choice_list discrete_choice
+                      |discrete_choice_list PIPE discrete_choice
                       {
                        Expression *e1 = $1;
-                       Expression *e2 = $2;
+                       Expression *e2 = $3;
                        e1->str.append (" | ");
                        e1->str.append(e2->str);
                        moveExprIds(e1, e2);
@@ -631,14 +643,15 @@ discrete_choice: /*| expression*/
 
 /* Note, this is an extremely permissive version of expression
    But enough  for doxygen's purposes. */
-expression:primary
-          |expression_sep primary {Expression *e = $2;
+expression:function_call
+          /*|expression_sep primary {Expression *e = $2;
                                 e->str.prepend(*$1);
                                 dealloc($1);
                                 $$ = e;}
+                                */
 
            /*
-          |expression  expression_sep primary
+          |  function_call expression_sep expression 
           {Expression *e1 = $1;
            Expression *e2 = $3;
            e1->str.append(*$2);
@@ -657,7 +670,7 @@ expression:primary
            dealloc($2);
            dealloc($3);}
            */
-
+/*
 primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
         |LPAR expression RPAR {
             Expression *e = $2;
@@ -665,36 +678,22 @@ primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
             e->str.append(")");
             $$ = e;
         }
-        |library_name LPAR RPAR
-             {Expression *e = new Expression;
-              Identifier call = NEW_ID(*$1, @1);
-              call.str.append("()");
-              e->ids.push_front(call);
-              $$ = e;
-              dealloc( $1);}
-             |library_name LPAR call_params RPAR
-             {Expression *e = $3;
-              QCString call = *$1;
-              call.append("(");
-              call.append(e->str);
-              call.append(")");
-              e->str = call;
-              e->ids.push_front(NEW_ID(call, @1));
-              $$ = e;
-              dealloc( $1);}
         |literal {$$=new Expression(*$1); dealloc($1);}
+        */
 
 expression_sep: logical|operator|relational
               |ASS{$$=new QCString(" := ");}
 
-/*
-function_call: library_name LPAR RPAR
+function_call:IDENTIFIER{return new Expression;} 
+             |IDENTIFIER LPAR RPAR
              {Expression *e = new Expression;
               Identifier call = NEW_ID(*$1, @1);
               call.str.append("()");
               e->ids.push_front(call);
               $$ = e;
               dealloc( $1);}
+             |LPAR expression RPAR{return new Expression;} /*primary*/
+              /*
              |library_name LPAR call_params RPAR
              {Expression *e = $3;
               QCString call = *$1;
@@ -705,7 +704,6 @@ function_call: library_name LPAR RPAR
               e->ids.push_front(NEW_ID(call, @1));
               $$ = e;
               dealloc( $1);}
-              */
 call_params: param_assoc
            |param_assoc COMMA call_params
            {Expression *pa = $1;
@@ -722,6 +720,7 @@ param_assoc: expression
              e->str.append(*$1);
              $$ = e;
              dealloc( $1);}
+              */
 
 logical: AND {$$ =  new QCString(" AND ");}
        | OR {$$ =  new QCString(" OR ");}
