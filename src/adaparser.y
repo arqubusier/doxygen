@@ -314,7 +314,6 @@ subprogram_spec_base:  PROCEDURE IDENTIFIER
                    {
                      $$ = s_handler->subprogramSpecBase($2);
                    }
-                   /*
                    |PROCEDURE IDENTIFIER
                     LPAR parameters RPAR
                    {
@@ -331,7 +330,6 @@ subprogram_spec_base:  PROCEDURE IDENTIFIER
                    {
                      $$ = s_handler->subprogramSpecBase($2, $4, $7);
                    }
-                   */
 body:              package_body| subprogram_body
 package_body:      package_body_base
                    |doxy_comment package_body_base
@@ -651,18 +649,6 @@ expression:function_call
            moveExprIds(e1, e2);
            $$=e1;
            dealloc($2);}
-           /*
-          |expression  expression_sep expression_sep primary
-          {Expression *e1 = $1;
-           Expression *e2 = $4;
-           e1->str.append(*$2);
-           e1->str.append(*$3);
-           e1->str.append(e1->str);
-           moveExprIds(e1, e2);
-           $$=e1;
-           dealloc($2);
-           dealloc($3);}
-           */
 primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
         |expression_sep library_name
         {Expression *e = new Expression(*$1, NEW_ID(*$1, @1));
