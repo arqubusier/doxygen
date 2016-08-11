@@ -220,15 +220,13 @@ static RuleHandler *s_handler;
 %type<paramsPtr> parameters
 %type<qstrPtr> mode
 %type<exprPtr> expression
-/*
 %type<exprPtr> primary
-*/
 %type<idsPtr> statement
 %type<idsPtr> statements
 %type<qstrPtr> expression_sep
 %type<exprPtr> function_call
-/*%type<exprPtr> call_params
-%type<exprPtr> param_assoc*/
+%type<exprPtr> call_params
+%type<exprPtr> param_assoc
 %type<qstrPtr> logical
 %type<qstrPtr> operator
 %type<qstrPtr> relational
@@ -630,27 +628,21 @@ discrete_choice_list: discrete_choice
                        moveExprIds(e1, e2);
                       }
 
-discrete_choice: /*| expression*/
-                        range
-                        |subtype
-                        {Expression *e = new Expression;
-                         e->ids.push_back(NEW_ID(*$1, @1));
-                         e->str.append(*$1);
-                         dealloc($1);
-                         $$ = e;}
+discrete_choice: expression
+                |range
                |OTHERS{$$ = new Expression("others");}
                 
 
 /* Note, this is an extremely permissive version of expression
    But enough  for doxygen's purposes. */
 expression:function_call
-          /*|expression_sep primary {Expression *e = $2;
+          /*
+          |expression_sep function_call {Expression *e = $2;
                                 e->str.prepend(*$1);
                                 dealloc($1);
                                 $$ = e;}
                                 */
 
-           /*
           |  function_call expression_sep expression 
           {Expression *e1 = $1;
            Expression *e2 = $3;
@@ -659,6 +651,7 @@ expression:function_call
            moveExprIds(e1, e2);
            $$=e1;
            dealloc($2);}
+           /*
           |expression  expression_sep expression_sep primary
           {Expression *e1 = $1;
            Expression *e2 = $4;
@@ -670,30 +663,29 @@ expression:function_call
            dealloc($2);
            dealloc($3);}
            */
-/*
 primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
+        |expression_sep library_name
+        {Expression *e = new Expression(*$1, NEW_ID(*$1, @1));
+         e->str.prepend($1);}
+        |literal {$$=new Expression(*$1); dealloc($1);}
         |LPAR expression RPAR {
             Expression *e = $2;
             e->str.prepend("(");
             e->str.append(")");
             $$ = e;
         }
-        |literal {$$=new Expression(*$1); dealloc($1);}
-        */
 
 expression_sep: logical|operator|relational
               |ASS{$$=new QCString(" := ");}
 
-function_call:IDENTIFIER{return new Expression;} 
-             |IDENTIFIER LPAR RPAR
+function_call:primary
+             |library_name LPAR RPAR
              {Expression *e = new Expression;
               Identifier call = NEW_ID(*$1, @1);
               call.str.append("()");
               e->ids.push_front(call);
               $$ = e;
               dealloc( $1);}
-             |LPAR expression RPAR{return new Expression;} /*primary*/
-              /*
              |library_name LPAR call_params RPAR
              {Expression *e = $3;
               QCString call = *$1;
@@ -720,7 +712,6 @@ param_assoc: expression
              e->str.append(*$1);
              $$ = e;
              dealloc( $1);}
-              */
 
 logical: AND {$$ =  new QCString(" AND ");}
        | OR {$$ =  new QCString(" OR ");}
