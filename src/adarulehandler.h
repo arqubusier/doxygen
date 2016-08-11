@@ -1,18 +1,33 @@
 #include "adaparser.h"
+/** \file adarulehandler.h
+ *
+ * \brief defines classes that handle rules in the ada grammar.
+ * Unless noted, each handler method is used in the grammar
+ * rule with the same name, but in underscare_case instead 
+ * of camelCase.*/
 
-/* handler */
-
-
+/** \brief Abstract class declaring methods used by the
+ * rules in the grammar.
+ * 
+ * The Ada parser uses one of multiple rulehandler derivative
+ * object to build the AST. The reason for this is that the
+ * Ada parser uses one set of grammar rules despite doxygen
+ * expecting multiple different parsers
+ * (a 'scanner', and a 'code parser').
+ * The methods operate on Node objects. Derivatives of this
+ * class can use derivatives of Node objects.
+ */
 class RuleHandler
 {
 public:
   void addToRoot(Node* child);
-  void printRoot(){m_root->print();}
+  /* debug printing */
+  void printRoot(){/*m_root->print()*/;}
 
   RuleHandler(Node *root);
   virtual ~RuleHandler();
 
-  //handlers
+  /* Handler methods.*/
   virtual Node* packageSpec(Node *base, Node* doc=NULL) = 0;
   virtual Node* packageSpecBase(
             const char* name,
@@ -28,25 +43,37 @@ public:
   virtual Node* packageBodyBase(
             const char* name,
             Nodes *decls=NULL, Identifiers *refs=NULL) = 0;
-  virtual Nodes *declsBase(Node *new_entry);
-  virtual Nodes *declsBase(Nodes *new_entries);
-  virtual Nodes *decls(Nodes *nodes, Node *new_node);
-  virtual Nodes *decls(Nodes *nodes, Nodes *new_nodes);
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL) = 0;
   virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
                              Expression *expr=NULL) = 0;
+  /** \brief Used in the rules decls and basic_decls. */
+  virtual Nodes *declsBase(Node *new_entry);
+  /** \brief Used in the rules decls and basic_decls. */
+  virtual Nodes *declsBase(Nodes *new_entries);
+  /** \brief Used in the rules decls and basic_decls. */
+  virtual Nodes *decls(Nodes *nodes, Node *new_node);
+  /** \brief Used in the rules decls and basic_decls. */
+  virtual Nodes *decls(Nodes *nodes, Nodes *new_nodes);
+
+  /* \brief handle params rule, does not need defintion by deriving class.
+   */
   Parameters *params(Parameters *params, Parameters *new_params);
+  /* \brief handle param_spec rule, does not need defintion by deriving class.
+   */
   Parameters *paramSpec(Identifiers *ids,
                               QCString *type,
                               QCString *mode=NULL,
                               Expression *defval=NULL);
   /**
-   * Takes the children from src and adds them to dst.
-   * dst parent is removed.
+   * \brief Takes the children from src and adds them to dst.
+   *
+   * src parent is deallocated.
    */
   virtual void moveNodes(Nodes* dst, Nodes *src);
   /**
    * \brief Add nodes as children of a node.
+   *
+   * src is deallocated.
    */
   virtual void moveUnderNode(Node *dst, Nodes *src);
 
@@ -54,7 +81,9 @@ private:
   Node *m_root;
 };
 
-/* entry handler */
+/* \brief A class with handlers for the 'normal' (scanner) parsing.
+ *
+ * Generates an AST of Entry objects.*/
 class EntryHandler: public RuleHandler
 {
 public:
@@ -107,7 +136,11 @@ private:
   EntryNode *newEntryNode();
 };
 
-/* code handler */
+/* \brief A class with handlers for (code) parsing.
+ *
+ * Generates an AST of CodeNode objects. Responsible
+ * for creating links between Entries.
+ * TODO: 2016-08-11 syntax highligting not implemented*/
 void addObjRefsToParent(Node* parent, Nodes* decls);
 
 class CodeHandler: public RuleHandler

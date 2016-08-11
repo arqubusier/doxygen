@@ -1,9 +1,83 @@
+/******************************************************************************
+ *
+ * 
+ *
+ * Copyright (C) 2016 Herman Lundkvist <herlu184@student.liu.se>
+ *
+ * Permission to use, copy, modify, and distribute this software and its
+ * documentation under the terms of the GNU General Public License is hereby 
+ * granted. No representations are made about the suitability of this software 
+ * for any purpose. It is provided "as is" without express or implied warranty.
+ * See the GNU General Public License for more details.
+ *
+ * Documents produced by Doxygen are derivative works derived from the
+ * input used in their production; they are not affected by this license.
+ *
+ */
+
+/** \file adarulehandler.cpp
+ * \brief Implements methods for EntryRuleHandler and CodeHandler.
+ */
 #include <stdio.h>
 #include "adarulehandler.h"
 #include "adaparser.h"
 #include "arguments.h"
 #include "types.h"
 #include "util.h"
+
+QCString adaArgListToString(const ArgumentList &args);
+
+/*===================== Helper Functions ====================== */
+QCString adaArgListToString(const ArgumentList &args)
+{
+  QCString res = "()";
+  if (args.isEmpty())
+    return res;
+  res = "(";
+
+  Argument *arg;
+  ArgumentListIterator it(args);
+  it.toFirst();
+  arg=it.current();
+  res += arg->name;
+  res += " ";
+  QCString prev_type = arg->type;
+  QCString defval = "";
+  ++it;
+  
+  for (; (arg=it.current()); ++it )
+  {
+    QCString type = arg->type;
+    defval = arg->defval;
+    if (type == prev_type) 
+    {
+      res += ", ";
+      res += arg->name;
+    }
+    else 
+    {
+      res += ": ";
+      res += prev_type;
+      if (!defval.isEmpty())
+      {
+        res += " := ";
+        res += defval;
+      }
+      res += ";\n";
+      res += arg->name;
+      prev_type = type;
+    }
+  }
+  res += ": ";
+  res += prev_type;
+  if (!defval.isEmpty())
+  {
+    res += " := ";
+    res += defval;
+  }
+  res += ")";
+
+}
 
 /*===================== Rule Handler ========================== */
 RuleHandler::RuleHandler(Node *root): m_root(root) {}
@@ -18,11 +92,6 @@ void RuleHandler::addToRoot(Node* child)
 void RuleHandler::moveNodes(Nodes* dst,
                            Nodes* src)
 {
-  if (!dst)
-    printf("DST EMPTY");
-  if (!src)
-    printf("SRC EMPTY");
-
   dst->splice(dst->begin(), *src);
 
   dealloc(src);
@@ -47,7 +116,6 @@ Nodes *RuleHandler::declsBase(Node *new_node)
 
 Nodes *RuleHandler::declsBase(Nodes *new_nodes)
 {
-  printf("bbbb\n");
   Nodes *es = new Nodes;
   moveNodes(es, new_nodes);
   return es;
@@ -55,16 +123,13 @@ Nodes *RuleHandler::declsBase(Nodes *new_nodes)
 
 Nodes *RuleHandler::decls(Nodes *nodes, Node *new_node)
 { 
-  printf("cccc\n");
   nodes->push_front(new_node);
   return nodes;
 }
 
 Nodes *RuleHandler::decls(Nodes *nodes, Nodes *new_nodes)
 { 
-  printf("dddd\n");
   moveNodes(nodes, new_nodes);
-  printf("dddd2\n");
   return nodes;
 }
 
@@ -76,18 +141,6 @@ Parameters *RuleHandler::params(Parameters *params, Parameters *new_params)
   }
   else
       params = new Parameters;
-
-  if (!params->refs->empty())
-  {
-    printf("BBBBBBBBBBBBBB\n");
-    params->refs->front().print();
-  }
-
-  if (!new_params->refs->empty())
-  {
-    printf("BBBBBBBBBBBBBB\n");
-    new_params->refs->front().print();
-  }
 
   return params;
 }
@@ -118,9 +171,7 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
 
   if (defval)
   {
-    printf("AAAAAAAAAAAAAAAA\n");
     params->refs->splice(params->refs->begin(), defval->ids);
-    params->refs->front().print();
     dealloc( defval);
   }
 
@@ -248,16 +299,6 @@ Node *EntryHandler::packageBodyBase(const char* name,
     moveUnderNode(pkg, decls);
   }
   
-  if (ids)
-  {
-    printf("package refs\n");
-    IdentifiersIter it = ids->begin();
-    for (;it != ids->end(); ++it)
-    {
-      it->print();
-    }
-  }
-
   dealloc( ids);
   dealloc( name);
   

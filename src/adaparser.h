@@ -2,7 +2,7 @@
  *
  * 
  *
- * Copyright (C) 1997-2015 by Dimitri van Heesch.
+ * Copyright (C) 2016 Herman Lundkvist <herlu184@student.liu.se>
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby 
@@ -15,6 +15,11 @@
  *
  */
 
+/** \file adaparser.h
+ * \brief Ada Language parser using flex and bison.
+ *
+ * This is the Ada language parser for doxygen.
+ */
 #ifndef ADAPARSER_H
 #define ADAPARSER_H
 
@@ -25,19 +30,23 @@
 #include "entry.h"
 
 
-/** \brief Ada Language parser using flex and bison.
- *
- * This is the Ada language parser for doxygen.
- */
 
 
+/** \brief A struct representing an Identifier (for members, functions,
+ *  or classes) that can be referenced in the code. */
 struct Identifier
 {
   Identifier(QCString str_, int line_, int col_);
   Identifier(QCString str_);
 
   QCString str;
+  /** the line at which the identifer  was found.
+   *
+   * TODO 2016-08-11 make bison compute this correctly.*/
   int line;
+  /** the column at which the identifier was found
+   *
+   * TODO 2016-08-11 make bison compute this correctly.*/
   int col;
 
   void print(std::string pad="");
@@ -46,6 +55,7 @@ struct Identifier
 typedef std::list<Identifier> Identifiers;
 typedef Identifiers::iterator IdentifiersIter;
 
+/** \brief A struct representing an Ada expression */
 struct Expression
 {
   Expression(){};
@@ -55,6 +65,8 @@ struct Expression
   QCString str;
 };
 
+/** \brief A struct for passing referenced Identifiers along
+ * with an argumentList in the bison grammar.*/
 struct Parameters
 {
   Parameters()
@@ -76,7 +88,10 @@ enum NodeType
   ADA_UNKNOWN
 };
 
-/** \brief a node in the ADA AST.*/
+/** \brief a node in the ADA AST.
+ *
+ * RuleHandler and its derivaties operate on node and derivaties
+ * of it.*/
 class Node
 {
 public:
@@ -84,7 +99,9 @@ public:
   virtual void print() = 0;
 };
 
-/** \brief wrapper for entity.*/
+/** \brief wrapper for entity.
+ * 
+ * This is used by EntryNodeHandler.*/
 class EntryNode: public Node
 {
 public:
@@ -100,9 +117,7 @@ typedef Entries::iterator EntriesIter;
 
 /** \brief an entity used in "Code parsing".
  *
- * stores data needed to compute
- * links between entities.
- * and syntax highlighing*/
+ * stores data needed to compute links between entities.*/
 class CodeNode: public Node
 {
 public:
@@ -129,7 +144,7 @@ typedef CodeNodes::iterator CodeNodesIter;
 /** \brief a struct for marking special syntax symbols
  *
  * Contains a location of the symbol and how the
- * symbol should be handeled.
+ * TODO 2016-08-11: Not used. Inteded for syntax highligting 
  */
 struct syntaxSymbol
 {
@@ -147,7 +162,11 @@ class AdaLanguageScanner : public ParserInterface
   public:
     AdaLanguageScanner(){}
     virtual ~AdaLanguageScanner() {}
+    //TODO 2016-08-11: Not Implemented. Check if it is needed
+    //by doxygen.
     void startTranslationUnit(const char *) {}
+    //TODO 2016-08-11: Not Implemented. Check if it is needed
+    //by doxygen.
     void finishTranslationUnit() {}
     void parseInput(const char * fileName, 
                     const char *fileBuf, 
@@ -170,28 +189,56 @@ class AdaLanguageScanner : public ParserInterface
                    Definition *searchCtx=0,
                    bool collectXrefs=TRUE
                   );
+    //TODO 2016-08-11: Not Implemented. Check if it is needed
+    //by doxygen.
     void resetCodeParserState();
+    //TODO 2016-08-11: Not Implemented. Check if it is needed
+    //by doxygen.
     void parsePrototype(const char *text);
-    bool setFile(const char* fileName);
-    void restartScanner();
-    void cleanFile();
-    void read();
   private:
     QFile inputFile;
     QCString qcFileName;
 };
 
-void freeAdaScanner();
+/*
+ * Ada scanner functions
+ */
+/** \brief point the scanner to a string that should be parsed.
+ *
+ * Doxygen reads the file contents and passes it as a string
+ * to the ada Parser.*/
 void setInputString(const char* input);
+
+/** \brief Frees resources used by the scanner.
+ *
+ * Should be called when parsing is finished.*/
+void adaScannerCleanup();
+
+/** \brief reset input buffers used by the scanner.*/
 void cleanupInputString();
+
+//TODO 2016-08-11: Not Implemented, might be needed in the future.
 void adaFreeScanner();
 
+/** \brief Initilize the Ada scanner.
+ *
+ * This function should be called before calling adaYYparse() */
 void initAdaScanner(AdaLanguageScanner *parser, QCString fileName,
                     bool should_save_comments);
-QCString adaArgListToString(const ArgumentList &args);
 
+/** \brief get the structural comments identified by the scanner.
+ *
+ * The scanner identifies all doxy comments and determines if they are
+ * structural or not. Structural comments no not depend
+ * on location in the syntax tree, and are thus handeled by the scanner.
+ * Non-structural comments o.t.h. are handeled by the parser.*/
 const Entries& getStructDoxyComments();
-void resetStructDoxyComments();
+
+
+/*
+ * Helper functions used by the Adascanner and Ada parser.
+ */
+
 
 void initEntry (Entry &e, Entry *parent=NULL, Protection prot=Public,
                 MethodTypes mtype=Method, bool stat=false,
@@ -207,6 +254,9 @@ void dealloc(T*& memPtr)
   }
 }
 
+
+
+void printIds(Identifiers* ids, std::string pad="");
 
 inline Expression *moveExprIds(Expression *dst, Expression *src)
 {
@@ -230,7 +280,6 @@ inline Identifiers *moveIds(Identifiers *dst, Identifiers *src)
 }
 
 
-void printIds(Identifiers* ids, std::string pad="");
 
 inline void printNodes(Nodes* nodes)
 {
@@ -249,8 +298,5 @@ inline void printNodes(Nodes* nodes)
       printf("Nodes empty\n");
 
 }
-
-/*TODO: create specialization for: Node, Nodes, Params, Identifiers,
- * QCString, char* .*/
 
 #endif //ADAPARSER_H

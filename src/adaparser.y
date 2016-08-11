@@ -2,7 +2,7 @@
  *
  * 
  *
- * Copyright (C) 2016 by Herman Lundkvist.
+ * Copyright (C) 2016 Herman Lundkvist <herlu184@student.liu.se>
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby 
@@ -14,6 +14,18 @@
  * input used in their production; they are not affected by this license.
  *
  */
+
+/* \file adaparser.y
+* \brief the Ada parser used by doxygen.
+*
+* Used with bison to generate a parser.
+*/
+
+/* !!!!!!!!!!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!!!!!!
+ when receiving c strings from the lexer, the parser
+ becomes responsible for deallocating them. Thus, they
+ need to be deleted in every rule that they are used.
+*/
 
 %{
 #include <qfileinfo.h>
@@ -40,13 +52,14 @@
 #define YYDEBUG 1
 #define NEW_ID(VAL, LOC) Identifier(VAL, LOC.first_line, LOC.first_column)
 
-//from flex for bison to know about!
+/* from flex for bison to know about */
 extern int adaYYlex();
 extern int adaYYparse();
 extern int adaYYwrap();
 extern void adaYYrestart( FILE *new_file );
 void adaYYerror (char const *s);
 
+// the source file that is currently being parsed
 static FileDef *s_sourceFile;
 
 /**
@@ -251,11 +264,6 @@ static RuleHandler *s_handler;
 
 %defines 
 
-/*
- NOTE: when receiving c strings from the lexer, the parser
- becomes responsible for deallocating them. Thus, they
- need to be deleted in every rule that they are used.
-*/
 %%
 
 start: context_clause library_item{s_handler->addToRoot($2);}
@@ -359,13 +367,11 @@ package_body_base: PACKAGE_BODY IDENTIFIER IS
 subprogram_body:  subprogram_spec IS
                   BEGIN_ statements END tail
                   {
-                    printf("PROG\n");
                     $$ = s_handler->subprogramBody($1, NULL, $4);
                   }
                   |subprogram_spec IS decls
                   BEGIN_ statements END tail
                   {
-                    printf("PROG\n");
                     $$ = s_handler->subprogramBody($1, $3, $5);
                   }
 tail:             SEM| IDENTIFIER SEM {dealloc( $1);}
@@ -498,7 +504,6 @@ identifier_list:    IDENTIFIER
                       Identifiers *ids = new Identifiers;
                       ids->push_front(NEW_ID($1, @1));
 
-                      printf("identifier list\n");
                       $$ = ids;
                       dealloc($1);
                     }
@@ -701,8 +706,6 @@ void AdaLanguageScanner::parseInput(const char * fileName,
                 bool sameTranslationUnit,
                 QStrList &filesInSameTranslationUnit)
 {
-  std::cout << "ADAPARSER" << std::endl;
-
   EntryHandler eh(root);
   s_handler = &eh;
   qcFileName = fileName;
@@ -716,7 +719,6 @@ void AdaLanguageScanner::parseInput(const char * fileName,
     initAdaScanner(this, fileName, should_save_comments);
     setInputString(fileBuf);
     adaYYparse();
-    msg("parse complete\n");
     const Entries& structComments = getStructDoxyComments();
     if (!structComments.empty())
     {
@@ -726,17 +728,11 @@ void AdaLanguageScanner::parseInput(const char * fileName,
          root->addSubEntry(&(*it)->entry);
       }
       
-      // Structural comments are not detroyed; the parser
-      // is responsible for deallocating them.
-      resetStructDoxyComments();
     }
-    cleanupInputString();
     inputFile.close();
     eh.addFileSection(fileName);
+    adaScannerCleanup();
   }
-  msg("printing\n");
-  eh.printRoot();
-  msg("after print\n");
 }
 
 void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
@@ -757,7 +753,6 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
 {
   s_sourceFile = fileDef;
 
-  std::cout << "ADA CODE PARSER" << std::endl;
   bool should_save_comments = false;
   initAdaScanner(this, fileDef->name(), should_save_comments );
   CodeNode root;
@@ -765,11 +760,10 @@ void AdaLanguageScanner::parseCode(CodeOutputInterface &codeOutIntf,
   s_handler = &ch;
   setInputString(input);
   adaYYparse();
-  cleanupInputString();
 
-  s_handler->printRoot();
-  std::cout << "ADDING CROSS REFS" << std::endl;
   addCrossRef(&root, "");
+
+  adaScannerCleanup();
 
   /* Clean up static variables */
   //s_nodes_mem.clear();
@@ -796,67 +790,45 @@ void addCrossRef(CodeNode *root, QCString scope)
   NamespaceDef *nd;
   GroupDef     *gd;
 
-  printf("ROOT %s, SCOPE%s\n", name.data(), scope.data());
   bool foundDef = getDefs(scope, name, "()", md,cd,fd,nd,gd,FALSE,s_sourceFile);
   
-  /*
-  if (root->type == ADA_PKG)
-  {
-    NamespaceDef *nd = getResolvedNamespace(
-       QCString(scope + root->name).data());
-    printf("package: %s.%s\n", scope.data(), root->name.data());
-    if (nd)
-    {
-      printf("FOUND NAMESPACE");
-      printf("nd %s\n", nd->name().data());
-    }
-  }
-  */
-
   QCString newScope;
   if (root->type == ADA_PKG)
     newScope = scope + root->name + "::";
   else
     newScope = scope;
-  printf("NEW SCOPE %s\n", newScope.data());
 
   if (foundDef)
   {
-    printf("FOUND_DEF\n");
     MemberDef    *mdRef;
     ClassDef     *cdRef;
     FileDef      *fdRef;
     NamespaceDef *ndRef;
     GroupDef     *gdRef;
 
-    /* add link to current node */
-
+    /* add links from the current node  to all
+       references that are found */
     IdentifiersIter rit = root->refs.begin();
     for (;rit != root->refs.end(); ++rit)
     {
       removeArgs(rit->str);
-      printf("REF %s\n", rit->str.data()); 
       bool foundRefDef = getDefs(
             newScope, rit->str,"()",mdRef,cdRef,fdRef,ndRef,gdRef,
             FALSE,s_sourceFile);
       if (foundRefDef)
       {
-        printf("FOUND REF DEF\n");
         if (md)
         {
           if (mdRef && mdRef->isLinkable())
           {
-            printf("MD MD\n");
             addDocCrossReference(md, mdRef);
           }
           else if (cdRef && cdRef->isLinkable())
           {
-            printf("MD cD\n");
             addDocCrossReference(md, mdRef);
           }
           else if (fdRef && fdRef->isLinkable())
           {
-            printf("MD fD\n");
             addDocCrossReference(md, mdRef);
 
           }
@@ -865,37 +837,25 @@ void addCrossRef(CodeNode *root, QCString scope)
         {
           if (mdRef && mdRef->isLinkable())
           {
-            printf("ND MD\n");
             addDocCrossReference(md, mdRef);
           }
           else if (cdRef && cdRef->isLinkable())
           {
-            printf("ND CD\n");
             addDocCrossReference(md, mdRef);
           }
           else if (fdRef && fdRef->isLinkable())
           {
-            printf("ND FD\n");
             addDocCrossReference(md, mdRef);
           }
 
         }
       }
-      //CALL GRAPH + code link
-      //root func ref func
-      //root pac ref func
-
-      //Code link
-      // ref func
-      // header
     }
   }
-
 
   /* recurse over all children */
   CodeNodesIter cit = root->children.begin();
   CodeNode *cn;
-
 
   for (;cit != root->children.end(); ++cit)
   {
@@ -907,10 +867,6 @@ void addCrossRef(CodeNode *root, QCString scope)
   }
 }
 
-void adaFreeScanner()
-{
-  freeAdaScanner();
-}
 
 bool AdaLanguageScanner::needsPreprocessing(const QCString &extension){return false;}
 void AdaLanguageScanner::resetCodeParserState(){;}

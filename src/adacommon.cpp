@@ -1,6 +1,11 @@
+/** \file adacommon.cpp
+ * \brief Definines some declarations from adaparser.h.
+ *
+ * Has defintions for EntryNode, CodeNode, and Identifier.*/
 #include "adaparser.h"
 #include "message.h"
 #include "dbg_util.h"
+
 
 void initEntry (Entry &e, Entry *parent, Protection prot,
                 MethodTypes mtype, bool stat,
@@ -79,6 +84,21 @@ void CodeNode::appendRefs(Identifiers *new_refs)
 }
 
 CodeNode::CodeNode():type(ADA_UNKNOWN), name(""), name_space("") {}
+
+/*====================== Identifer ================ */
+void Identifier::print(std::string pad)
+{
+  msg("CCCCccc\n");
+  msg("%s%s @ l%d,c%d\n", pad.data(), str.data(), line, col); 
+}
+Identifier::Identifier(QCString str_, int line_, int col_)
+      :str(str_), line(line_), col(col_){}
+Identifier::Identifier(QCString str_):str(str_), line(-1), col(-1){}
+
+Expression::Expression(QCString str_):str(str_){}
+Expression::Expression(QCString str_, Identifier id):
+    str(str_),ids(1, id){}
+
 /* =================== Misc ======================= */
 void printIds(Identifiers *ids, std::string pad)
 {
@@ -97,67 +117,3 @@ void printIds(Identifiers *ids, std::string pad)
     printf("Identifiers empty\n");
 }
 
-void Identifier::print(std::string pad)
-{
-  msg("CCCCccc\n");
-  msg("%s%s @ l%d,c%d\n", pad.data(), str.data(), line, col); 
-}
-Identifier::Identifier(QCString str_, int line_, int col_)
-      :str(str_), line(line_), col(col_){}
-Identifier::Identifier(QCString str_):str(str_), line(-1), col(-1){}
-
-Expression::Expression(QCString str_):str(str_){}
-Expression::Expression(QCString str_, Identifier id):
-    str(str_),ids(1, id){}
-
-
-QCString adaArgListToString(const ArgumentList &args)
-{
-  QCString res = "()";
-  if (args.isEmpty())
-    return res;
-  res = "(";
-
-  Argument *arg;
-  ArgumentListIterator it(args);
-  it.toFirst();
-  arg=it.current();
-  res += arg->name;
-  res += " ";
-  QCString prev_type = arg->type;
-  QCString defval = "";
-  ++it;
-  
-  for (; (arg=it.current()); ++it )
-  {
-    QCString type = arg->type;
-    defval = arg->defval;
-    if (type == prev_type) 
-    {
-      res += ", ";
-      res += arg->name;
-    }
-    else 
-    {
-      res += ": ";
-      res += prev_type;
-      if (!defval.isEmpty())
-      {
-        res += " := ";
-        res += defval;
-      }
-      res += ";\n";
-      res += arg->name;
-      prev_type = type;
-    }
-  }
-  res += ": ";
-  res += prev_type;
-  if (!defval.isEmpty())
-  {
-    res += " := ";
-    res += defval;
-  }
-  res += ")";
-
-}

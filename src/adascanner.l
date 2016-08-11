@@ -15,18 +15,23 @@
  *
  */
 
+
+/** \file adascanner.l
+ * \brief Ada scanner (lexer) in flex format.
+ */
+
 %{
 #include <stdio.h>
 #include <ctype.h>
 #include <iostream>
-//the hpp file contains the tokens
 #include "adaparser.h"
+//the hpp file contains the tokens
 #include "adaparser.hpp"
 #include "entry.h"
 #include "commentscan.h"
 #include "message.h"
 
-//#define YY_DECL extern int adaYYlex()
+#define TEXT_TO_QSTR adaYYlval.qstrPtr = new QCString(yytext)
 
 /*
  Static variables
@@ -41,14 +46,24 @@ static Entries             s_structDoxyComments;
 static bool                s_should_save_comments;
 
 /*
- Global variables
+* Global variables
 */
 Entry* parser_root;
 
-/*
- the file contents is read by doxygen before scanning.
- */
 
+/*
+* Helper functions.
+*/
+void handleComment(EntryNode *non_struct_entry,
+              bool  &is_non_struct);
+void resetStructDoxyComments();
+
+/* visible functions */
+void adaScannerCleanup()
+{
+  resetStructDoxyComments();
+  cleanupInputString();
+}
 void setInputString(const char *input)
 {
   s_bufferState = yy_scan_string(input);
@@ -58,13 +73,6 @@ void cleanupInputString(){
   yy_delete_buffer(s_bufferState);
 }
 
-#define TEXT_TO_QSTR adaYYlval.qstrPtr = new QCString(yytext)
-
-void handleComment(EntryNode *non_struct_entry,
-              bool  &is_non_struct);
-
-const Entries& getStructDoxyComments();
-void resetStructDoxyComments();
 %}
 %option caseless
 
@@ -159,12 +167,7 @@ B       [ \t]
 <doxy_comment>[^\n]*  {s_specialComment.append(yytext);}
 <doxy_comment>\n{B}*"--!" {s_specialComment.append("\n");}
 
-<doxy_comment>\n    {/*Structural comments no not depend
-                        on location in the syntax tree, and
-                        are thus handeled by the lexer.
-                        
-                        Non-structural comments o.t.h. are
-                        handeled by the parser.*/
+<doxy_comment>\n    {
                        BEGIN(INITIAL);
                        if (s_should_save_comments)
                        {
@@ -192,12 +195,6 @@ const Entries &getStructDoxyComments()
   return s_structDoxyComments;
 }
 
-/**
-* \brief Discard current references to doxygen comments.
-* 
-* Should be called after the parser has taken over the
-* references.
-*/
 void resetStructDoxyComments()
 {
   s_structDoxyComments.resize(0);
@@ -256,7 +253,7 @@ void upper_string(char *str)
 	}
 }
 
-void freeAdaScanner()
+void adaFreeScanner()
 {
   s_parser = NULL;
 }
