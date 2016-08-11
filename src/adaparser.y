@@ -212,9 +212,7 @@ static RuleHandler *s_handler;
 %type<nodePtr> library_item_body
 %type<exprPtr> type
 %type<qstrPtr> subtype
-/*
 %type<exprPtr> array_type
-*/
 %type<paramsPtr> parameter_spec
 %type<paramsPtr> parameter_specs
 %type<paramsPtr> parameters
@@ -237,7 +235,7 @@ static RuleHandler *s_handler;
 %type<exprPtr> array_subtype_definition
 %type<exprPtr> range
 %type<exprPtr> range_attribute
-/*%type<exprPtr> discrete_subtype*/
+%type<exprPtr> discrete_subtype
 %type<exprPtr> discrete_choice_list
 %type<exprPtr> discrete_choice
 %type<idsPtr> loop_statement
@@ -394,12 +392,10 @@ parameter_spec:    identifier_list COLON subtype
                      {$$ = s_handler->paramSpec($1, $3);}
                    |identifier_list COLON mode subtype
                      {$$ = s_handler->paramSpec($1, $4, $3);}
-                     /*
                    |identifier_list COLON subtype ASS expression
                      {$$ = s_handler->paramSpec($1, $3, NULL, $5);}
                    |identifier_list COLON mode subtype ASS expression
                      {$$ = s_handler->paramSpec($1, $4, $3, $6);}
-                     */
 
 mode:              IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
@@ -436,9 +432,8 @@ type:               subtype
                      e->str = *$1;
                      e->ids.push_back(NEW_ID(*$1, @1));
                      $$ = e;
-                     dealloc($1);}/*|array_type*/
+                     dealloc($1);}|array_type
 
-/*
 array_type:         ARRAY LPAR array_subtype_definitions RPAR
                     OF subtype
                     {Expression *e = $3;
@@ -457,7 +452,6 @@ array_type:         ARRAY LPAR array_subtype_definitions RPAR
                      $$ = e;
                      dealloc($7);
                     }
-                    */
 
 array_subtype_definitions: array_subtype_definition
                           |array_subtype_definitions COMMA
@@ -468,21 +462,15 @@ array_subtype_definitions: array_subtype_definition
                          e1->str.append(e2->str);
                          moveExprIds(e1, e2);
                          $$ = e1;}
-array_subtype_definition: subtype RANGE BOX
+array_subtype_definition:discrete_subtype
+                        |subtype RANGE BOX
                         {Expression *e = new Expression;
                          e->ids.push_back(NEW_ID(*$1, @1));
                          e->str.append(*$1);
                          e->str.append(" range <>");
                          dealloc($1);
                          $$ = e;}
-                        |range
-                        |subtype
-                        {Expression *e = new Expression;
-                         e->ids.push_back(NEW_ID(*$1, @1));
-                         e->str.append(*$1);
-                         dealloc($1);
-                         $$ = e;}
-                         /*
+                         
 discrete_subtype: range
                 |subtype
                 {Expression *e = new Expression;
@@ -491,7 +479,6 @@ discrete_subtype: range
                  dealloc($1);
                  $$ = e;}
 
-*/
 range:                  range_attribute
                         |expression DDOT expression
                         {Expression *e1 = $1;
@@ -508,7 +495,6 @@ range_attribute:        library_name TIC RANGE
                          e->str.append("'Range");
                          dealloc($1);
                          $$ = e;}
-                         /*
                         |library_name TIC RANGE LPAR expression RPAR
                         {Expression *e = $5;
                          e->ids.push_back(NEW_ID(*$1, @1));
@@ -517,7 +503,6 @@ range_attribute:        library_name TIC RANGE
                          e->str.append(")");
                          dealloc($1);
                          $$ = e;}
-                         */
                      
                       /* move to handlers */
 identifier_list:    IDENTIFIER
@@ -634,14 +619,7 @@ discrete_choice: expression
 /* Note, this is an extremely permissive version of expression
    But enough  for doxygen's purposes. */
 expression:function_call
-          /*
-          |expression_sep function_call {Expression *e = $2;
-                                e->str.prepend(*$1);
-                                dealloc($1);
-                                $$ = e;}
-                                */
-
-          |  function_call expression_sep expression 
+          |function_call expression_sep expression 
           {Expression *e1 = $1;
            Expression *e2 = $3;
            e1->str.append(*$2);
@@ -650,9 +628,10 @@ expression:function_call
            $$=e1;
            dealloc($2);}
 primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
-        |expression_sep library_name
+        |expression_sep library_name /* unary operations */
         {Expression *e = new Expression(*$1, NEW_ID(*$1, @1));
-         e->str.prepend($1);}
+         e->str.prepend(*$1);
+         dealloc($1);}
         |literal {$$=new Expression(*$1); dealloc($1);}
         |LPAR expression RPAR {
             Expression *e = $2;
