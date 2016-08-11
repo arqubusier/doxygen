@@ -553,16 +553,16 @@ statement:  expression SEM {$$ = new Identifiers($1->ids);
 
 compound:   case_statement{$$=$1;}
             |loop_statement
-            |if_statement{;}
+            |if_statement
 
-if_statement: if_clause if_clauses END IF
-              {$$ = moveIds($2, $1);}
-            |IF if_clause END IF {$$ = $2;}
-            |IF if_clause if_clauses ELSE statements END IF
-            {moveIds($5,$3);
-             $$=moveIds($5,$2);}
-            |IF if_clause ELSE statements END IF
-            {$$=moveIds($4, $2);}
+if_statement:if_clause END IF
+            |if_clause if_clauses END IF
+            {$$ = moveIds($2, $1);}
+            |if_clause if_clauses ELSE statements END IF
+            {moveIds($4,$2);
+             $$=moveIds($4,$1);}
+            |if_clause ELSE statements END IF
+            {$$=moveIds($3, $1);}
 
 if_clause: IF expression THEN statements
            {$$ = moveExprToIds($4, $2);}
