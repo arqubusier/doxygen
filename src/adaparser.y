@@ -236,6 +236,7 @@ static RuleHandler *s_handler;
 %type<exprPtr> primary
 %type<idsPtr> statement
 %type<idsPtr> statements
+%type<idsPtr> return_statement
 %type<qstrPtr> expression_sep
 %type<exprPtr> function_call
 %type<exprPtr> call_params
@@ -543,6 +544,8 @@ statement:  expression SEM {$$ = new Identifiers($1->ids);
                 dealloc($3);}
             |compound SEM
             |IDENTIFIER COLON compound SEM {$$ = $3;}
+            |return_statement SEM
+return_statement: RETURN expression {$$ = new Identifiers;}
 
 compound:   case_statement{$$=$1;}
             |loop_statement
@@ -569,17 +572,15 @@ if_clauses: elsif_clause
 
 loop_statement: WHILE expression LOOP statements loop_tail
             {$$ = moveExprToIds($4, $2);}
-              |FOR library_name IN range
+              |FOR library_name IN discrete_subtype
                LOOP statements loop_tail
               {
                $$ =moveExprToIds($6, $4);
               }
-              |FOR library_name IN subtype
+              |FOR library_name IN REVERSE discrete_subtype
                LOOP statements loop_tail
               {
-                $6->push_back(NEW_ID(*$4, @5));
-               $$ = $6;
-               dealloc($4);
+               $$ =moveExprToIds($7, $5);
               }
 loop_tail: END LOOP| END LOOP IDENTIFIER {dealloc($3);}
 
@@ -622,11 +623,13 @@ expression:function_call
            $$=e1;
            dealloc($2);}
 primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
+
         |expression_sep library_name /* unary operations */
         {Expression *e = new Expression(*$1, NEW_ID(*$1, @1));
          e->str.prepend(*$1);
          dealloc($1);}
         |literal {$$=new Expression(*$1); dealloc($1);}
+        |RANGE {$$=new Expression(" range ");}
         |LPAR expression RPAR {
             Expression *e = $2;
             e->str.prepend("(");
