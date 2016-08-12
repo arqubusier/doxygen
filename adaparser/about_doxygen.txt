@@ -1,0 +1,39 @@
+TODO
+====
+* handle function overloading. When generating call graphs,
+  currently there is no consideration that multiple functions
+  might have the same name but with different parameters.
+  to solve this the grammar needs to be extended to keep track
+  of the types of the function arguments used in funtion calls.
+
+
+When is code parser run?
+========================
+
+"Generating file sources" in doxygen.cpp
+
+triggered by generateSourceFile() in FileDef
+SOURCE_BROWSER in config file
+CALL_GRAPH
+CALLER_GRAPH
+REFERNCES_RELATION
+REFERENCED_BY_RELATION => Doxygen::parseSourcesNeeded
+
+How is the include graph made?
+==============================
+
+Header sections added to the entitity graph.
+Not sure how these are used.
+
+The includes are picked up at the preprocessing stage in pre.l.
+
+the includes are linked against the input files which are 
+read before the preprocessing stage.
+
+the includes are stored in FileDef objects in inputNameDict. The
+latter is encapsulated in the doxygen singleton, so there is no 
+direct access from the parser. 
+
+Because of all of this, there does not seem to be an easy solution
+to making an include graph in ada.
+

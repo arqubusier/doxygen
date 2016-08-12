@@ -2,6 +2,10 @@
 --! \brief A package for testing the doxygen Ada Parser.
 --!
 --! Tests various ada and doxygen syntax.
+
+
+
+--! \brief ada_test_package.
 package Ada_Test_Package is
     --! a public variable.
     pub: Integer:=1337;
@@ -23,7 +27,7 @@ package Ada_Test_Package is
     --! \brief Test expressions.
     procedure expressions;
     --! \brief Test compounds.
-    procedure compounds(X:in Integer);
+    procedure compounds(X: in Integer);
     --! \brief Dummy function 1.
     procedure Walk_The_Dog;
     --! \brief Dummy function 2.
