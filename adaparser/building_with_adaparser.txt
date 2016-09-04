@@ -1,0 +1,3 @@
+Follow the instructions in BUILD.txt.
+
+The executable will be placed in 'bin' inside the build folder.

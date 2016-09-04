@@ -1,9 +1,29 @@
-Not Done
-========
+TODO
+====
+
+* merge with current version of doxygen.
 
 * Include dependency graph.
 
-
 * Syntax highlighting for codebrowser.
 
+* handle function overloading. When generating call graphs,
+  currently there is no consideration that multiple functions
+  might have the same name but with different parameters.
+  to solve this the grammar needs to be extended to keep track
+  of the types of the function arguments used in funtion calls.
+
+* add language features:
+    -
+    -
+
+Doing
+=====
+
+* find and fix cause of segfaults when running ada_test.
+
+Done
+====
+
+* add build instructinos.
 
