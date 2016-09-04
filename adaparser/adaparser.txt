@@ -14,8 +14,10 @@ TODO
   of the types of the function arguments used in funtion calls.
 
 * add language features:
-    -
-    -
+    - arrays
+    - access variables
+    - records
+    - abstract, tagged records
 
 Doing
 =====

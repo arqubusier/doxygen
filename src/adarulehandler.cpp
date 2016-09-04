@@ -263,19 +263,23 @@ Nodes *EntryHandler::objDeclBase(Identifiers *refs, Expression *type,
 {
   Nodes *nodes = new Nodes;
 
+  printf("1111\n");
   IdentifiersIter it = refs->begin();
   for (;it != refs->end(); ++it)
   {
+    printf("2222\n");
     EntryNode *e = newEntryNode();
     e->entry.name = it->str;
     e->entry.type = type->str;
     e->entry.section = Entry::VARIABLE_SEC;
     if (expr)
     {
+      printf("333\n");
       // Default value
       //e->entry.args = ":= " + expr->str;
       dealloc( expr);
     }
+    printf("4444\n");
     nodes->push_front(e);
   }
 
@@ -428,16 +432,23 @@ Nodes *CodeHandler::objDeclBase(Identifiers *ids, Expression *type,
   Nodes* nodes = new Nodes;
   CodeNode* n;
 
+  printf("1111\n");
   IdentifiersIter it = ids->begin();
   for (;it != ids->end();++it)
   {
+    printf("2222\n");
     /* TODO ADD TYPE */
     n = newCodeNode(ADA_VAR, it->str, "");
     if (expr)
-      n->appendRefs(&expr->ids);
+    {
+      n->refs.splice(n->refs.begin(), expr->ids);
+    }
     nodes->push_back(n);
   }
 
+  if (expr)
+      dealloc(expr);
+  printf("4444\n");
   return nodes;
 }
 

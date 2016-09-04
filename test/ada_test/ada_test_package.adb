@@ -42,9 +42,9 @@ package body Ada_Test_Package is
 
     procedure expressions is
         x, y, z: Integer;
-        --x, y, z: Integer:= 1; segfaults
+        u, v, w: Integer:= 1;
     begin
-      --x:= (-x + y) * z; segfaults
+      x:= (-x + y) * z;
       null;
     end expressions;
 
