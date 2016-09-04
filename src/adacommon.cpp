@@ -79,12 +79,9 @@ CodeNode::CodeNode(
 
 void CodeNode::appendRefs(Identifiers *new_refs)
 {
-    printf("5555\n");
   if (new_refs)
   {
-    printf("6666\n");
     refs.splice(refs.begin(), *new_refs);
-    printf("7777\n");
     dealloc(new_refs);
   }
 }

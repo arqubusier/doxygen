@@ -108,6 +108,7 @@ B       [ \t]
 "and"           {return(AND);}
 "or"            {return(OR);}
 "xor"           {return(XOR);}
+"*"             return(MUL);
 "+"             return(ADD);
 "-"             return(MINUS);
 "&"             return(AMB);

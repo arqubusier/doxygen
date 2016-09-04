@@ -615,7 +615,8 @@ discrete_choice: expression
    But enough  for doxygen's purposes. */
 expression:function_call
           |function_call expression_sep expression 
-          {Expression *e1 = $1;
+          {
+           Expression *e1 = $1;
            Expression *e2 = $3;
            e1->str.append(*$2);
            e1->str.append(e1->str);
@@ -627,7 +628,8 @@ primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
         |expression_sep library_name /* unary operations */
         {Expression *e = new Expression(*$1, NEW_ID(*$1, @1));
          e->str.prepend(*$1);
-         dealloc($1);}
+         dealloc($1);
+         $$ = e;}
         |literal {$$=new Expression(*$1); dealloc($1);}
         |RANGE {$$=new Expression(" range ");}
         |LPAR expression RPAR {
@@ -692,7 +694,7 @@ relational: EQ{$$= new QCString(" = ");}
 operator: ADD {$$ =  new QCString(" + ");}
         | MINUS {$$ =  new QCString(" - ");}
         | AMB {$$ =  new QCString(" & ");}
-        | MUL {$$ =  new QCString(" MUL ");}
+        | MUL {$$ =  new QCString(" * ");}
         | DIV {$$ =  new QCString(" / ");}
         | MOD {$$ =  new QCString(" MOD ");}
         | REM {$$ =  new QCString(" REM ");}
