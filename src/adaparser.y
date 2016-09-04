@@ -247,6 +247,7 @@ static RuleHandler *s_handler;
 %type<qstrPtr>literal
 %type<idsPtr> compound
 %type<qstrPtr> library_name
+%type<qstrPtr> attribute_designator
 %type<exprPtr> array_subtype_definitions
 %type<exprPtr> array_subtype_definition
 %type<exprPtr> range
@@ -280,13 +281,25 @@ use_clause: USE library_names SEM
 
 library_names: library_name {dealloc($1);}
               |library_names COMMA library_name {dealloc($3);}
-library_name: IDENTIFIER {$$ = new QCString($1); delete $1;}
-             |library_name DOT IDENTIFIER {
+library_name: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
+             |library_name DOT IDENTIFIER
+             {
               QCString *name = $1;
               name->append(".");
               name->append($3);
               $$ = name;
-              dealloc($3);}
+              dealloc($3);
+             }
+             |library_name TIC attribute_designator 
+             {
+              QCString *name = $1;
+              name->append("'");
+              name->append(*$3);
+              dealloc($3);
+              $$ = name;
+             }
+              /* A simlpification, attributes with ( expression ) can be interpreted as a subprogram call*/
+attribute_designator: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
 
 doxy_comment: SPECIAL_COMMENT
 

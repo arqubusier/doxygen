@@ -32,11 +32,11 @@ package body Ada_Test_Package is
         Put_line("procedure_test");
 
         Put( "f =" );
-        --Put( Float'Image(f) );
+        Put( Float'Image(f) );
         Put( ", int1 = " );
-        --Put( Integer'Image(int1));
+        Put( Integer'Image(int1));
         Put( ", int2 = " );
-        --Put( Integer'Image(int2));
+        Put( Integer'Image(int2));
         New_Line(1);
     end procedure_test;
 
