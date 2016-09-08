@@ -3,7 +3,7 @@ TODO
 
 * merge with current version of doxygen.
 
-* Include dependency graph.
+* Include packet dependency graph.
 
 * Syntax highlighting for codebrowser.
 
@@ -22,10 +22,12 @@ TODO
 Doing
 =====
 
-* find and fix cause of segfaults when running ada_test.
+* fix bug where function call graph doesn't appear
+
 
 Done
 ====
+* find and fix cause of segfaults when running ada_test.
 
 * add build instructinos.
 
