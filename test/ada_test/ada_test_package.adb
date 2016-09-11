@@ -9,8 +9,8 @@
 --!
 --! oetnuhnoteuh
 
---with Ada.Text_IO;
---use Ada.Text_IO;
+with Ada.Text_IO;
+use Ada.Text_IO;
 
 --! \brief ada_test_package package.
 --!

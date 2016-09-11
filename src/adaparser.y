@@ -225,8 +225,8 @@ static RuleHandler *s_handler;
 %type<nodePtr> library_item
 %type<nodePtr> library_item_decl
 %type<nodePtr> library_item_body
-%type<exprPtr> type
-%type<qstrPtr> subtype
+%type<exprPtr> obj_decl_type
+%type<qstrPtr> subtype_indication
 %type<exprPtr> array_type
 %type<paramsPtr> parameter_spec
 %type<paramsPtr> parameter_specs
@@ -396,13 +396,13 @@ parameters:       parameter_spec
 parameter_specs:  parameter_spec SEM {$$ = $1;}
                   |parameter_specs parameter_spec SEM
                    {$$ = s_handler->params($1, $2);}
-parameter_spec:    identifier_list COLON subtype
+parameter_spec:    identifier_list COLON subtype_indication
                      {$$ = s_handler->paramSpec($1, $3);}
-                   |identifier_list COLON mode subtype
+                   |identifier_list COLON mode subtype_indication
                      {$$ = s_handler->paramSpec($1, $4, $3);}
-                   |identifier_list COLON subtype ASS expression
+                   |identifier_list COLON subtype_indication ASS expression
                      {$$ = s_handler->paramSpec($1, $3, NULL, $5);}
-                   |identifier_list COLON mode subtype ASS expression
+                   |identifier_list COLON mode subtype_indication ASS expression
                      {$$ = s_handler->paramSpec($1, $4, $3, $6);}
 
 mode:              IN {$$ = new QCString("in");}
@@ -430,20 +430,22 @@ obj_decl:           obj_decl_base
                     |doxy_comment obj_decl_base
                     {$$ = s_handler->objDecl($2, $1);}
 obj_decl_base:      identifier_list COLON 
-                    type ASS expression SEM
+                    obj_decl_type ASS expression SEM
                     {$$ = s_handler->objDeclBase($1, $3, $5);}
-                    |identifier_list COLON type SEM
+                    |identifier_list COLON obj_decl_type SEM
                     {$$ = s_handler->objDeclBase($1, $3);}
 
-type:               subtype
+/*TODO: add access type*/
+obj_decl_type:      subtype_indication
                     {Expression *e = new Expression;
                      e->str = *$1;
                      e->ids.push_back(NEW_ID(*$1, @1));
                      $$ = e;
                      dealloc($1);}|array_type
 
+/*TODO: add access type*/
 array_type:         ARRAY LPAR array_subtype_definitions RPAR
-                    OF subtype
+                    OF subtype_indication
                     {Expression *e = $3;
                      e->str.prepend("array (");
                      e->str.append(") of ");
@@ -452,7 +454,7 @@ array_type:         ARRAY LPAR array_subtype_definitions RPAR
                      dealloc($6);
                     }
                     |ARRAY LPAR array_subtype_definitions RPAR
-                    OF ALIASED subtype
+                    OF ALIASED subtype_indication
                     {Expression *e = $3;
                      e->str.prepend("array (");
                      e->str.append(") of aliased ");
@@ -471,7 +473,7 @@ array_subtype_definitions: array_subtype_definition
                          moveExprIds(e1, e2);
                          $$ = e1;}
 array_subtype_definition:discrete_subtype
-                        |subtype RANGE BOX
+                        |subtype_indication RANGE BOX
                         {Expression *e = new Expression;
                          e->ids.push_back(NEW_ID(*$1, @1));
                          e->str.append(*$1);
@@ -480,7 +482,7 @@ array_subtype_definition:discrete_subtype
                          $$ = e;}
                          
 discrete_subtype: range
-                |subtype
+                |subtype_indication
                 {Expression *e = new Expression;
                  e->ids.push_back(NEW_ID(*$1, @1));
                  e->str.append(*$1);
@@ -531,7 +533,7 @@ identifier_list:    IDENTIFIER
                     }
                     
                     /* move to handlers */
-subtype:            /*IDENTIFIER constraint
+subtype_indication:            /*IDENTIFIER constraint
                     {
                       $$ = new QCString($1);
                       dealloc( $1);
@@ -651,6 +653,18 @@ primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
             e->str.append(")");
             $$ = e;
         }
+        |aggregate
+
+aggregate: array_aggregate;
+
+array_aggregate: positional_array_aggregate|named_array_aggregate;
+positional_array_aggregate: LPAR expressions RPAR;
+expressions: expression| expressions COMMA expression;
+named_array_aggregate: LPAR array_component_assocs RPAR;
+array_component_assocs: array_component_assoc
+                      |array_component_assocs array_component_assoc;
+array_component_assoc: discrete_choice_list REF expression
+                     | discrete_choice_list REF BOX;
 
 expression_sep: logical|operator|relational
               |ASS{$$=new QCString(" := ");}
