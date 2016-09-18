@@ -246,7 +246,7 @@ static RuleHandler *s_handler;
 %type<qstrPtr> relational
 %type<qstrPtr>literal
 %type<idsPtr> compound
-%type<qstrPtr> library_name
+%type<qstrPtr> name
 %type<qstrPtr> attribute_designator
 %type<exprPtr> array_subtype_definitions
 %type<exprPtr> array_subtype_definition
@@ -276,13 +276,13 @@ context_clause: with_clause
                |use_clause
                |context_clause with_clause
                |context_clause use_clause
-with_clause: WITH library_names SEM
-use_clause: USE library_names SEM
+with_clause: WITH names SEM
+use_clause: USE names SEM
 
-library_names: library_name {dealloc($1);}
-              |library_names COMMA library_name {dealloc($3);}
-library_name: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
-             |library_name DOT IDENTIFIER
+names: name {dealloc($1);}
+              |names COMMA name {dealloc($3);}
+name: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
+             |name DOT IDENTIFIER /*selected_component/explicit_reference*/
              {
               QCString *name = $1;
               name->append(".");
@@ -290,7 +290,7 @@ library_name: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
               $$ = name;
               dealloc($3);
              }
-             |library_name TIC attribute_designator 
+             |name TIC attribute_designator 
              {
               QCString *name = $1;
               name->append("'");
@@ -298,6 +298,8 @@ library_name: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
               dealloc($3);
               $$ = name;
              }
+             |name TIC aggregate /*qualified expression*/
+             |function_call /*function_call/indexed_component*/
               /* A simlpification, attributes with ( expression ) can be interpreted as a subprogram call*/
 attribute_designator: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
 
@@ -498,14 +500,14 @@ range:                  range_attribute
                          moveExprIds(e1, e2);
                          $$ = e1;}
 
-range_attribute:        library_name TIC RANGE
+range_attribute:        name TIC RANGE
                         {Expression *e = new Expression;
                          e->ids.push_back(NEW_ID(*$1, @1));
                          e->str.append(*$1);
                          e->str.append("'Range");
                          dealloc($1);
                          $$ = e;}
-                        |library_name TIC RANGE LPAR expression RPAR
+                        |name TIC RANGE LPAR expression RPAR
                         {Expression *e = $5;
                          e->ids.push_back(NEW_ID(*$1, @1));
                          e->str.prepend("'Range(");
@@ -538,11 +540,7 @@ subtype_indication:            /*IDENTIFIER constraint
                       $$ = new QCString($1);
                       dealloc( $1);
                     }
-                    |*/IDENTIFIER
-                    {
-                      $$ = new QCString($1);
-                      dealloc( $1);
-                    }
+                    |*/name;
 
 statements: statement
            |statement statements
@@ -587,12 +585,12 @@ if_clauses: elsif_clause
 
 loop_statement: WHILE expression LOOP statements loop_tail
             {$$ = moveExprToIds($4, $2);}
-              |FOR library_name IN discrete_subtype
+              |FOR name IN discrete_subtype
                LOOP statements loop_tail
               {
                $$ =moveExprToIds($6, $4);
               }
-              |FOR library_name IN REVERSE discrete_subtype
+              |FOR name IN REVERSE discrete_subtype
                LOOP statements loop_tail
               {
                $$ =moveExprToIds($7, $5);
@@ -625,26 +623,12 @@ discrete_choice: expression
                 |range
                |OTHERS{$$ = new Expression("others");}
                 
-
-/* Note, this is an extremely permissive version of expression
-   But enough  for doxygen's purposes. */
-expression:function_call
-          |function_call expression_sep expression 
-          {
-           Expression *e1 = $1;
-           Expression *e2 = $3;
-           e1->str.append(*$2);
-           e1->str.append(e1->str);
-           moveExprIds(e1, e2);
-           $$=e1;
-           dealloc($2);}
-primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
-
-        |expression_sep library_name /* unary operations */
-        {Expression *e = new Expression(*$1, NEW_ID(*$1, @1));
-         e->str.prepend(*$1);
-         dealloc($1);
-         $$ = e;}
+/*
+    TODO: imlpement proper expression
+*/
+expression: primary
+          |primary expression_sep primary
+primary:name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
         |literal {$$=new Expression(*$1); dealloc($1);}
         |RANGE {$$=new Expression(" range ");}
         |LPAR expression RPAR {
@@ -653,31 +637,32 @@ primary:library_name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
             e->str.append(")");
             $$ = e;
         }
-        |aggregate
+        |named_array_aggregate
+        /*NOTE: supporting positional array aggretates here causes problems
+            for instance how to interpret: arr:=(0)*/
 
 aggregate: array_aggregate;
 
-array_aggregate: positional_array_aggregate|named_array_aggregate;
+array_aggregate:positional_array_aggregate|named_array_aggregate;
 positional_array_aggregate: LPAR expressions RPAR;
-expressions: expression| expressions COMMA expression;
+expressions: expression| expression COMMA expressions;
 named_array_aggregate: LPAR array_component_assocs RPAR;
 array_component_assocs: array_component_assoc
-                      |array_component_assocs array_component_assoc;
+                      |array_component_assocs COMMA array_component_assoc;
 array_component_assoc: discrete_choice_list REF expression
                      | discrete_choice_list REF BOX;
 
 expression_sep: logical|operator|relational
               |ASS{$$=new QCString(" := ");}
 
-function_call:primary
-             |library_name LPAR RPAR
+function_call:name LPAR RPAR
              {Expression *e = new Expression;
               Identifier call = NEW_ID(*$1, @1);
               call.str.append("()");
               e->ids.push_front(call);
               $$ = e;
               dealloc( $1);}
-             |library_name LPAR call_params RPAR
+             |name LPAR call_params RPAR
              {Expression *e = $3;
               QCString call = *$1;
               call.append("(");
@@ -697,7 +682,7 @@ call_params: param_assoc
             $$ = cp;
             dealloc( pa);}
 param_assoc: expression
-            |library_name REF expression
+            |name REF expression
             {Expression *e = $3;
              e->str.append(" => ");
              e->str.append(*$1);
