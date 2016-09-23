@@ -227,7 +227,7 @@ static RuleHandler *s_handler;
 %type<nodePtr> library_item_body
 %type<exprPtr> obj_decl_type
 %type<qstrPtr> subtype_indication
-%type<exprPtr> array_type
+%type<exprPtr> array_type_definition
 %type<paramsPtr> parameter_spec
 %type<paramsPtr> parameter_specs
 %type<paramsPtr> parameters
@@ -279,6 +279,7 @@ context_clause: with_clause
 with_clause: WITH names SEM
 use_clause: USE names SEM
 
+direct_name: IDENTIFIER; /*TODO: OPERATOR SYMBOL*/
 names: name {dealloc($1);}
               |names COMMA name {dealloc($3);}
 name: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
@@ -425,8 +426,38 @@ basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
                     |basic_decls decl_item
                     {$$ = s_handler->decls($1, $2);}
 
-decl_items:         obj_decl
-decl_item:          subprogram_decl| package_decl
+decl_items:         obj_decl;
+decl_item:          subprogram_decl| package_decl| type_declaration;
+
+type_declaration:   full_type_declaration;
+full_type_declaration: TYPE IDENTIFIER IS type_definition; /*aspect definition missing*/
+type_definition:    array_type_definition| record_type_definition| enumeration_type_definition
+                    /* access type, enumeration type, integer type, real type,
+                    derived type, interface type*/
+
+enumeration_type_definition: LPAR enumeration_literals RPAR;
+enumeration_literals: IDENTIFIER
+                     |IDENTIFIER COMMA enumeration_literals;
+record_type_definition: record_definition
+                      |ABSTRACT record_definition
+                      |TAGGED record_definition
+                      |LIMITED record_definition;
+
+record_definition:  RECORD component_list END RECORD| Null RECORD;
+component_list:     component_item
+                    |variant_part
+                    |component_item component_list
+                    |Null SEM;
+component_item:     component_declaration /*TODO: aspect clasue*/
+component_declaration: identifier_list COLON component_definition SEM
+                     | identifier_list COLON component_definition SEM
+                     ASS expression SEM; /*TODO: aspect spec*/
+component_definition: subtype_indication
+                    |ALIASED subtype_indication; /*TODO: access definition*/
+
+variant_part:       CASE direct_name IS variant_list END CASE SEM
+variant_list:       variant|variant variant_list;
+variant:            WHEN discrete_choice_list REF component_list
 
 obj_decl:           obj_decl_base
                     |doxy_comment obj_decl_base
@@ -443,10 +474,10 @@ obj_decl_type:      subtype_indication
                      e->str = *$1;
                      e->ids.push_back(NEW_ID(*$1, @1));
                      $$ = e;
-                     dealloc($1);}|array_type
+                     dealloc($1);}|array_type_definition
 
 /*TODO: add access type*/
-array_type:         ARRAY LPAR array_subtype_definitions RPAR
+array_type_definition:  ARRAY LPAR array_subtype_definitions RPAR
                     OF subtype_indication
                     {Expression *e = $3;
                      e->str.prepend("array (");
@@ -535,12 +566,7 @@ identifier_list:    IDENTIFIER
                     }
                     
                     /* move to handlers */
-subtype_indication:            /*IDENTIFIER constraint
-                    {
-                      $$ = new QCString($1);
-                      dealloc( $1);
-                    }
-                    |*/name;
+subtype_indication: name;
 
 statements: statement
            |statement statements
