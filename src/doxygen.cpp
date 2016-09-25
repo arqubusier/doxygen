@@ -11105,6 +11105,9 @@ void parseInput()
 
   g_s.begin("Parsing files\n");
   parseFiles(root,rootNav);
+  /*TODO: CLEANME */
+  //root->print();
+
   g_storage->close();
   g_s.end();
 

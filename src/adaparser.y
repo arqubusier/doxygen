@@ -300,6 +300,7 @@ name: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
               $$ = name;
              }
              |name TIC aggregate /*qualified expression*/
+             {$$ = $1;}
              |function_call /*function_call/indexed_component*/
               /* A simlpification, attributes with ( expression ) can be interpreted as a subprogram call*/
 attribute_designator: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
@@ -391,7 +392,7 @@ subprogram_body:  subprogram_spec IS
                   {
                     $$ = s_handler->subprogramBody($1, $3, $5);
                   }
-tail:             SEM| IDENTIFIER SEM {dealloc( $1);}
+tail:             SEM| IDENTIFIER SEM {dealloc( $1);} /* TODO change to name */
 
 parameters:       parameter_spec
                   | parameter_specs parameter_spec
@@ -429,31 +430,62 @@ basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
 decl_items:         obj_decl;
 decl_item:          subprogram_decl| package_decl| type_declaration;
 
-type_declaration:   full_type_declaration;
-full_type_declaration: TYPE IDENTIFIER IS type_definition; /*aspect definition missing*/
-type_definition:    array_type_definition| record_type_definition| enumeration_type_definition
-                    /* access type, enumeration type, integer type, real type,
+type_declaration:   full_type_declaration|
+                    doxy_comment full_type_declaration
+                    {$$ = s_handler->addDoc($2, $1);}
+                    /*aspect definition missing*/
+full_type_declaration: TYPE IDENTIFIER IS type_definition
+                    {$$ = s_handler->full_type_declaration($2, $4);}
+type_definition: array_type_definition| record_type_definition|
+                 enumeration_type_definition
+                    /* access type, integer type, real type,
                     derived type, interface type*/
 
-enumeration_type_definition: LPAR enumeration_literals RPAR;
+enumeration_type_definition: LPAR enumeration_literals RPAR
+                    {$$ = s_handler->enumeration_type_definition($2);}
 enumeration_literals: IDENTIFIER
-                     |IDENTIFIER COMMA enumeration_literals;
+                    {Identifiers* ids = new Identifiers;
+                     ids->push_back(*$1);
+                     delete $1;}
+                     |IDENTIFIER COMMA enumeration_literals
+                     {ids->push_back(*$1);
+                     delete $1;}
 record_type_definition: record_definition
+                      /*TODO: add abstract record support*/
                       |ABSTRACT record_definition
+                      {$$ = $2;}
+                      /*TODO: add tagged record support*/
                       |TAGGED record_definition
-                      |LIMITED record_definition;
+                      {$$ = $2;}
+                      /*TODO: add limited record support*/
+                      |LIMITED record_definition
+                      {$$ = $2;}
 
-record_definition:  RECORD component_list END RECORD| Null RECORD;
+record_definition:  RECORD component_list END RECORD
+                    {$$ = s_handler->record_definition($2);}
+                    |Null RECORD
+                    {$$ = s_handler->record_definition();}
 component_list:     component_item
+                    /* TODO: find a way to implement variants in doxygen*/
                     |variant_part
+                    {$$ = s_handler->component_list();}
                     |component_item component_list
-                    |Null SEM;
+                    {$$ = s_handler->component_list($1, $2);}
+                    |Null SEM
+                    {$$ = s_handler->component_list();}
 component_item:     component_declaration /*TODO: aspect clasue*/
+                    |doxy_comment component_declaration
+                    {$$ = s_handler->addDoc($2, $1);}
 component_declaration: identifier_list COLON component_definition SEM
-                     | identifier_list COLON component_definition SEM
-                     ASS expression SEM; /*TODO: aspect spec*/
+                    {$$ = s_handler->component_declaration($1, $3);}
+                     | identifier_list COLON component_definition
+                     ASS expression SEM /*TODO: aspect spec*/
+                    {$$ = s_handler->component_declaration($1, $3, $5);}
 component_definition: subtype_indication
-                    |ALIASED subtype_indication; /*TODO: access definition*/
+                    |ALIASED subtype_indication /*TODO: access definition*/
+                    {
+                        subtype->prepend("aliased ")
+                     $$ = subtype;}
 
 variant_part:       CASE direct_name IS variant_list END CASE SEM
 variant_list:       variant|variant variant_list;
@@ -667,7 +699,8 @@ primary:name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
         /*NOTE: supporting positional array aggretates here causes problems
             for instance how to interpret: arr:=(0)*/
 
-aggregate: array_aggregate;
+aggregate: array_aggregate; /*NOTE: enumaration aggregates are supported,
+                                but interpreted as named array aggregates*/
 
 array_aggregate:positional_array_aggregate|named_array_aggregate;
 positional_array_aggregate: LPAR expressions RPAR;

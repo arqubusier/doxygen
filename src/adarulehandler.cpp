@@ -305,6 +305,34 @@ Node *EntryHandler::packageBodyBase(const char* name,
   return pkg;
 }
 
+Node* full_type_declaration(char *id, Node *def)
+{
+    if (def){
+        EntryNode *e_def = dynamic_cast<EntryNode*>(def);
+        e_def->name = id;
+    }
+    dealloc(id);
+
+    return def;
+}
+
+Nodes *enumeration_type_definition(Identifiers *ids)
+{
+  Nodes *nodes = new Nodes;
+
+  IdentifiersIter it = refs->begin();
+  for (;it != refs->end(); ++it)
+  {
+    EntryNode *e = newEntryNode();
+    e->entry.name = it->str;
+    e->entry.type = '@';
+    e->entry.section = Entry::VARIABLE_SEC;
+    nodes->push_front(e);
+  }
+}
+
+
+
 EntryNode* EntryHandler::newEntryNode()
 {
     EntryNode* e = new EntryNode;

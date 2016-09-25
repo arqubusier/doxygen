@@ -46,6 +46,16 @@ public:
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL) = 0;
   virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
                              Expression *expr=NULL) = 0;
+  virtual Node* addDoc(Node *base, Node* doc=NULL) = 0;
+  virtual Node* full_type_declaration(char *id, Node *def) = 0;
+  virtual Nodes *enumeration_type_definition(Identifiers *ids) = 0;
+  virtual Node *record_definition(Nodes *members) = 0;
+  virtual Node *record_definition() = 0;
+  virtual Nodes *component_list(Nodes* item, Nodes* items) = 0;
+  virtual Nodes *component_list() = 0;
+  virtual Nodes *component_declaration(Identifiers *ids, Expression *type,
+                             Expression *expr=NULL) = 0;
+  virtual Ide
   /** \brief Used in the rules decls and basic_decls. */
   virtual Nodes *declsBase(Node *new_entry);
   /** \brief Used in the rules decls and basic_decls. */
@@ -128,6 +138,18 @@ public:
     addDocToEntries(doc, base);
     return base;
   }
+  virtual Node* addDoc(Node *base, Node* doc=NULL){
+    addDocToEntry(doc, base);
+    return base;
+  }
+  virtual Node* full_type_declaration(char *id, Node *def);
+  virtual Nodes *enumeration_type_definition(Identifiers *ids);
+  virtual Node *record_definition(Nodes *members);
+  virtual Node *record_definition();
+  virtual Nodes *component_list(Nodes* item, Nodes* items);
+  virtual Nodes *component_list();
+  virtual Nodes *component_declaration(Identifiers *ids, Expression *type,
+                             Expression *expr=NULL);
   virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
                              Expression *expr=NULL);
 private:
@@ -172,5 +194,14 @@ public:
             Identifiers *ids=NULL);
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL);
   virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
+                             Expression *expr=NULL);
+  virtual Node* addDoc(Node *base, Node* doc=NULL);
+  virtual Node* full_type_declaration(char *id, Node *def);
+  virtual Nodes *enumeration_type_definition(Identifiers *ids);
+  virtual Node *record_definition(Nodes *members);
+  virtual Node *record_definition();
+  virtual Nodes *component_list(Nodes* item, Nodes* items);
+  virtual Nodes *component_list();
+  virtual Nodes *component_declaration(Identifiers *ids, Expression *type,
                              Expression *expr=NULL);
 };
