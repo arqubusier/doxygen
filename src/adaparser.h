@@ -85,6 +85,8 @@ enum NodeType
   ADA_VAR,
   ADA_SUBPROG,
   ADA_RECORD,
+  ADA_TYPE,
+  ADA_ENUM,
   ADA_UNKNOWN
 };
 

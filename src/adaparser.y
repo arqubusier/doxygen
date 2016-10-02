@@ -234,6 +234,9 @@ static RuleHandler *s_handler;
 %type<qstrPtr> mode
 %type<exprPtr> expression
 %type<exprPtr> primary
+%type<exprPtr> named_array_aggregate
+%type<exprPtr> array_component_assocs
+%type<exprPtr> array_component_assoc
 %type<idsPtr> statement
 %type<idsPtr> statements
 %type<idsPtr> return_statement
@@ -263,6 +266,18 @@ static RuleHandler *s_handler;
 %type<idsPtr> if_clause
 %type<idsPtr> elsif_clause
 %type<idsPtr> if_clauses
+%type<nodePtr> type_declaration
+%type<nodePtr> type_definition
+%type<nodePtr> full_type_declaration
+%type<nodePtr> enumeration_type_definition
+%type<idsPtr>  enumeration_literals
+%type<nodePtr> record_type_definition
+%type<nodePtr> record_definition
+%type<nodesPtr> component_list
+%type<nodesPtr> component_item
+%type<nodesPtr> component_declaration
+%type<qstrPtr> component_definition
+
 
 %defines 
 
@@ -301,7 +316,8 @@ name: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
              }
              |name TIC aggregate /*qualified expression*/
              {$$ = $1;}
-             |function_call /*function_call/indexed_component*/
+             /*TODO: handle references in function call*/
+             |function_call{$$=&($1->str) dealloc($1)} /*function_call/indexed_component*/
               /* A simlpification, attributes with ( expression ) can be interpreted as a subprogram call*/
 attribute_designator: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
 
@@ -319,8 +335,7 @@ package_spec:      package_spec_base
                    |doxy_comment package_spec_base
                      {$$ = s_handler->packageSpec($2, $1);}
 package_spec_base: PACKAGE IDENTIFIER IS
-                   basic_decls END
-                    IDENTIFIER
+                   basic_decls END IDENTIFIER
                       {
                        $$ = s_handler->packageSpecBase($2, $4);
                        dealloc($6);
@@ -436,7 +451,9 @@ type_declaration:   full_type_declaration|
                     /*aspect definition missing*/
 full_type_declaration: TYPE IDENTIFIER IS type_definition
                     {$$ = s_handler->full_type_declaration($2, $4);}
-type_definition: array_type_definition| record_type_definition|
+type_definition: array_type_definition
+               {type_definition($1)}
+               | record_type_definition|
                  enumeration_type_definition
                     /* access type, integer type, real type,
                     derived type, interface type*/
@@ -484,7 +501,8 @@ component_declaration: identifier_list COLON component_definition SEM
 component_definition: subtype_indication
                     |ALIASED subtype_indication /*TODO: access definition*/
                     {
-                        subtype->prepend("aliased ")
+                     QCString *subtype = $2;
+                     subtype->prepend("aliased ")
                      $$ = subtype;}
 
 variant_part:       CASE direct_name IS variant_list END CASE SEM
@@ -705,7 +723,10 @@ aggregate: array_aggregate; /*NOTE: enumaration aggregates are supported,
 array_aggregate:positional_array_aggregate|named_array_aggregate;
 positional_array_aggregate: LPAR expressions RPAR;
 expressions: expression| expression COMMA expressions;
-named_array_aggregate: LPAR array_component_assocs RPAR;
+named_array_aggregate: LPAR array_component_assocs RPAR
+                     {$2->prepend("(");
+                      $2->append(")");
+                      $$ = $2;}
 array_component_assocs: array_component_assoc
                       |array_component_assocs COMMA array_component_assoc;
 array_component_assoc: discrete_choice_list REF expression

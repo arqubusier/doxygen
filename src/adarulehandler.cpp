@@ -178,6 +178,17 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
   return params;
 }
 
+Nodes *RuleHandler::component_list(Node* item, Nodes* items)
+{
+    items->push_front(item);
+}
+
+Nodes *RuleHandler::component_list()
+{
+    return new Nodes;
+}
+
+
 /*===================== Entry Handler ========================== */
 EntryHandler::EntryHandler(EntryNode *root): RuleHandler(root) {} 
 EntryHandler::EntryHandler(Entry *root): RuleHandler(new EntryNode(*root))
@@ -305,7 +316,16 @@ Node *EntryHandler::packageBodyBase(const char* name,
   return pkg;
 }
 
-Node* full_type_declaration(char *id, Node *def)
+Node* EntryHandler::type_declaration(Expression *def)
+{
+    EntryNode *e = newEntryNode();
+    e->type = def->str;
+    e->section = VARIABLE_SEC;
+
+    return e;
+}
+
+Node* EntryHandler::full_type_declaration(char *id, Node *def)
 {
     if (def){
         EntryNode *e_def = dynamic_cast<EntryNode*>(def);
@@ -316,7 +336,7 @@ Node* full_type_declaration(char *id, Node *def)
     return def;
 }
 
-Nodes *enumeration_type_definition(Identifiers *ids)
+Nodes *EntryHandler::enumeration_type_definition(Identifiers *ids)
 {
   Nodes *nodes = new Nodes;
 
@@ -331,7 +351,49 @@ Nodes *enumeration_type_definition(Identifiers *ids)
   }
 }
 
+Node *EntryHandler::record_definition(Nodes *members)
+{
+   EntryNode* rd = newEntryNode();
+   moveUnderNode(rd, members);
+   rd->entry.section = CLASS_SEC;
+   rd->entry.type = "record";
+   return rd;
+}
 
+Node *EntryHandler::record_definition()
+{
+   EntryNode* rd = newEntryNode();
+   rd->entry.section = CLASS_SEC;
+   rd->entry.type = "record";
+   return rd;
+}
+
+Nodes *EntryHandler::component_declaration(Identifiers *ids, Expression *type,
+                             Expression *expr=NULL)
+{
+  Nodes *nodes = new Nodes;
+
+  IdentifiersIter it = ids->begin();
+  for (;it != ids->end(); ++it)
+  {
+    EntryNode *e = newEntryNode();
+    e->entry.name = it->str;
+    e->entry.type = type->str;
+    e->entry.section = Entry::VARIABLE_SEC;
+    if (expr)
+    {
+      // Default value
+      //e->entry.args = ":= " + expr->str;
+      dealloc( expr);
+    }
+    nodes->push_front(e);
+  }
+
+
+  dealloc( type);
+  dealloc( ids);
+  return nodes; 
+}
 
 EntryNode* EntryHandler::newEntryNode()
 {
@@ -452,6 +514,73 @@ Nodes *CodeHandler::objDecl(Nodes *base, Node *doc)
 }
 Nodes *CodeHandler::objDeclBase(Identifiers *ids, Expression *type,
                                 Expression *expr)
+{
+  Nodes* nodes = new Nodes;
+  CodeNode* n;
+
+  IdentifiersIter it = ids->begin();
+  for (;it != ids->end();++it)
+  {
+    /* TODO ADD TYPE */
+    n = newCodeNode(ADA_VAR, it->str, "");
+    if (expr)
+    {
+      n->refs.splice(n->refs.begin(), expr->ids);
+    }
+    nodes->push_back(n);
+  }
+
+  if (expr)
+      dealloc(expr);
+  return nodes;
+}
+
+Node* CodeHandler::type_declaration(Expression *def)
+{
+    CodeNode *e = newCodeNode(ADA_VAR, "", "");
+    e->appendRefs(def->ids);
+    
+    return e;
+}
+
+Node* CodeHandler::full_type_declaration(char *id, Node *def)
+{
+    if (def){
+        EntryNode *c_def = dynamic_cast<CodeNode*>(def);
+        c_def->name = id;
+    }
+    dealloc(id);
+
+    return def;
+}
+
+Nodes *CodeHandler::enumeration_type_definition(Identifiers *ids)
+{
+  Nodes *nodes = new Nodes;
+
+  IdentifiersIter it = refs->begin();
+  for (;it != refs->end(); ++it)
+  {
+    CodeNode *c = newCodeNode(ADA_ENUM, it->str, "");
+    nodes->push_front(e);
+  }
+}
+
+Node *CodeHandler::record_definition(Nodes *members)
+{
+   CodeNode* rd = newCodeNode(ADA_RECORD, "", "");
+   moveUnderNode(rd, members);
+   return rd;
+}
+
+Node *CodeHandler::record_definition()
+{
+   CodeNode* rd = newCodeNode(ADA_RECORD, "", "");
+   return rd;
+}
+
+Nodes *component_declaration(Identifiers *ids, Expression *type,
+                             Expression *expr=NULL)
 {
   Nodes* nodes = new Nodes;
   CodeNode* n;
