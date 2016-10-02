@@ -267,16 +267,19 @@ static RuleHandler *s_handler;
 %type<idsPtr> elsif_clause
 %type<idsPtr> if_clauses
 %type<nodePtr> type_declaration
+%type<nodesPtr> type_declarations
 %type<nodePtr> type_definition
+%type<nodesPtr> type_definitions
 %type<nodePtr> full_type_declaration
-%type<nodePtr> enumeration_type_definition
+%type<nodesPtr> full_type_declarations
+%type<nodesPtr> enumeration_type_definition
 %type<idsPtr>  enumeration_literals
 %type<nodePtr> record_type_definition
 %type<nodePtr> record_definition
 %type<nodesPtr> component_list
 %type<nodesPtr> component_item
 %type<nodesPtr> component_declaration
-%type<qstrPtr> component_definition
+%type<exprPtr> component_definition
 
 
 %defines 
@@ -317,7 +320,7 @@ name: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
              |name TIC aggregate /*qualified expression*/
              {$$ = $1;}
              /*TODO: handle references in function call*/
-             |function_call{$$=&($1->str) dealloc($1)} /*function_call/indexed_component*/
+             |function_call{$$=&($1->str); dealloc($1);} /*function_call/indexed_component*/
               /* A simlpification, attributes with ( expression ) can be interpreted as a subprogram call*/
 attribute_designator: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
 
@@ -442,31 +445,43 @@ basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
                     |basic_decls decl_item
                     {$$ = s_handler->decls($1, $2);}
 
-decl_items:         obj_decl;
+decl_items:         obj_decl| type_declarations;
 decl_item:          subprogram_decl| package_decl| type_declaration;
 
 type_declaration:   full_type_declaration|
                     doxy_comment full_type_declaration
                     {$$ = s_handler->addDoc($2, $1);}
                     /*aspect definition missing*/
+type_declarations:  full_type_declarations|
+                    doxy_comment full_type_declarations
+                    {$$ = s_handler->addDocs($2, $1);}
+
 full_type_declaration: TYPE IDENTIFIER IS type_definition
                     {$$ = s_handler->full_type_declaration($2, $4);}
+full_type_declarations: TYPE IDENTIFIER IS type_definitions
+                    {$$ = s_handler->full_type_declarations($2, $4);}
 type_definition: array_type_definition
-               {type_definition($1)}
-               | record_type_definition|
-                 enumeration_type_definition
+               {$$ = s_handler->type_definition($1);}
+               | record_type_definition
                     /* access type, integer type, real type,
                     derived type, interface type*/
+type_definitions: enumeration_type_definition
 
 enumeration_type_definition: LPAR enumeration_literals RPAR
                     {$$ = s_handler->enumeration_type_definition($2);}
 enumeration_literals: IDENTIFIER
                     {Identifiers* ids = new Identifiers;
-                     ids->push_back(*$1);
-                     delete $1;}
+                      ids->push_front(NEW_ID($1, @1));
+                      $$ = ids;
+                      dealloc($1);}
                      |IDENTIFIER COMMA enumeration_literals
-                     {ids->push_back(*$1);
-                     delete $1;}
+                    {
+                      Identifiers *ids = $3;
+                      ids->push_front(NEW_ID($1, @1));
+
+                      $$ = ids;
+                      dealloc($1);
+                    }
 record_type_definition: record_definition
                       /*TODO: add abstract record support*/
                       |ABSTRACT record_definition
@@ -492,17 +507,20 @@ component_list:     component_item
                     {$$ = s_handler->component_list();}
 component_item:     component_declaration /*TODO: aspect clasue*/
                     |doxy_comment component_declaration
-                    {$$ = s_handler->addDoc($2, $1);}
+                    {$$ = s_handler->addDocs($2, $1);}
 component_declaration: identifier_list COLON component_definition SEM
                     {$$ = s_handler->component_declaration($1, $3);}
                      | identifier_list COLON component_definition
                      ASS expression SEM /*TODO: aspect spec*/
                     {$$ = s_handler->component_declaration($1, $3, $5);}
 component_definition: subtype_indication
+                    {
+                     Expression *subtype = new Expression(*$1, NEW_ID(*$1, @1));
+                     $$ = subtype;}
                     |ALIASED subtype_indication /*TODO: access definition*/
                     {
-                     QCString *subtype = $2;
-                     subtype->prepend("aliased ")
+                     Expression *subtype = new Expression(*$2, NEW_ID(*$2, @2));
+                     subtype->str.prepend("aliased ");
                      $$ = subtype;}
 
 variant_part:       CASE direct_name IS variant_list END CASE SEM
@@ -724,8 +742,8 @@ array_aggregate:positional_array_aggregate|named_array_aggregate;
 positional_array_aggregate: LPAR expressions RPAR;
 expressions: expression| expression COMMA expressions;
 named_array_aggregate: LPAR array_component_assocs RPAR
-                     {$2->prepend("(");
-                      $2->append(")");
+                     {$2->str.prepend("(");
+                      $2->str.append(")");
                       $$ = $2;}
 array_component_assocs: array_component_assoc
                       |array_component_assocs COMMA array_component_assoc;
