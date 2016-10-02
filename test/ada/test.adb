@@ -19,26 +19,26 @@ package body Test is
             AA: Integer;
         end record;
 
-    --! \brief record b.
-    --!
-    --! more text.
---    type b is
---        record
---            B: Float;
---        end record;
---
---    --! \brief record c.
---    --!
---    --! more text.
---    type c is
---        record
---            null;
---        end record;
---
---    --! \brief record d.
---    --!
---    --! more text.
---    type d is null record;
+   --! \brief record b.
+   --!
+   --! more text.
+   type b is
+       record
+           B: Float;
+       end record;
+
+   --! \brief record c.
+   --!
+   --! more text.
+   type c is
+       record
+           null;
+       end record;
+
+   --! \brief record d.
+   --!
+   --! more text.
+   type d is null record;
 begin
     null;
 end Test;

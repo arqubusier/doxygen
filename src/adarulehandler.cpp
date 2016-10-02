@@ -180,12 +180,13 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
 
 Nodes *RuleHandler::component_list(Nodes* item, Nodes* items)
 {
-    moveNodes(item, items);
+    moveNodes(items, item);
+    return items;
 }
 
 Nodes *RuleHandler::component_list()
 {
-    return new Nodes;
+    return new Nodes();
 }
 
 
