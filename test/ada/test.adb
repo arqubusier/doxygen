@@ -39,6 +39,16 @@ package body Test is
    --!
    --! more text.
    type d is null record;
+
+   --! \brief enum e.
+   --!
+   --! more text.
+   type e is (Red, Green, Blue);
+
+   --! \brief enum e1.
+   --!
+   --! more text.
+   type e1 is (BBB);
 begin
     null;
 end Test;

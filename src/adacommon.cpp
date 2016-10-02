@@ -38,6 +38,10 @@ void EntryNode::print()
   this->entry.printTree();
 }
 
+Node *EntryNode::clone()
+{
+    return new EntryNode(*this);
+}
 /* ==================== CodeNode =====================*/
 void CodeNode::addChild(Node *child)
 {
@@ -48,6 +52,11 @@ void CodeNode::addChild(Node *child)
 void CodeNode::print()
 {
   this->print_("");
+}
+
+Node *CodeNode::clone()
+{
+    return new CodeNode(*this);
 }
 void CodeNode::print_(std::string pad)
 {

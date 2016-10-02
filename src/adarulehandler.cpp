@@ -333,18 +333,37 @@ Node* EntryHandler::full_type_declaration(char *id, Node *def)
  */
 Nodes* EntryHandler::full_type_declarations(char *id, Nodes *defs)
 {
-    EntryNode *e = newEntryNode();
-    e->entry.name = id;
-    e->entry.section = Entry::VARIABLE_SEC;
-    e->entry.type = "type enum";
-    defs->push_front(e);
+    EntryNode *en = newEntryNode();
+    en->entry.name = id;
+    en->entry.section = Entry::ENUM_SEC;
+    en->entry.type = "enum";
+
+    
+    NodesIter nit = defs->begin();
+    EntryNode *n1;
+    EntryNode *n2;
+    for(;nit != defs->end();++nit)
+    {
+        n1 = newEntryNode();
+        n2 = dynamic_cast<EntryNode*>(*nit);
+        n1->entry.name = n2->entry.name;
+        n1->entry.type = n2->entry.type;
+        n1->entry.section = n2->entry.section;
+
+        en->addChild(n1);
+    }
+
+
+    defs->push_front(en);
+
+    
     dealloc(id);
     return defs;
 }
 
 Nodes *EntryHandler::enumeration_type_definition(Identifiers *ids)
 {
-  Nodes *nodes = new Nodes;
+  Nodes *nodes = new Nodes();
 
   IdentifiersIter it = ids->begin();
   for (;it != ids->end(); ++it)
@@ -356,6 +375,7 @@ Nodes *EntryHandler::enumeration_type_definition(Identifiers *ids)
     nodes->push_front(e);
   }
 
+  dealloc(ids);
   return nodes;
 }
 
@@ -563,7 +583,16 @@ Node* CodeHandler::full_type_declaration(char *id, Node *def)
 }
 Nodes* CodeHandler::full_type_declarations(char *id, Nodes *defs)
 {
-    CodeNode *c = newCodeNode(ADA_VAR, id, "");
+    CodeNode *c = newCodeNode(ADA_ENUM, id, "");
+    
+    NodesIter nit = defs->begin();
+    Node *n;
+    for(;nit != defs->end();++nit)
+    {
+      n = *nit;
+      //c->addChild(n->clone());
+    }
+
     defs->push_front(c);
     dealloc(id);
     return defs;

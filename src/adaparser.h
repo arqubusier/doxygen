@@ -99,6 +99,7 @@ class Node
 public:
   virtual void addChild(Node *child)=0;
   virtual void print() = 0;
+  virtual Node *clone() = 0;
 };
 
 /** \brief wrapper for entity.
@@ -111,6 +112,7 @@ public:
   EntryNode(Entry &entryRef);
   virtual void addChild(Node *child);
   virtual void print();
+  virtual Node *clone();
   Entry &entry;
 };
 
@@ -135,6 +137,7 @@ public:
     const QCString &name, const QCString &name_space);
   virtual void addChild(Node *child);
   virtual void print();
+  virtual Node *clone();
   void appendRefs(Identifiers *new_refs);
 private:
   void print_(std::string pad);
