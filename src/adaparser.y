@@ -456,9 +456,9 @@ type_declarations:  full_type_declarations|
                     doxy_comment full_type_declarations
                     {$$ = s_handler->addDocs($2, $1);}
 
-full_type_declaration: TYPE IDENTIFIER IS type_definition
+full_type_declaration: TYPE IDENTIFIER IS type_definition SEM
                     {$$ = s_handler->full_type_declaration($2, $4);}
-full_type_declarations: TYPE IDENTIFIER IS type_definitions
+full_type_declarations: TYPE IDENTIFIER IS type_definitions SEM
                     {$$ = s_handler->full_type_declarations($2, $4);}
 type_definition: array_type_definition
                {$$ = s_handler->type_definition($1);}

@@ -159,6 +159,10 @@ B       [ \t]
 "procedure"     {return(PROCEDURE);}
 "function"      {return(FUNCTION);}
 "return"        {return(RETURN);}
+"type"          {return(TYPE);}
+"record"        {return(RECORD);}
+"tagged"        {return(TAGGED);}
+"abstract"      {return(ABSTRACT);}
 ")"          {return(RPAR);}
 "("          {return(LPAR);}
 "begin"          {return(BEGIN_);}

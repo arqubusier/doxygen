@@ -10,21 +10,35 @@
 --!
 --! detailed.
 package body Test is
-    --! \brief fun b.
+    --! \brief record a.
     --!
     --! more text.
-    procedure b(x:Integer) is
-    begin
-        null;
-    end b;
+    type a is
+        record
+            A: Float;
+            AA: Integer;
+        end record;
 
-    --! \brief fun a.
+    --! \brief record b.
     --!
     --! more text.
-    procedure a(y:Integer)is
-    begin
-        b(1);
-    end a;
+--    type b is
+--        record
+--            B: Float;
+--        end record;
+--
+--    --! \brief record c.
+--    --!
+--    --! more text.
+--    type c is
+--        record
+--            null;
+--        end record;
+--
+--    --! \brief record d.
+--    --!
+--    --! more text.
+--    type d is null record;
 begin
     null;
 end Test;
