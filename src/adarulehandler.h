@@ -73,7 +73,7 @@ public:
   /* \brief handle param_spec rule, does not need defintion by deriving class.
    */
   Parameters *paramSpec(Identifiers *ids,
-                              QCString *type,
+                              Expression *type,
                               QCString *mode=NULL,
                               Expression *defval=NULL);
   /**

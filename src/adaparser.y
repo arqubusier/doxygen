@@ -226,7 +226,7 @@ static RuleHandler *s_handler;
 %type<nodePtr> library_item_decl
 %type<nodePtr> library_item_body
 %type<exprPtr> obj_decl_type
-%type<qstrPtr> subtype_indication
+%type<exprPtr> subtype_indication
 %type<exprPtr> array_type_definition
 %type<paramsPtr> parameter_spec
 %type<paramsPtr> parameter_specs
@@ -241,7 +241,6 @@ static RuleHandler *s_handler;
 %type<idsPtr> statements
 %type<idsPtr> return_statement
 %type<qstrPtr> expression_sep
-%type<exprPtr> function_call
 %type<exprPtr> call_params
 %type<exprPtr> param_assoc
 %type<qstrPtr> logical
@@ -249,7 +248,7 @@ static RuleHandler *s_handler;
 %type<qstrPtr> relational
 %type<qstrPtr>literal
 %type<idsPtr> compound
-%type<qstrPtr> name
+%type<exprPtr> name
 %type<qstrPtr> attribute_designator
 %type<exprPtr> array_subtype_definitions
 %type<exprPtr> array_subtype_definition
@@ -303,29 +302,50 @@ with_clause: WITH names SEM
 use_clause: USE names SEM
 
 direct_name: IDENTIFIER; /*TODO: OPERATOR SYMBOL*/
+           /* TODO: imlement with namespaces*/
 names: name {dealloc($1);}
               |names COMMA name {dealloc($3);}
-name: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
-             |name DOT IDENTIFIER /*selected_component/explicit_reference*/
+name: IDENTIFIER {$$=new Expression($1, NEW_ID($1, @1));}
+             /*selected_component/explicit_reference*/
+             |name DOT IDENTIFIER
              {
-              QCString *name = $1;
-              name->append(".");
-              name->append($3);
+              Expression *name = $1;
+              name->str.append(".");
+              name->str.append($3);
+              name->ids.front().str = name->str;
               $$ = name;
               dealloc($3);
              }
              |name TIC attribute_designator 
              {
-              QCString *name = $1;
-              name->append("'");
-              name->append(*$3);
-              dealloc($3);
+              Expression *name = $1;
+              name->str.append("'");
+              name->str.append(*$3);
+              name->ids.front().str = name->str;
               $$ = name;
+              dealloc($3);
              }
-             |name TIC aggregate /*qualified expression*/
-             {$$ = $1;}
-             /*TODO: handle references in function call*/
-             |function_call{$$=&($1->str); dealloc($1);} /*function_call/indexed_component*/
+             /*qualified expression*/
+             |name TIC aggregate 
+             {
+              $$ = exprPair($1, $3, "'");
+             }
+             /*function call and indexed component*/
+             |name LPAR RPAR
+             {Expression *e = $1;
+              e->str.append("()");
+              e->ids.front().str = e->str;
+              $$ = e;
+              dealloc( $1);}
+             |name LPAR call_params RPAR
+             {Expression *params = $3;
+              Expression *prog = $1;
+              prog->ids.front().str += "()";
+              prog->str.append("(");
+              prog->str.append(params->str);
+              prog->str.append(")");
+              $$ = moveExprIds(prog, params);
+              }
               /* A simlpification, attributes with ( expression ) can be interpreted as a subprogram call*/
 attribute_designator: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
 
@@ -415,7 +435,7 @@ subprogram_body:  subprogram_spec IS
                   {
                     $$ = s_handler->subprogramBody($1, $3, $5);
                   }
-tail:             SEM| IDENTIFIER SEM {dealloc( $1);} /* TODO change to name */
+tail:             SEM| name SEM {dealloc( $1);} /* TODO change to name */
 
 parameters:       parameter_spec
                   | parameter_specs parameter_spec
@@ -436,7 +456,8 @@ mode:              IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
                    | IN OUT {$$ = new QCString("in out");}
 
-decls:             body {$$ = s_handler->declsBase($1);}
+decls:             body {$$ = s_handler->declsBase($1);
+                         printf("dddd\n");}
                    |decl_item {$$ = s_handler->declsBase($1);}
                    |decl_items {$$ = s_handler->declsBase($1);}
                    |decls body {$$ = s_handler->decls($1, $2);}
@@ -519,12 +540,9 @@ component_declaration: identifier_list COLON component_definition SEM
                      ASS expression SEM /*TODO: aspect spec*/
                     {$$ = s_handler->component_declaration($1, $3, $5);}
 component_definition: subtype_indication
-                    {
-                     Expression *subtype = new Expression(*$1, NEW_ID(*$1, @1));
-                     $$ = subtype;}
                     |ALIASED subtype_indication /*TODO: access definition*/
                     {
-                     Expression *subtype = new Expression(*$2, NEW_ID(*$2, @2));
+                     Expression *subtype = $2;
                      subtype->str.prepend("aliased ");
                      $$ = subtype;}
 
@@ -543,30 +561,28 @@ obj_decl_base:      identifier_list COLON
 
 /*TODO: add access type*/
 obj_decl_type:      subtype_indication
-                    {Expression *e = new Expression;
-                     e->str = *$1;
-                     e->ids.push_back(NEW_ID(*$1, @1));
-                     $$ = e;
-                     dealloc($1);}|array_type_definition
+                    |array_type_definition
 
 /*TODO: add access type*/
 array_type_definition:  ARRAY LPAR array_subtype_definitions RPAR
                     OF subtype_indication
                     {Expression *e = $3;
+                     Expression *type = $6;
                      e->str.prepend("array (");
                      e->str.append(") of ");
-                     e->str.append(*$6);
+                     e->str.append(type->str);
+                     moveExprIds(e, type);
                      $$ = e;
-                     dealloc($6);
                     }
                     |ARRAY LPAR array_subtype_definitions RPAR
                     OF ALIASED subtype_indication
                     {Expression *e = $3;
+                     Expression *type = $7;
                      e->str.prepend("array (");
                      e->str.append(") of aliased ");
-                     e->str.append(*$7);
+                     e->str.append(type->str);
+                     moveExprIds(e, type);
                      $$ = e;
-                     dealloc($7);
                     }
 
 array_subtype_definitions: array_subtype_definition
@@ -580,20 +596,12 @@ array_subtype_definitions: array_subtype_definition
                          $$ = e1;}
 array_subtype_definition:discrete_subtype
                         |subtype_indication RANGE BOX
-                        {Expression *e = new Expression;
-                         e->ids.push_back(NEW_ID(*$1, @1));
-                         e->str.append(*$1);
+                        {Expression *e = $1;
                          e->str.append(" range <>");
-                         dealloc($1);
                          $$ = e;}
                          
 discrete_subtype: range
                 |subtype_indication
-                {Expression *e = new Expression;
-                 e->ids.push_back(NEW_ID(*$1, @1));
-                 e->str.append(*$1);
-                 dealloc($1);
-                 $$ = e;}
 
 range:                  range_attribute
                         |expression DDOT expression
@@ -605,22 +613,18 @@ range:                  range_attribute
                          $$ = e1;}
 
 range_attribute:        name TIC RANGE
-                        {Expression *e = new Expression;
-                         e->ids.push_back(NEW_ID(*$1, @1));
-                         e->str.append(*$1);
+                        {Expression *e = $1;
                          e->str.append("'Range");
-                         dealloc($1);
                          $$ = e;}
                         |name TIC RANGE LPAR expression RPAR
-                        {Expression *e = $5;
-                         e->ids.push_back(NEW_ID(*$1, @1));
-                         e->str.prepend("'Range(");
-                         e->str.prepend(*$1);
-                         e->str.append(")");
-                         dealloc($1);
-                         $$ = e;}
+                        {Expression *name = $1;
+                         Expression *expr = $5;  
+                         name->str.append("'Range(");
+                         name->str.append(expr->str);
+                         name->str.append(")");
+                         moveExprIds(name, expr);
+                         $$ = name;}
                      
-                      /* move to handlers */
 identifier_list:    IDENTIFIER
                     {
                       Identifiers *ids = new Identifiers;
@@ -638,7 +642,6 @@ identifier_list:    IDENTIFIER
                       dealloc($1);
                     }
                     
-                    /* move to handlers */
 subtype_indication: name;
 
 statements: statement
@@ -687,14 +690,16 @@ loop_statement: WHILE expression LOOP statements loop_tail
               |FOR name IN discrete_subtype
                LOOP statements loop_tail
               {
+               moveExprToIds($6, $2);
                $$ =moveExprToIds($6, $4);
               }
               |FOR name IN REVERSE discrete_subtype
                LOOP statements loop_tail
               {
+               moveExprToIds($7, $2);
                $$ =moveExprToIds($7, $5);
               }
-loop_tail: END LOOP| END LOOP IDENTIFIER {dealloc($3);}
+loop_tail: END LOOP| END LOOP name {dealloc($3);}
 
 case_statement: CASE expression IS cases END CASE
               {
@@ -728,7 +733,7 @@ discrete_choice: expression
 */
 expression: primary
           |primary expression_sep primary
-primary:name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
+primary:name
         |literal {$$=new Expression(*$1); dealloc($1);}
         |RANGE {$$=new Expression(" range ");}
         |LPAR expression RPAR {
@@ -783,23 +788,6 @@ array_component_assoc: discrete_choice_list REF expression
 expression_sep: logical|operator|relational
               |ASS{$$=new QCString(" := ");}
 
-function_call:name LPAR RPAR
-             {Expression *e = new Expression;
-              Identifier call = NEW_ID(*$1, @1);
-              call.str.append("()");
-              e->ids.push_front(call);
-              $$ = e;
-              dealloc( $1);}
-             |name LPAR call_params RPAR
-             {Expression *e = $3;
-              QCString call = *$1;
-              call.append("(");
-              call.append(e->str);
-              call.append(")");
-              e->str = call;
-              e->ids.push_front(NEW_ID(call, @1));
-              $$ = e;
-              dealloc( $1);}
 call_params: param_assoc
            |param_assoc COMMA call_params
            {Expression *pa = $1;
@@ -811,11 +799,7 @@ call_params: param_assoc
             dealloc( pa);}
 param_assoc: expression
             |name REF expression
-            {Expression *e = $3;
-             e->str.append(" => ");
-             e->str.append(*$1);
-             $$ = e;
-             dealloc( $1);}
+            {$$ = exprPair($1, $3, " => ");}
 
 logical: AND {$$ =  new QCString(" AND ");}
        | OR {$$ =  new QCString(" OR ");}

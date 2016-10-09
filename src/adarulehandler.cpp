@@ -146,7 +146,7 @@ Parameters *RuleHandler::params(Parameters *params, Parameters *new_params)
 }
 
 Parameters *RuleHandler::paramSpec(Identifiers *ids,
-                              QCString *type,
+                              Expression *type,
                               QCString *mode,
                               Expression *defval)
 {
@@ -158,14 +158,13 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
     Argument *a = new Argument;
     if (mode)
       a->type = *mode;
-    a->type += " " + *type;
+    a->type += " " + type->str;
     a->name = (it->str);
     a->defval = "";
     if (defval)
       a->defval = defval->str;
     params->args->append(a);
   }
-  dealloc(type);
   if (mode)
     dealloc( mode);
 
@@ -175,6 +174,8 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
     dealloc( defval);
   }
 
+  params->refs->splice(params->refs->begin(), type->ids);
+  dealloc(type);
   return params;
 }
 
