@@ -456,8 +456,7 @@ mode:              IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
                    | IN OUT {$$ = new QCString("in out");}
 
-decls:             body {$$ = s_handler->declsBase($1);
-                         printf("dddd\n");}
+decls:             body {$$ = s_handler->declsBase($1);}
                    |decl_item {$$ = s_handler->declsBase($1);}
                    |decl_items {$$ = s_handler->declsBase($1);}
                    |decls body {$$ = s_handler->decls($1, $2);}
