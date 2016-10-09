@@ -280,6 +280,11 @@ static RuleHandler *s_handler;
 %type<nodesPtr> component_item
 %type<nodesPtr> component_declaration
 %type<exprPtr> component_definition
+%type<exprPtr> aggregate
+%type<exprPtr> array_aggregate
+%type<exprPtr> positional_array_aggregate
+%type<exprPtr> expressions
+
 
 
 %defines 
@@ -711,6 +716,7 @@ discrete_choice_list: discrete_choice
                        e1->str.append (" | ");
                        e1->str.append(e2->str);
                        moveExprIds(e1, e2);
+                       $$ = e1;
                       }
 
 discrete_choice: expression
@@ -731,24 +737,48 @@ primary:name {$$=new Expression(*$1, NEW_ID(*$1, @1));}
             e->str.append(")");
             $$ = e;
         }
-        |named_array_aggregate
-        /*NOTE: supporting positional array aggretates here causes problems
-            for instance how to interpret: arr:=(0)*/
+        |aggregate
 
-aggregate: array_aggregate; /*NOTE: enumaration aggregates are supported,
-                                but interpreted as named array aggregates*/
+ /*NOTE: enumaration- and record aggregates are supported,
+         but interpreted as named array aggregates,
+         both are a subset of the latter.*/
+aggregate: array_aggregate;
 
 array_aggregate:positional_array_aggregate|named_array_aggregate;
-positional_array_aggregate: LPAR expressions RPAR;
-expressions: expression| expression COMMA expressions;
+/*NOTE: because of ambiguity when interpreting: arr:=(0),
+        as ( expression ) or positinoal_array_aggregate?
+        It is Always interpret it as the former */
+positional_array_aggregate: LPAR expressions RPAR
+            {$2->str.prepend("(");
+             $2->str.append(")");
+             $$ = $2;}
+expressions: expression COMMA expression
+           {
+             $$ = exprPair($1, $3, ", ");
+           }
+           | expression COMMA expressions
+           {
+             $$ = exprPair($1, $3, ", ");
+           }
 named_array_aggregate: LPAR array_component_assocs RPAR
                      {$2->str.prepend("(");
                       $2->str.append(")");
                       $$ = $2;}
 array_component_assocs: array_component_assoc
-                      |array_component_assocs COMMA array_component_assoc;
+                      |array_component_assocs COMMA array_component_assoc
+                     {
+                       $$ = exprPair($1, $3, ", ");
+                     }
 array_component_assoc: discrete_choice_list REF expression
-                     | discrete_choice_list REF BOX;
+                     {
+                       $$ = exprPair($1, $3, " =>");
+                     }
+                     | discrete_choice_list REF BOX
+                     {
+                       Expression *e = $1;
+                       e->str.append (" => <>");
+                       $$ = e;
+                     }
 
 expression_sep: logical|operator|relational
               |ASS{$$=new QCString(" := ");}

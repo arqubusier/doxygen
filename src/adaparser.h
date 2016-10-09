@@ -284,6 +284,13 @@ inline Identifiers *moveIds(Identifiers *dst, Identifiers *src)
   return dst;
 }
 
+inline Expression* exprPair(Expression *e1, Expression *e2, QCString sep="")
+{
+    e1->str.append (sep);
+    e1->str.append(e2->str);
+    moveExprIds(e1, e2);
+    return e1;
+}
 
 
 inline void printNodes(Nodes* nodes)
