@@ -1,0 +1,2 @@
+alias rdoxygen=~/src/doxygen/release/bin/doxygen
+alias ddoxygen=~/src/doxygen/debug/bin/doxygen
