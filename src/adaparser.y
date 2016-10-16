@@ -301,6 +301,36 @@ context_clause: with_clause
 with_clause: WITH names SEM
 use_clause: USE names SEM
 
+null_exclusion: NOT NULL;
+
+access_prefix: ACCESS
+             |null_exclusion ACCESS
+             |ACCESS CONSTANT
+             |ACCESS PROCECTED
+             |null_exclusion ACCESS PROTECTED
+access_definition:access_prefix subtype
+                 |access_prefix parameter_profile
+                 |access_prefix parameter_and_result_profile
+
+access_type_definition:
+                      access_to_object_definition
+                      |access_to_subprogram_definition
+                      |null_exclusion access_to_object_definition
+                      |null_exclusion access_to_subprogram_definition
+general_access_mod:
+                  all
+                  |constant;
+
+access_to_object_definition:
+            ACCESS subtype
+            |ACCESS general_access_mod subtype
+access_to_subprogram_definition:
+                ACCESS procedure parameter_profile
+                ACCESS function parameter_and_result_profile
+                ACCESS PROTECTED procedure parameter_profile
+                ACCESS PROTECTED function parameter_and_result_profile;
+
+
 direct_name: IDENTIFIER; /*TODO: OPERATOR SYMBOL*/
            /* TODO: imlement with namespaces*/
 
@@ -390,26 +420,30 @@ subprogram_decl:   subprogram_spec SEM {$$ = $1;}
 subprogram_spec:   subprogram_spec_base|
                    doxy_comment subprogram_spec_base
                      {$$ = s_handler->subprogramSpec($2, $1);}
-subprogram_spec_base:  PROCEDURE IDENTIFIER
+defining_designator: IDENTIFIER
+                   |parent_unit DOT IDENTIFIER
+subprogram_spec_base:  PROCEDURE defining_designator
                    {
                      $$ = s_handler->subprogramSpecBase($2);
                    }
-                   |PROCEDURE IDENTIFIER
-                    LPAR parameters RPAR
+                   |PROCEDURE defining_designator parameter_profile
                    {
                      $$ = s_handler->subprogramSpecBase($2, $4);
                    }
-                   |FUNCTION IDENTIFIER RETURN
-                    IDENTIFIER
+                   |FUNCTION defining_designator
                    {
-                     $$ = s_handler->subprogramSpecBase($2, NULL, $4);
+                     $$ = s_handler->subprogramSpecBase($2);
                    }
-                   |FUNCTION IDENTIFIER
-                    LPAR parameters RPAR RETURN
-                    IDENTIFIER
+                   |FUNCTION defining_designator parameter_profile
                    {
-                     $$ = s_handler->subprogramSpecBase($2, $4, $7);
+                     $$ = s_handler->subprogramSpecBase($2, $4);
                    }
+
+parameter_profile: LPAR parameters RPAR;
+parameter_and_result_profile: LPAR parameters RPAR RETURN access_definition
+                            | LPAR parameters RPAR RETURN subtype
+                            | LPAR parameters RPAR RETURN null_exclusion subtype;
+
 body:              package_body| subprogram_body
 package_body:      package_body_base
                    |doxy_comment package_body_base
@@ -462,6 +496,10 @@ parameter_spec:    identifier_list COLON subtype_indication
                      {$$ = s_handler->paramSpec($1, $3, NULL, $5);}
                    |identifier_list COLON mode subtype_indication ASS expression
                      {$$ = s_handler->paramSpec($1, $4, $3, $6);}
+                   |identifier_list COLON access_definition
+                     {$$ = s_handler->paramSpec($1, $3, NULL, $5);}
+                   |identifier_list COLON access_definition ASS expression
+                     {$$ = s_handler->paramSpec($1, $4, $3, $6);}
 
 mode:              IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
@@ -499,7 +537,8 @@ full_type_declarations: TYPE IDENTIFIER IS type_definitions SEM
 type_definition: array_type_definition
                {$$ = s_handler->type_definition($1);}
                | record_type_definition
-                    /* access type, integer type, real type,
+               | access_type_definition
+                    /* integer type, real type,
                     derived type, interface type*/
 type_definitions: enumeration_type_definition
 
@@ -555,6 +594,8 @@ component_definition: subtype_indication
                      Expression *subtype = $2;
                      subtype->str.prepend("aliased ");
                      $$ = subtype;}
+                     |access_definition
+                     |ALIASED access_definition
 
 variant_part:       CASE direct_name IS variant_list END CASE SEM
 variant_list:       variant|variant variant_list;
@@ -572,6 +613,7 @@ obj_decl_base:      identifier_list COLON
 /*TODO: add access type*/
 obj_decl_type:      subtype_indication
                     |array_type_definition
+                    |access_definition
 
 /*TODO: add access type*/
 array_type_definition:  ARRAY LPAR array_subtype_definitions RPAR
