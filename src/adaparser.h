@@ -72,10 +72,9 @@ struct Parameters
   Parameters()
   {
     args = new ArgumentList;
-    refs = new Identifiers;
   }
 
-  Identifiers *refs;
+  Identifiers refs;
   ArgumentList *args;
 };
 
@@ -138,7 +137,7 @@ public:
   virtual void addChild(Node *child);
   virtual void print();
   virtual Node *clone();
-  void appendRefs(Identifiers *new_refs);
+  void appendRefs(Identifiers &new_refs);
 private:
   void print_(std::string pad);
 };

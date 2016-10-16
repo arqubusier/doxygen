@@ -567,6 +567,7 @@ array_type_definition:  ARRAY LPAR array_subtype_definitions RPAR
                     OF subtype_indication
                     {Expression *e = $3;
                      Expression *type = $6;
+                        printf("DDD\n");
                      e->str.prepend("array (");
                      e->str.append(") of ");
                      e->str.append(type->str);

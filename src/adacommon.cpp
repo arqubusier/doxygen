@@ -86,13 +86,9 @@ CodeNode::CodeNode(
 {}
 
 
-void CodeNode::appendRefs(Identifiers *new_refs)
+void CodeNode::appendRefs(Identifiers &new_refs)
 {
-  if (new_refs)
-  {
-    refs.splice(refs.begin(), *new_refs);
-    dealloc(new_refs);
-  }
+    refs.splice(refs.begin(), new_refs);
 }
 
 CodeNode::CodeNode():type(ADA_UNKNOWN), name(""), name_space("") {}
@@ -100,7 +96,6 @@ CodeNode::CodeNode():type(ADA_UNKNOWN), name(""), name_space("") {}
 /*====================== Identifer ================ */
 void Identifier::print(std::string pad)
 {
-  msg("CCCCccc\n");
   msg("%s%s @ l%d,c%d\n", pad.data(), str.data(), line, col); 
 }
 Identifier::Identifier(QCString str_, int line_, int col_)

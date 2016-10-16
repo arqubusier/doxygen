@@ -137,7 +137,8 @@ Parameters *RuleHandler::params(Parameters *params, Parameters *new_params)
 {
   if (params)
   {
-    params->refs->splice(params->refs->begin(), *(new_params->refs));
+    params->refs.splice(params->refs.begin(), (new_params->refs));
+    dealloc(new_params);
   }
   else
       params = new Parameters;
@@ -170,11 +171,11 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
 
   if (defval)
   {
-    params->refs->splice(params->refs->begin(), defval->ids);
+    params->refs.splice(params->refs.begin(), defval->ids);
     dealloc( defval);
   }
 
-  params->refs->splice(params->refs->begin(), type->ids);
+  params->refs.splice(params->refs.begin(), type->ids);
   dealloc(type);
   return params;
 }
@@ -497,7 +498,7 @@ Node* CodeHandler::subprogramSpecBase(const char* name,
   if (params)
   {
     fun->appendRefs(params->refs);
-    dealloc( params);
+    dealloc(params);
   }
 
   return fun;
@@ -516,7 +517,8 @@ Node* CodeHandler::subprogramBody(Node *base,
   if (refs)
   {
     CodeNode *base_code = dynamic_cast<CodeNode*>(base);
-    base_code->appendRefs(refs);
+    base_code->appendRefs(*refs);
+    dealloc(refs);
   }
   return base;
 }
@@ -535,8 +537,8 @@ Node* CodeHandler::packageBodyBase(
   }
 
   if (refs)
-    pkg->appendRefs(refs);
-
+    pkg->appendRefs(*refs);
+    dealloc(refs);
   return pkg;
 }
 
@@ -658,7 +660,9 @@ void addObjRefsToParent(Node* parent, Nodes* decls)
   {
     cn = dynamic_cast<CodeNode*>(*nit);
     if (cn->type == ADA_VAR && &cn->refs && !cn->refs.empty())
-      parentCode->appendRefs(&cn->refs);
+    {
+      parentCode->appendRefs(cn->refs);
+    }
   }
 }
 
@@ -672,7 +676,7 @@ CodeNode *CodeHandler::newCodeNode(
 Node* CodeHandler::type_definition(Expression *def)
 {
   CodeNode *c = new CodeNode(ADA_VAR, "", "");
-  c->appendRefs(&def->ids);
+  c->appendRefs(def->ids);
   dealloc(def);
   return c;
 }
