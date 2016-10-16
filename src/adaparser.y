@@ -303,6 +303,7 @@ use_clause: USE names SEM
 
 direct_name: IDENTIFIER; /*TODO: OPERATOR SYMBOL*/
            /* TODO: imlement with namespaces*/
+
 names: name {dealloc($1);}
               |names COMMA name {dealloc($3);}
 name: IDENTIFIER {$$=new Expression($1, NEW_ID($1, @1));}
@@ -346,6 +347,16 @@ name: IDENTIFIER {$$=new Expression($1, NEW_ID($1, @1));}
               prog->str.append(")");
               $$ = moveExprIds(prog, params);
               }
+              /*slice. NOTE: slices using subtype_indication currently interpreted as subprogram calls*/
+            |name LPAR range RPAR
+             {Expression *range = $3;
+              Expression *name = $1;
+              name->str.append("(");
+              name->str.append(range->str);
+              name->str.append(")");
+              $$ = moveExprIds(name, range);
+              }
+
               /* A simlpification, attributes with ( expression ) can be interpreted as a subprogram call*/
 attribute_designator: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
 
