@@ -240,7 +240,7 @@ const Entries& getStructDoxyComments();
 
 
 /*
- * Helper functions used by the Adascanner and Ada parser.
+ * Helper functions used by the Ada scanner and Ada parser.
  */
 
 

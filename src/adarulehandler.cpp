@@ -243,8 +243,8 @@ Node *EntryHandler::packageSpecBase(const char* name, Nodes *publics,
 } 
 
 
-Node* EntryHandler::subprogramSpecBase(const char* name,
-                        Parameters *params, const char *type)
+Node* EntryHandler::subprogramSpecBase(QCString *name,
+                        Parameters *params)
 {
   EntryNode *fun = newEntryNode();
   fun->entry.name = name;
@@ -255,11 +255,12 @@ Node* EntryHandler::subprogramSpecBase(const char* name,
     fun->entry.argList = params->args;
     fun->entry.args = adaArgListToString(*params->args);
     dealloc( params);
-  }
-  if (type)
-  {
-    fun->entry.type = type;
-    dealloc( type);
+
+    if (params->type)
+    {
+      fun->entry.type = params->type->str;
+      dealloc( type);
+    }
   }
   fun->entry.section = Entry::FUNCTION_SEC;
   return fun;
@@ -490,8 +491,8 @@ Node* CodeHandler::subprogramSpec(Node *base, Node* doc)
   return base;
 }
 
-Node* CodeHandler::subprogramSpecBase(const char* name,
-                        Parameters *params, const char *type)
+Node* CodeHandler::subprogramSpecBase(QCString *name,
+                        Parameters *params)
 {
   /* TODO handle type */
   CodeNode *fun = newCodeNode(ADA_SUBPROG, name, "");

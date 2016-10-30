@@ -35,7 +35,7 @@ public:
             Nodes *privates=NULL) = 0;
   virtual Node* subprogramSpec(Node *base, Node* doc=NULL) = 0;
   virtual Node* subprogramSpecBase(const char* name,
-                          Parameters *params=NULL, const char *type=NULL) = 0;
+                          Parameters *params=NULL) = 0;
   virtual Node* subprogramBody(Node *base, 
                                Nodes *decls=NULL,
                                Identifiers *refs=NULL) = 0;
@@ -51,6 +51,10 @@ public:
   virtual Node* type_definition(Expression *def) = 0;
   virtual Node* full_type_declaration(char *id, Node *def) = 0;
   virtual Nodes* full_type_declarations(char *id, Nodes *defs) = 0;
+  virtual Node *accessToObjectDefinition(Expression *name);
+  virtual Node *accessToObjectProtectedDefinition(Expression *name);
+  virtual Node *accessToSubprogramDefinition(Parameters *params);
+  virtual Node *accessToSubprogramProtectedDefinition(Parameters *params);
   virtual Nodes *enumeration_type_definition(Identifiers *ids) = 0;
   virtual Node *record_definition(Nodes *members) = 0;
   virtual Node *record_definition() = 0;
@@ -122,7 +126,7 @@ public:
     return base;
   }
   virtual Node* subprogramSpecBase(const char* name,
-                          Parameters *params=NULL, const char *type=NULL);
+                          Parameters *params=NULL);
   virtual Node* packageBody(Node *base, Node* doc=NULL)
   {
     addDocToEntry(doc, base);
@@ -189,7 +193,7 @@ public:
             Nodes *privates=NULL);
   virtual Node* subprogramSpec(Node *base, Node* doc=NULL);
   virtual Node* subprogramSpecBase(const char* name,
-                          Parameters *params=NULL, const char *type=NULL);
+                          Parameters *params=NULL);
   virtual Node* subprogramBody(Node *base,
                                Nodes *decls=NULL,
                                Identifiers *ids=NULL);

@@ -283,9 +283,10 @@ static RuleHandler *s_handler;
 %type<exprPtr> array_aggregate
 %type<exprPtr> positional_array_aggregate
 %type<exprPtr> expressions
-
-
-
+%type<qstrPtr> access_prefix
+%type<paramsPtr> parameter_and_result_profile
+%type<paramsPtr> parameter_profile
+%type<qstrPtr> defining_designator
 %defines 
 
 %%
@@ -304,31 +305,62 @@ use_clause: USE names SEM
 null_exclusion: NOT NULL;
 
 access_prefix: ACCESS
+             {$$ = new QCString("access");}
              |null_exclusion ACCESS
+             {$$ = new QCString("Not null access");}
              |ACCESS CONSTANT
+             {$$ = new QCString("access constant");}
              |ACCESS PROCECTED
+             {$$ = new QCString("access protected");}
              |null_exclusion ACCESS PROTECTED
+             {$$ = new QCString("not null access protected");}
 access_definition:access_prefix subtype
+                 {Expression *e = $2;
+                  e->str.prepend($1);
+                  dealloc($1);
+                  $$ = e;}
                  |access_prefix parameter_profile
+                 {Parameters *p = $2;
+                  Expression *e = new Expression(*$1);
+                  e->str.append(adaArgListToString(*p));
+                  e->ids.splice(e->ids.begin(), *p->refs)
+                  dealloc($1);
+                  dealloc(p);
+                  $$ = e;}
                  |access_prefix parameter_and_result_profile
-
+                 {Parameters *p = $2;
+                  Expression *e = new Expression(*$1);
+                  e->str.append(adaArgListToString(*p));
+                  e->ids.splice(e->ids.begin(), *p->refs)
+                  dealloc($1);
+                  dealloc(p);
+                  $$ = e;}
 access_type_definition:
                       access_to_object_definition
                       |access_to_subprogram_definition
                       |null_exclusion access_to_object_definition
+                      {$$=$2;}
                       |null_exclusion access_to_subprogram_definition
+                      {$$=$2;}
 general_access_mod:
-                  all
-                  |constant;
+                  ALL
+                  |CONSTANT;
 
 access_to_object_definition:
             ACCESS subtype
+            {$$ = s_handler->accessToObjectDefinition($2);}
             |ACCESS general_access_mod subtype
+            {$$ = s_handler->accessToObjectDefinition($2, $3);}
+
 access_to_subprogram_definition:
                 ACCESS procedure parameter_profile
+                {$$ = s_handler->accessToObjectDefinition($3);}
                 ACCESS function parameter_and_result_profile
+                {$$ = s_handler->accessToSubprogramDefinition($3);}
                 ACCESS PROTECTED procedure parameter_profile
-                ACCESS PROTECTED function parameter_and_result_profile;
+                {$$ = s_handler->accessToSubprogramProtectedDefinition($3);}
+                ACCESS PROTECTED function parameter_and_result_profile
+                {$$ = s_handler->accessToSubprogramProtectedDefinition($3);}
 
 
 direct_name: IDENTIFIER; /*TODO: OPERATOR SYMBOL*/
@@ -421,7 +453,13 @@ subprogram_spec:   subprogram_spec_base|
                    doxy_comment subprogram_spec_base
                      {$$ = s_handler->subprogramSpec($2, $1);}
 defining_designator: IDENTIFIER
+                   {$$ = new QCString($1); dealloc($1);}
                    |parent_unit DOT IDENTIFIER
+                   {QCString *str = $1;
+                   str.append(".");
+                   str.append($3);
+                   dealloc($3);
+                   }
 subprogram_spec_base:  PROCEDURE defining_designator
                    {
                      $$ = s_handler->subprogramSpecBase($2);
@@ -434,15 +472,28 @@ subprogram_spec_base:  PROCEDURE defining_designator
                    {
                      $$ = s_handler->subprogramSpecBase($2);
                    }
-                   |FUNCTION defining_designator parameter_profile
+                   |FUNCTION defining_designator parameter_and_result_profile
                    {
                      $$ = s_handler->subprogramSpecBase($2, $4);
                    }
 
-parameter_profile: LPAR parameters RPAR;
+parameter_profile: LPAR parameters RPAR {$$ = $2;}
+/* NOTE: The return type is placed first among the references */
 parameter_and_result_profile: LPAR parameters RPAR RETURN access_definition
+                            {Parameters *p = $2;
+                             p->type = $5;
+                             dealloc($5);
+                             $$ = p;}
                             | LPAR parameters RPAR RETURN subtype
-                            | LPAR parameters RPAR RETURN null_exclusion subtype;
+                            {Parameters *p = $2;
+                             p->type = $5;
+                             dealloc($5);
+                             $$ = p;}
+                            | LPAR parameters RPAR RETURN null_exclusion subtype
+                            {Parameters *p = $2;
+                             p->type = $6;
+                             dealloc($6);
+                             $$ = p;}
 
 body:              package_body| subprogram_body
 package_body:      package_body_base
@@ -596,6 +647,10 @@ component_definition: subtype_indication
                      $$ = subtype;}
                      |access_definition
                      |ALIASED access_definition
+                    {
+                     Expression *subtype = $2;
+                     subtype->str.prepend("aliased ");
+                     $$ = subtype;}
 
 variant_part:       CASE direct_name IS variant_list END CASE SEM
 variant_list:       variant|variant variant_list;
@@ -610,12 +665,10 @@ obj_decl_base:      identifier_list COLON
                     |identifier_list COLON obj_decl_type SEM
                     {$$ = s_handler->objDeclBase($1, $3);}
 
-/*TODO: add access type*/
 obj_decl_type:      subtype_indication
                     |array_type_definition
                     |access_definition
 
-/*TODO: add access type*/
 array_type_definition:  ARRAY LPAR array_subtype_definitions RPAR
                     OF subtype_indication
                     {Expression *e = $3;
@@ -878,7 +931,6 @@ operator: ADD {$$ =  new QCString(" + ");}
         | EXP {$$ =  new QCString(" ** ");}
         | ABS {$$ =  new QCString(" ABS ");}
         | NOT {$$ =  new QCString(" NOT ");}
-/* constraint: ;*/
                     
 %%
 
