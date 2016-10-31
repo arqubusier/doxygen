@@ -30,6 +30,8 @@
 #include "entry.h"
 
 
+template<typename T>
+void dealloc(T*& memPtr);
 
 
 /** \brief A struct representing an Identifier (for members, functions,
@@ -72,10 +74,17 @@ struct Parameters
   Parameters()
   {
     args = new ArgumentList;
+    type = NULL;
+  }
+
+  ~Parameters()
+  {
+    dealloc(type);
   }
 
   Identifiers refs;
   ArgumentList *args;
+  Expression *type;
 };
 
 enum NodeType
@@ -243,6 +252,8 @@ const Entries& getStructDoxyComments();
  * Helper functions used by the Ada scanner and Ada parser.
  */
 
+
+QCString adaArgListToString(const ArgumentList &args);
 
 void initEntry (Entry &e, Entry *parent=NULL, Protection prot=Public,
                 MethodTypes mtype=Method, bool stat=false,

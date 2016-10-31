@@ -25,58 +25,22 @@
 #include "types.h"
 #include "util.h"
 
-QCString adaArgListToString(const ArgumentList &args);
 
 /*===================== Helper Functions ====================== */
-QCString adaArgListToString(const ArgumentList &args)
+
+void addObjRefsToParent(Node* parent, Nodes* decls)
 {
-  QCString res = "()";
-  if (args.isEmpty())
-    return res;
-  res = "(";
-
-  Argument *arg;
-  ArgumentListIterator it(args);
-  it.toFirst();
-  arg=it.current();
-  res += arg->name;
-  res += " ";
-  QCString prev_type = arg->type;
-  QCString defval = "";
-  ++it;
-  
-  for (; (arg=it.current()); ++it )
+  NodesIter nit = decls->begin();
+  CodeNode *parentCode = dynamic_cast<CodeNode*>(parent);
+  CodeNode *cn;
+  for(;nit != decls->end();++nit)
   {
-    QCString type = arg->type;
-    defval = arg->defval;
-    if (type == prev_type) 
+    cn = dynamic_cast<CodeNode*>(*nit);
+    if (cn->type == ADA_VAR && &cn->refs && !cn->refs.empty())
     {
-      res += ", ";
-      res += arg->name;
-    }
-    else 
-    {
-      res += ": ";
-      res += prev_type;
-      if (!defval.isEmpty())
-      {
-        res += " := ";
-        res += defval;
-      }
-      res += ";\n";
-      res += arg->name;
-      prev_type = type;
+      parentCode->appendRefs(cn->refs);
     }
   }
-  res += ": ";
-  res += prev_type;
-  if (!defval.isEmpty())
-  {
-    res += " := ";
-    res += defval;
-  }
-  res += ")";
-
 }
 
 /*===================== Rule Handler ========================== */
@@ -137,11 +101,24 @@ Parameters *RuleHandler::params(Parameters *params, Parameters *new_params)
 {
   if (params)
   {
-    params->refs.splice(params->refs.begin(), (new_params->refs));
-    dealloc(new_params);
+    if (new_params)
+    {
+      params->refs.splice(params->refs.begin(), (new_params->refs));
+      Argument *arg;
+      ArgumentListIterator it(*(new_params->args));
+      it.toFirst();
+      for (; (arg=it.current()); ++it )
+      {
+          params->args->append(arg);
+      }
+
+      dealloc(new_params);
+    }
   }
   else
+  {
       params = new Parameters;
+  }
 
   return params;
 }
@@ -158,16 +135,21 @@ Parameters *RuleHandler::paramSpec(Identifiers *ids,
   {
     Argument *a = new Argument;
     if (mode)
+    {
       a->type = *mode;
+    }
     a->type += " " + type->str;
     a->name = (it->str);
     a->defval = "";
-    if (defval)
+    if (defval){
       a->defval = defval->str;
+    }
     params->args->append(a);
   }
   if (mode)
+  {
     dealloc( mode);
+  }
 
   if (defval)
   {
@@ -247,20 +229,21 @@ Node* EntryHandler::subprogramSpecBase(QCString *name,
                         Parameters *params)
 {
   EntryNode *fun = newEntryNode();
-  fun->entry.name = name;
+  fun->entry.name = *name;
   dealloc( name);
 
   if (params)
   {
     fun->entry.argList = params->args;
     fun->entry.args = adaArgListToString(*params->args);
-    dealloc( params);
 
     if (params->type)
     {
       fun->entry.type = params->type->str;
-      dealloc( type);
     }
+        printf("ccc\n");
+    dealloc( params);
+        printf("ddd\n");
   }
   fun->entry.section = Entry::FUNCTION_SEC;
   return fun;
@@ -455,8 +438,61 @@ Node* EntryHandler::type_definition(Expression *def)
 {
     EntryNode *e = newEntryNode();
     e->entry.type = def->str;
+    e->entry.section = Entry::VARIABLE_SEC;
 
     dealloc(def);
+    return e;
+}
+
+Node *EntryHandler::accessToObjectDefinition(Expression *name,
+                                        QCString *access_mod)
+{
+    EntryNode *e = newEntryNode();
+    e->entry.type = name->str;
+    if (access_mod)
+    {
+        e->entry.type.prepend(*access_mod);
+        dealloc(access_mod);
+    }
+    e->entry.section = Entry::VARIABLE_SEC;
+
+    dealloc(name);
+    return e;
+}
+
+Node *EntryHandler::accessToFunctionDefinition(Parameters *params,
+                                  bool is_protected)
+{
+    EntryNode *e = newEntryNode();
+    e->entry.type = adaArgListToString(*params->args);
+    e->entry.type.prepend("access function ");
+    e->entry.type.append(" return ");
+    e->entry.type.append(params->type->str);
+
+    if (is_protected)
+    {
+        e->entry.type.prepend("protected ");
+    }
+    e->entry.section = Entry::VARIABLE_SEC;
+
+    dealloc(params);
+    return e;
+}
+
+Node *EntryHandler::accessToProcedureDefinition(Parameters *params,
+                                  bool is_protected)
+{
+    EntryNode *e = newEntryNode();
+    e->entry.type = adaArgListToString(*params->args);
+    e->entry.type.prepend("access function ");
+
+    if (is_protected)
+    {
+        e->entry.type.prepend("protected ");
+    }
+    e->entry.section = Entry::VARIABLE_SEC;
+
+    dealloc(params);
     return e;
 }
 /*===================== Code Handler ========================== */
@@ -495,7 +531,7 @@ Node* CodeHandler::subprogramSpecBase(QCString *name,
                         Parameters *params)
 {
   /* TODO handle type */
-  CodeNode *fun = newCodeNode(ADA_SUBPROG, name, "");
+  CodeNode *fun = newCodeNode(ADA_SUBPROG, *name, "");
   if (params)
   {
     fun->appendRefs(params->refs);
@@ -652,21 +688,6 @@ Nodes *CodeHandler::component_declaration(Identifiers *ids, Expression *type,
   return nodes;
 }
 
-void addObjRefsToParent(Node* parent, Nodes* decls)
-{
-  NodesIter nit = decls->begin();
-  CodeNode *parentCode = dynamic_cast<CodeNode*>(parent);
-  CodeNode *cn;
-  for(;nit != decls->end();++nit)
-  {
-    cn = dynamic_cast<CodeNode*>(*nit);
-    if (cn->type == ADA_VAR && &cn->refs && !cn->refs.empty())
-    {
-      parentCode->appendRefs(cn->refs);
-    }
-  }
-}
-
 CodeNode *CodeHandler::newCodeNode(
     NodeType type,
     const QCString &name, const QCString &name_space)
@@ -679,5 +700,33 @@ Node* CodeHandler::type_definition(Expression *def)
   CodeNode *c = new CodeNode(ADA_VAR, "", "");
   c->appendRefs(def->ids);
   dealloc(def);
+  return c;
+}
+
+Node *CodeHandler::accessToObjectDefinition(Expression *name,
+                                        QCString *access_mod)
+{
+  CodeNode *c = new CodeNode(ADA_VAR, "", "");
+  c->appendRefs(name->ids);
+  dealloc(name);
+  return c;
+}
+
+Node *CodeHandler::accessToFunctionDefinition(Parameters *params,
+                                  bool is_protected)
+{
+  CodeNode *c = new CodeNode(ADA_SUBPROG, "", "");
+  c->appendRefs(params->refs);
+  c->appendRefs(params->type->ids);
+  dealloc(params);
+  return c;
+}
+
+Node *CodeHandler::accessToProcedureDefinition(Parameters *params,
+                                  bool is_protected)
+{
+  CodeNode *c = new CodeNode(ADA_SUBPROG, "", "");
+  c->appendRefs(params->refs);
+  dealloc(params);
   return c;
 }

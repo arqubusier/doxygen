@@ -98,6 +98,7 @@ B       [ \t]
 {INTEGER}         {TEXT_TO_QSTR; return(INTEGER);}
 {DECIMAL_LITERAL} {TEXT_TO_QSTR; return(DECIMAL_LITERAL);}
 {BASED_LITERAL}   {TEXT_TO_QSTR; return(BASED_LITERAL);}
+"access"        return(ACCESS);
 "true"          {return(True);}
 "false"          {return(False);}
 "|"             {return(PIPE);}
@@ -149,9 +150,12 @@ B       [ \t]
 ";"             return(SEM);
 ","             return(COMMA);
 ":"             {return(COLON);}
+"all"           return(ALL);
+"constant"      return(CONSTANT);
 "package"{B}*"body"  {return(PACKAGE_BODY);}
 "package"  {return(PACKAGE);}
 "private"       {return(PRIVATE);}
+"protected"       {return(PROTECTED_);}
 "is"            {return(IS);}
 "end"           {return(END);}
 "in"            {return(IN);}

@@ -137,7 +137,7 @@ static RuleHandler *s_handler;
 %token PRAGMA
 %token PRIVATE
 %token PROCEDURE
-%token PROTECTED // ADA 95
+%token PROTECTED_ // ADA 95
 %token RAISE
 %token RANGE
 %token RECORD
@@ -284,9 +284,15 @@ static RuleHandler *s_handler;
 %type<exprPtr> positional_array_aggregate
 %type<exprPtr> expressions
 %type<qstrPtr> access_prefix
+%type<qstrPtr> general_access_mod
 %type<paramsPtr> parameter_and_result_profile
 %type<paramsPtr> parameter_profile
 %type<qstrPtr> defining_designator
+%type<exprPtr> access_definition
+%type<nodePtr> access_type_definition
+%type<nodePtr> access_to_object_definition
+%type<nodePtr> access_to_subprogram_definition
+
 %defines 
 
 %%
@@ -302,7 +308,7 @@ context_clause: with_clause
 with_clause: WITH names SEM
 use_clause: USE names SEM
 
-null_exclusion: NOT NULL;
+null_exclusion: NOT Null;
 
 access_prefix: ACCESS
              {$$ = new QCString("access");}
@@ -310,28 +316,28 @@ access_prefix: ACCESS
              {$$ = new QCString("Not null access");}
              |ACCESS CONSTANT
              {$$ = new QCString("access constant");}
-             |ACCESS PROCECTED
+             |ACCESS PROTECTED_
              {$$ = new QCString("access protected");}
-             |null_exclusion ACCESS PROTECTED
+             |null_exclusion ACCESS PROTECTED_
              {$$ = new QCString("not null access protected");}
-access_definition:access_prefix subtype
+access_definition:access_prefix subtype_indication
                  {Expression *e = $2;
-                  e->str.prepend($1);
+                  e->str.prepend(*$1);
                   dealloc($1);
                   $$ = e;}
                  |access_prefix parameter_profile
                  {Parameters *p = $2;
                   Expression *e = new Expression(*$1);
-                  e->str.append(adaArgListToString(*p));
-                  e->ids.splice(e->ids.begin(), *p->refs)
+                  e->str.append(adaArgListToString(*(p->args)));
+                  e->ids.splice(e->ids.begin(), p->refs);
                   dealloc($1);
                   dealloc(p);
                   $$ = e;}
                  |access_prefix parameter_and_result_profile
                  {Parameters *p = $2;
                   Expression *e = new Expression(*$1);
-                  e->str.append(adaArgListToString(*p));
-                  e->ids.splice(e->ids.begin(), *p->refs)
+                  e->str.append(adaArgListToString(*(p->args)));
+                  e->ids.splice(e->ids.begin(), p->refs);
                   dealloc($1);
                   dealloc(p);
                   $$ = e;}
@@ -343,24 +349,24 @@ access_type_definition:
                       |null_exclusion access_to_subprogram_definition
                       {$$=$2;}
 general_access_mod:
-                  ALL
-                  |CONSTANT;
+                  ALL {$$ = new QCString("all");}
+                  |CONSTANT {$$ = new QCString("constant");}
 
 access_to_object_definition:
-            ACCESS subtype
+            ACCESS subtype_indication
             {$$ = s_handler->accessToObjectDefinition($2);}
-            |ACCESS general_access_mod subtype
-            {$$ = s_handler->accessToObjectDefinition($2, $3);}
+            |ACCESS general_access_mod subtype_indication
+            {$$ = s_handler->accessToObjectDefinition($3, $2);}
 
 access_to_subprogram_definition:
-                ACCESS procedure parameter_profile
-                {$$ = s_handler->accessToObjectDefinition($3);}
-                ACCESS function parameter_and_result_profile
-                {$$ = s_handler->accessToSubprogramDefinition($3);}
-                ACCESS PROTECTED procedure parameter_profile
-                {$$ = s_handler->accessToSubprogramProtectedDefinition($3);}
-                ACCESS PROTECTED function parameter_and_result_profile
-                {$$ = s_handler->accessToSubprogramProtectedDefinition($3);}
+                ACCESS PROCEDURE parameter_profile
+                {$$ = s_handler->accessToProcedureDefinition($3);}
+                |ACCESS FUNCTION parameter_and_result_profile
+                {$$ = s_handler->accessToFunctionDefinition($3);}
+                |ACCESS PROTECTED_ PROCEDURE parameter_profile
+                {$$ = s_handler->accessToProcedureDefinition($4, true);}
+                |ACCESS PROTECTED_ FUNCTION parameter_and_result_profile
+                {$$ = s_handler->accessToFunctionDefinition($4, true);}
 
 
 direct_name: IDENTIFIER; /*TODO: OPERATOR SYMBOL*/
@@ -454,11 +460,12 @@ subprogram_spec:   subprogram_spec_base|
                      {$$ = s_handler->subprogramSpec($2, $1);}
 defining_designator: IDENTIFIER
                    {$$ = new QCString($1); dealloc($1);}
-                   |parent_unit DOT IDENTIFIER
+                   |defining_designator DOT IDENTIFIER
                    {QCString *str = $1;
-                   str.append(".");
-                   str.append($3);
+                   str->append(".");
+                   str->append($3);
                    dealloc($3);
+                   $$ = str;
                    }
 subprogram_spec_base:  PROCEDURE defining_designator
                    {
@@ -466,7 +473,7 @@ subprogram_spec_base:  PROCEDURE defining_designator
                    }
                    |PROCEDURE defining_designator parameter_profile
                    {
-                     $$ = s_handler->subprogramSpecBase($2, $4);
+                     $$ = s_handler->subprogramSpecBase($2, $3);
                    }
                    |FUNCTION defining_designator
                    {
@@ -474,25 +481,21 @@ subprogram_spec_base:  PROCEDURE defining_designator
                    }
                    |FUNCTION defining_designator parameter_and_result_profile
                    {
-                     $$ = s_handler->subprogramSpecBase($2, $4);
+                     $$ = s_handler->subprogramSpecBase($2, $3);
                    }
 
 parameter_profile: LPAR parameters RPAR {$$ = $2;}
-/* NOTE: The return type is placed first among the references */
 parameter_and_result_profile: LPAR parameters RPAR RETURN access_definition
                             {Parameters *p = $2;
                              p->type = $5;
-                             dealloc($5);
                              $$ = p;}
-                            | LPAR parameters RPAR RETURN subtype
+                            | LPAR parameters RPAR RETURN subtype_indication
                             {Parameters *p = $2;
                              p->type = $5;
-                             dealloc($5);
                              $$ = p;}
-                            | LPAR parameters RPAR RETURN null_exclusion subtype
+                            | LPAR parameters RPAR RETURN null_exclusion subtype_indication
                             {Parameters *p = $2;
                              p->type = $6;
-                             dealloc($6);
                              $$ = p;}
 
 body:              package_body| subprogram_body
@@ -533,12 +536,10 @@ subprogram_body:  subprogram_spec IS
                   }
 tail:             SEM| name SEM {dealloc( $1);} /* TODO change to name */
 
-parameters:       parameter_spec
-                  | parameter_specs parameter_spec
-                   {$$ = s_handler->params($1, $2);}
-parameter_specs:  parameter_spec SEM {$$ = $1;}
-                  |parameter_specs parameter_spec SEM
-                   {$$ = s_handler->params($1, $2);}
+parameters:       parameter_specs
+parameter_specs:  parameter_spec {$$ = $1;}
+                  |parameter_specs SEM parameter_spec
+                   {$$ = s_handler->params($1, $3);}
 parameter_spec:    identifier_list COLON subtype_indication
                      {$$ = s_handler->paramSpec($1, $3);}
                    |identifier_list COLON mode subtype_indication
@@ -548,9 +549,9 @@ parameter_spec:    identifier_list COLON subtype_indication
                    |identifier_list COLON mode subtype_indication ASS expression
                      {$$ = s_handler->paramSpec($1, $4, $3, $6);}
                    |identifier_list COLON access_definition
-                     {$$ = s_handler->paramSpec($1, $3, NULL, $5);}
+                     {$$ = s_handler->paramSpec($1, $3);}
                    |identifier_list COLON access_definition ASS expression
-                     {$$ = s_handler->paramSpec($1, $4, $3, $6);}
+                     {$$ = s_handler->paramSpec($1, $3, NULL, $5);}
 
 mode:              IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
@@ -581,6 +582,7 @@ type_declarations:  full_type_declarations|
                     doxy_comment full_type_declarations
                     {$$ = s_handler->addDocs($2, $1);}
 
+/*TODO add discriminant part*/
 full_type_declaration: TYPE IDENTIFIER IS type_definition SEM
                     {$$ = s_handler->full_type_declaration($2, $4);}
 full_type_declarations: TYPE IDENTIFIER IS type_definitions SEM

@@ -34,7 +34,7 @@ public:
             Nodes *publics=NULL,
             Nodes *privates=NULL) = 0;
   virtual Node* subprogramSpec(Node *base, Node* doc=NULL) = 0;
-  virtual Node* subprogramSpecBase(const char* name,
+  virtual Node* subprogramSpecBase(QCString* name,
                           Parameters *params=NULL) = 0;
   virtual Node* subprogramBody(Node *base, 
                                Nodes *decls=NULL,
@@ -51,10 +51,12 @@ public:
   virtual Node* type_definition(Expression *def) = 0;
   virtual Node* full_type_declaration(char *id, Node *def) = 0;
   virtual Nodes* full_type_declarations(char *id, Nodes *defs) = 0;
-  virtual Node *accessToObjectDefinition(Expression *name);
-  virtual Node *accessToObjectProtectedDefinition(Expression *name);
-  virtual Node *accessToSubprogramDefinition(Parameters *params);
-  virtual Node *accessToSubprogramProtectedDefinition(Parameters *params);
+  virtual Node *accessToObjectDefinition(Expression *name,
+                                        QCString *access_mod=NULL) = 0;
+  virtual Node *accessToFunctionDefinition(Parameters *params,
+                                            bool is_protected=false) = 0;
+  virtual Node *accessToProcedureDefinition(Parameters *params,
+                                            bool is_protected=false) = 0;
   virtual Nodes *enumeration_type_definition(Identifiers *ids) = 0;
   virtual Node *record_definition(Nodes *members) = 0;
   virtual Node *record_definition() = 0;
@@ -125,7 +127,7 @@ public:
     addDocToEntry(doc, base);
     return base;
   }
-  virtual Node* subprogramSpecBase(const char* name,
+  virtual Node* subprogramSpecBase(QCString* name,
                           Parameters *params=NULL);
   virtual Node* packageBody(Node *base, Node* doc=NULL)
   {
@@ -162,6 +164,13 @@ public:
                              Expression *expr=NULL);
   virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
                              Expression *expr=NULL);
+
+  virtual Node *accessToObjectDefinition(Expression *name,
+                                        QCString *access_mod=NULL);
+  virtual Node *accessToFunctionDefinition(Parameters *params,
+                                            bool is_protected=false);
+  virtual Node *accessToProcedureDefinition(Parameters *params,
+                                            bool is_protected=false);
 private:
   void addDocToEntry(Node *doc, Node *base);
   void addDocToEntries(Node *doc, Nodes *base);
@@ -192,7 +201,7 @@ public:
             Nodes *publics=NULL,
             Nodes *privates=NULL);
   virtual Node* subprogramSpec(Node *base, Node* doc=NULL);
-  virtual Node* subprogramSpecBase(const char* name,
+  virtual Node* subprogramSpecBase(QCString* name,
                           Parameters *params=NULL);
   virtual Node* subprogramBody(Node *base,
                                Nodes *decls=NULL,
@@ -221,4 +230,10 @@ public:
   virtual Nodes *component_declaration(Identifiers *ids, Expression *type,
                              Expression *expr=NULL);
   virtual Node* type_definition(Expression *def);
+  virtual Node *accessToObjectDefinition(Expression *name,
+                                        QCString *access_mod=NULL);
+  virtual Node *accessToFunctionDefinition(Parameters *params,
+                                            bool is_protected=false);
+  virtual Node *accessToProcedureDefinition(Parameters *params,
+                                            bool is_protected=false);
 };

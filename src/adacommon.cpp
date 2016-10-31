@@ -124,3 +124,55 @@ void printIds(Identifiers *ids, std::string pad)
     printf("Identifiers empty\n");
 }
 
+
+QCString adaArgListToString(const ArgumentList &args)
+{
+  QCString res = "()";
+  if (args.isEmpty())
+    return res;
+  res = "(";
+
+  Argument *arg;
+  ArgumentListIterator it(args);
+  it.toFirst();
+  arg=it.current();
+  res += arg->name;
+  res += " ";
+  QCString prev_type = arg->type;
+  QCString defval = "";
+  ++it;
+  
+  for (; (arg=it.current()); ++it )
+  {
+    QCString type = arg->type;
+    defval = arg->defval;
+    if (type == prev_type) 
+    {
+      res += ", ";
+      res += arg->name;
+    }
+    else 
+    {
+      res += ": ";
+      res += prev_type;
+      if (!defval.isEmpty())
+      {
+        res += " := ";
+        res += defval;
+      }
+      res += ";\n";
+      res += arg->name;
+      prev_type = type;
+    }
+  }
+  res += ": ";
+  res += prev_type;
+  if (!defval.isEmpty())
+  {
+    res += " := ";
+    res += defval;
+  }
+  res += ")";
+
+}
+
