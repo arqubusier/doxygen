@@ -311,13 +311,13 @@ use_clause: USE names SEM
 null_exclusion: NOT Null;
 
 access_prefix: ACCESS
-             {$$ = new QCString("access");}
+             {$$ = new QCString("access ");}
              |null_exclusion ACCESS
-             {$$ = new QCString("Not null access");}
+             {$$ = new QCString("Not null access ");}
              |ACCESS CONSTANT
-             {$$ = new QCString("access constant");}
+             {$$ = new QCString("access constant ");}
              |ACCESS PROTECTED_
-             {$$ = new QCString("access protected");}
+             {$$ = new QCString("access protected ");}
              |null_exclusion ACCESS PROTECTED_
              {$$ = new QCString("not null access protected");}
 access_definition:access_prefix subtype_indication
@@ -349,8 +349,8 @@ access_type_definition:
                       |null_exclusion access_to_subprogram_definition
                       {$$=$2;}
 general_access_mod:
-                  ALL {$$ = new QCString("all");}
-                  |CONSTANT {$$ = new QCString("constant");}
+                  ALL {$$ = new QCString("all ");}
+                  |CONSTANT {$$ = new QCString("constant ");}
 
 access_to_object_definition:
             ACCESS subtype_indication

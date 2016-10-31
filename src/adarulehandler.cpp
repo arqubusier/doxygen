@@ -454,6 +454,9 @@ Node *EntryHandler::accessToObjectDefinition(Expression *name,
         e->entry.type.prepend(*access_mod);
         dealloc(access_mod);
     }
+
+    e->entry.type.prepend("access ");
+
     e->entry.section = Entry::VARIABLE_SEC;
 
     dealloc(name);
