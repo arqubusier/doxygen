@@ -227,25 +227,20 @@ static RuleHandler *s_handler;
 %type<nodePtr> library_item_body
 %type<exprPtr> obj_decl_type
 %type<exprPtr> subtype_indication
+%type<exprPtr> subtype_mark
 %type<exprPtr> array_type_definition
 %type<paramsPtr> parameter_spec
 %type<paramsPtr> parameter_specs
 %type<paramsPtr> parameters
 %type<qstrPtr> mode
-%type<exprPtr> expression
-%type<exprPtr> primary
 %type<exprPtr> named_array_aggregate
 %type<exprPtr> array_component_assocs
 %type<exprPtr> array_component_assoc
 %type<idsPtr> statement
 %type<idsPtr> statements
 %type<idsPtr> return_statement
-%type<qstrPtr> expression_sep
 %type<exprPtr> call_params
 %type<exprPtr> param_assoc
-%type<qstrPtr> logical
-%type<qstrPtr> operator
-%type<qstrPtr> relational
 %type<qstrPtr>literal
 %type<idsPtr> compound
 %type<exprPtr> name
@@ -292,6 +287,27 @@ static RuleHandler *s_handler;
 %type<nodePtr> access_type_definition
 %type<nodePtr> access_to_object_definition
 %type<nodePtr> access_to_subprogram_definition
+
+%type<qstrPtr> unary_op
+%type<qstrPtr> adding_op
+%type<qstrPtr> relation_op
+%type<qstrPtr> relational_op
+%type<qstrPtr> multiplying_op
+
+%type<exprPtr> expression
+%type<exprPtr> qualified_expression
+%type<exprPtr> relation
+%type<exprPtr> membership_choice_list
+%type<exprPtr> membership_choice
+%type<exprPtr> choice_expression
+%type<exprPtr> choice_relation
+%type<exprPtr> unary
+%type<exprPtr> simple_expression
+%type<exprPtr> term
+%type<exprPtr> factor
+%type<exprPtr> allocator
+%type<exprPtr> primary
+
 
 %defines 
 
@@ -395,10 +411,7 @@ name: IDENTIFIER {$$=new Expression($1, NEW_ID($1, @1));}
               dealloc($3);
              }
              /*qualified expression*/
-             |name TIC aggregate 
-             {
-              $$ = exprPair($1, $3, "'");
-             }
+             |qualified_expression
              /*function call and indexed component*/
              |name LPAR RPAR
              {Expression *e = $1;
@@ -534,7 +547,7 @@ subprogram_body:  subprogram_spec IS
                   {
                     $$ = s_handler->subprogramBody($1, $3, $5);
                   }
-tail:             SEM| name SEM {dealloc( $1);} /* TODO change to name */
+tail:             SEM| name SEM {dealloc( $1);}
 
 parameters:       parameter_specs
 parameter_specs:  parameter_spec {$$ = $1;}
@@ -712,7 +725,7 @@ discrete_subtype: range
                 |subtype_indication
 
 range:                  range_attribute
-                        |expression DDOT expression
+                        |simple_expression DDOT simple_expression
                         {Expression *e1 = $1;
                          Expression *e2 = $3;
                          e1->str.append(" .. ");
@@ -751,6 +764,7 @@ identifier_list:    IDENTIFIER
                     }
                     
 subtype_indication: name;
+subtype_mark: name;
 
 statements: statement
            |statement statements
@@ -832,18 +846,54 @@ discrete_choice_list: discrete_choice
                        $$ = e1;
                       }
 
-discrete_choice: expression
+discrete_choice: choice_expression
                 |range
                |OTHERS{$$ = new Expression("others");}
                 
-/*
-    TODO: imlpement proper expression
-*/
-expression: primary
-          |primary expression_sep primary
+qualified_expression:
+            name TIC aggregate 
+             {
+              $$ = exprPair($1, $3, "'");
+             }
+expression: 
+          relation
+          |expression relation_op relation;
+relation:
+        simple_expression
+        |simple_expression relational_op simple_expression
+        |simple_expression IN membership_choice_list
+        |simple_expression NOT IN membership_choice_list
+membership_choice_list:
+        membership_choice
+        |membership_choice_list PIPE membership_choice;
+membership_choice:
+        simple_expression /*NOTE: changed from choice_expression
+                                to simple_expression according to
+                                AI12-0039-1*/
+        |range
+        |subtype_mark;
+choice_expression: 
+          choice_relation
+          |choice_expression relation_op choice_relation;
+choice_relation:
+        simple_expression
+        |simple_expression relational_op simple_expression;
+simple_expression:
+                 unary
+                 |simple_expression adding_op unary;
+
+unary:  unary_op term;
+
+term: factor
+    |factor multiplying_op factor;
+
+factor: primary
+      |primary EXP primary
+      |ABS primary
+      |NOT primary;
+
 primary:name
         |literal {$$=new Expression(*$1); dealloc($1);}
-        |RANGE {$$=new Expression(" range ");}
         |LPAR expression RPAR {
             Expression *e = $2;
             e->str.prepend("(");
@@ -851,12 +901,27 @@ primary:name
             $$ = e;
         }
         |aggregate
+        /*
+        |allocator;*/
+        /* NOTE: conditional_expression and quantified_expression
+                 (ada 2012) not currently supported*/
+
+/*
+allocator:
+         NEW subtype_indication
+         |NEW qualified_expression
+         |NEW LPAR name RPAR subtype_indication
+         |NEW LPAR name RPAR qualified_expression;
+         */
+
 
  /*NOTE: enumaration- and record aggregates are supported,
          but interpreted as named array aggregates,
          both are a subset of the latter.*/
 aggregate: array_aggregate;
 
+/* NOTE: Reduce/reduce conflicts are created here due to limitation of
+lookahead buffer */
 array_aggregate:positional_array_aggregate|named_array_aggregate;
 /*NOTE: because of ambiguity when interpreting: arr:=(0),
         as ( expression ) or positinoal_array_aggregate?
@@ -869,7 +934,7 @@ expressions: expression COMMA expression
            {
              $$ = exprPair($1, $3, ", ");
            }
-           | expression COMMA expressions
+           | expressions COMMA expression
            {
              $$ = exprPair($1, $3, ", ");
            }
@@ -893,9 +958,6 @@ array_component_assoc: discrete_choice_list REF expression
                        $$ = e;
                      }
 
-expression_sep: logical|operator|relational
-              |ASS{$$=new QCString(" := ");}
-
 call_params: param_assoc
            |param_assoc COMMA call_params
            {Expression *pa = $1;
@@ -909,30 +971,41 @@ param_assoc: expression
             |name REF expression
             {$$ = exprPair($1, $3, " => ");}
 
-logical: AND {$$ =  new QCString(" AND ");}
-       | OR {$$ =  new QCString(" OR ");}
-       | XOR {$$ =  new QCString(" XOR ");}
-literal: STRING_LITERAL|INTEGER|DECIMAL_LITERAL|BASED_LITERAL
+literal:
+       STRING_LITERAL|INTEGER|DECIMAL_LITERAL|BASED_LITERAL
        |True{$$= new QCString(" True ");}
        |False{$$= new QCString(" False ");}
        |Null{$$= new QCString(" Null ");}
-relational: EQ{$$= new QCString(" = ");}
+
+adding_op:
+         ADD {$$ =  new QCString(" + ");}
+        | MINUS {$$ =  new QCString(" - ");}
+        | AMB {$$ =  new QCString(" & ");}
+
+unary_op:
+        ADD {$$ =  new QCString(" + ");}
+        | MINUS {$$ =  new QCString(" - ");}
+
+relation_op:
+        AND {$$ =  new QCString(" AND ");}
+       | OR {$$ =  new QCString(" OR ");}
+       | AND THEN {$$ =  new QCString(" AND THEN");}
+       | OR ELSE {$$ =  new QCString(" OR ELSE");}
+       | XOR {$$ =  new QCString(" XOR ");}
+relational_op:
+            EQ{$$= new QCString(" = ");}
           | NEQ{$$= new QCString(" /= ");} 
           | LT{$$= new QCString(" < ");}
           | LTEQ {$$= new QCString(" <= ");}
           | GT{$$= new QCString(" > ");}
           | GTEQ{$$= new QCString(" >= ");}
-
-operator: ADD {$$ =  new QCString(" + ");}
-        | MINUS {$$ =  new QCString(" - ");}
-        | AMB {$$ =  new QCString(" & ");}
-        | MUL {$$ =  new QCString(" * ");}
+multiplying_op:
+         MUL {$$ =  new QCString(" * ");}
         | DIV {$$ =  new QCString(" / ");}
         | MOD {$$ =  new QCString(" MOD ");}
         | REM {$$ =  new QCString(" REM ");}
-        | EXP {$$ =  new QCString(" ** ");}
-        | ABS {$$ =  new QCString(" ABS ");}
-        | NOT {$$ =  new QCString(" NOT ");}
+            
+
                     
 %%
 
