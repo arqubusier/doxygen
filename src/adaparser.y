@@ -769,7 +769,7 @@ subtype_indication: name;
 subtype_mark: name;
 
 statements: statement
-           |statement statements
+           |statements statement
            {Identifiers *s = $1;
             Identifiers *ss = $2;
             ss->splice(ss->begin(), *s);
@@ -784,6 +784,8 @@ statement:  expression SEM {$$ = new Identifiers($1->ids);
             |compound SEM
             |IDENTIFIER COLON compound SEM {$$ = $3;}
             |return_statement SEM
+            |Null SEM {$$ = new Identifiers;}
+
 return_statement: RETURN expression {$$ = new Identifiers;}
 
 compound:   case_statement{$$=$1;}
