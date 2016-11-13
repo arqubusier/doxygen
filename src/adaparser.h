@@ -29,10 +29,32 @@
 #include "arguments.h"
 #include "entry.h"
 
+/*
+inline void dealloc(void *memPtr)
+{
+  if (memPtr)
+  {
+    delete memPtr;
+    memPtr = NULL;
+  }
+}
+*/
 
+/*
 template<typename T>
 void dealloc(T*& memPtr);
 
+*/
+
+template<typename T>
+void dealloc(T*& memPtr)
+{
+  if (memPtr)
+  {
+    delete memPtr;
+    memPtr = NULL;
+  }
+}
 
 /** \brief A struct representing an Identifier (for members, functions,
  *  or classes) that can be referenced in the code. */
@@ -259,15 +281,6 @@ void initEntry (Entry &e, Entry *parent=NULL, Protection prot=Public,
                 MethodTypes mtype=Method, bool stat=false,
                 Specifier virt=Normal);
 
-template<typename T>
-void dealloc(T*& memPtr)
-{
-  if (memPtr)
-  {
-    delete memPtr;
-    memPtr = NULL;
-  }
-}
 
 
 

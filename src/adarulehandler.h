@@ -30,7 +30,7 @@ public:
   /* Handler methods.*/
   virtual Node* packageSpec(Node *base, Node* doc=NULL) = 0;
   virtual Node* packageSpecBase(
-            const char* name,
+            char* name,
             Nodes *publics=NULL,
             Nodes *privates=NULL) = 0;
   virtual Node* subprogramSpec(Node *base, Node* doc=NULL) = 0;
@@ -41,7 +41,7 @@ public:
                                Identifiers *refs=NULL) = 0;
   virtual Node* packageBody(Node *base, Node* doc=NULL) = 0;
   virtual Node* packageBodyBase(
-            const char* name,
+            char* name,
             Nodes *decls=NULL, Identifiers *refs=NULL) = 0;
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL) = 0;
   virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
@@ -119,7 +119,7 @@ public:
     return base;
   }
   virtual Node* packageSpecBase(
-            const char* name,
+            char* name,
             Nodes *publics=NULL,
             Nodes *privates=NULL);
   virtual Node* subprogramSpec(Node *base, Node* doc=NULL)
@@ -135,7 +135,7 @@ public:
     return base;
   }
   virtual Node* packageBodyBase(
-            const char* name,
+            char* name,
             Nodes *decls=NULL,
             Identifiers *refs=NULL);
   virtual Node* subprogramBody(Node *base,
@@ -197,7 +197,7 @@ public:
   //handlers
   virtual Node* packageSpec(Node *base, Node* doc=NULL);
   virtual Node* packageSpecBase(
-            const char* name,
+            char* name,
             Nodes *publics=NULL,
             Nodes *privates=NULL);
   virtual Node* subprogramSpec(Node *base, Node* doc=NULL);
@@ -208,7 +208,7 @@ public:
                                Identifiers *ids=NULL);
   virtual Node* packageBody(Node *base, Node* doc=NULL);
   virtual Node* packageBodyBase(
-            const char* name,
+            char* name,
             Nodes *decls=NULL,
             Identifiers *ids=NULL);
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL);

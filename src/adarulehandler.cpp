@@ -193,7 +193,7 @@ void EntryHandler::addFileSection(const char *fileName)
   }
 }
 
-Node *EntryHandler::packageSpecBase(const char* name, Nodes *publics, 
+Node *EntryHandler::packageSpecBase(char* name, Nodes *publics, 
                      Nodes *privates) 
 { 
   EntryNode *pkg = newEntryNode(); 
@@ -283,7 +283,7 @@ Nodes *EntryHandler::objDeclBase(Identifiers *refs, Expression *type,
   return nodes; 
 }
 
-Node *EntryHandler::packageBodyBase(const char* name,
+Node *EntryHandler::packageBodyBase(char* name,
                            Nodes *decls,
                            Identifiers *ids)
 {
@@ -507,7 +507,7 @@ Node* CodeHandler::packageSpec(Node *base, Node* doc)
   return base;
 }
 Node* CodeHandler::packageSpecBase(
-         const char* name,
+         char* name,
           Nodes *publics,
           Nodes *privates)
 {
@@ -564,7 +564,7 @@ Node* CodeHandler::subprogramBody(Node *base,
 }
 
 Node* CodeHandler::packageBodyBase(
-          const char* name,
+          char* name,
           Nodes *decls,
           Identifiers *refs)
 {

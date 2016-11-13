@@ -295,8 +295,10 @@ static RuleHandler *s_handler;
 %type<qstrPtr> multiplying_op
 
 %type<exprPtr> expression
+%type<exprPtr> remaining_expression
 %type<exprPtr> qualified_expression
-%type<exprPtr> relation
+/*%type<exprPtr> relation*/
+%type<exprPtr> membership_test
 %type<exprPtr> membership_choice_list
 %type<exprPtr> membership_choice
 %type<exprPtr> choice_expression
@@ -310,8 +312,6 @@ static RuleHandler *s_handler;
 
 
 %defines 
-%glr-parser
-%expect-rr 6 /*see array_aggregate rule for comment about rr conflicts*/
 
 %%
 
@@ -857,17 +857,59 @@ qualified_expression:
              {
               $$ = exprPair($1, $3, "'");
              }
+
+/* NOTE: The syntax is formulated a bit different from the reference, but it
+        describes the same language. The reason for this rewrite is
+        because of conflicts between "positional_array_aggregate", 
+        '(' expression ')' and "named_array_aggregate".*/
 expression: 
-          relation
-          |expression relation_op relation;
-relation:
-        simple_expression
-        |simple_expression relational_op simple_expression
-        |simple_expression IN membership_choice_list
+          choice_expression
+          |membership_test relation_op remaining_expression
+          {
+            $$ = exprPair($1, $3, *$2);
+            $$ = $1;
+            dealloc($2);
+          }
+          |choice_expression relation_op membership_test relation_op remaining_expression
+          {
+            Expression *e1 = exprPair($1, $3, *$2);
+            exprPair(e1, $5);
+            $$ = $1;
+            dealloc($2);
+            dealloc($4);
+          }
+remaining_expression:
+          choice_relation
+          |membership_test
+          |remaining_expression relation_op choice_relation
+          {
+            $$ = exprPair($1, $3, *$2);
+            $$ = $1;
+            dealloc($2);
+          }
+          |remaining_expression relation_op membership_test
+          {
+            $$ = exprPair($1, $3, *$2);
+            $$ = $1;
+            dealloc($2);
+          }
+
+membership_test:
+        simple_expression IN membership_choice_list
+          {
+            $$ = exprPair($1, $3, " IN ");
+          }
         |simple_expression NOT IN membership_choice_list
+          {
+            $$ = exprPair($1, $4, " NOT IN ");
+          }
+
 membership_choice_list:
         membership_choice
-        |membership_choice_list PIPE membership_choice;
+        |membership_choice_list PIPE membership_choice
+          {
+            $$ = exprPair($1, $3, " | ");
+          }
 membership_choice:
         simple_expression /*NOTE: changed from choice_expression
                                 to simple_expression according to
@@ -876,23 +918,57 @@ membership_choice:
         |subtype_mark;
 choice_expression: 
           choice_relation
-          |choice_expression relation_op choice_relation;
+          |choice_expression relation_op choice_relation
+          {
+            $$ = exprPair($1, $3, *$2);
+            $$ = $1;
+            dealloc($2);
+          }
 choice_relation:
         simple_expression
-        |simple_expression relational_op simple_expression;
+        |simple_expression relational_op simple_expression
+          {
+            $$ = exprPair($1, $3, *$2);
+            $$ = $1;
+            dealloc($2);
+          }
 simple_expression:
                  unary
-                 |simple_expression adding_op unary;
+                 |simple_expression adding_op unary
+          {
+            $$ = exprPair($1, $3, *$2);
+            $$ = $1;
+            dealloc($2);
+          }
 
-unary:  unary_op term;
+unary:  unary_op term
+     {
+        Expression *e = $2;
+        e->str.prepend(*$1);
+        $$ = e;
+        dealloc($1);
+     }
 
 term: factor
     |factor multiplying_op factor;
 
 factor: primary
       |primary EXP primary
+     {
+        $$ = exprPair($1, $3, " ** ");
+    }
       |ABS primary
-      |NOT primary;
+     {
+        Expression *e = $2;
+        e->str.prepend(" ABS ");
+        $$ = e;
+     }
+      |NOT primary
+     {
+        Expression *e = $2;
+        e->str.prepend(" NOT ");
+        $$ = e;
+     }
 
 primary:name
         |literal {$$=new Expression(*$1); dealloc($1);}
@@ -913,7 +989,12 @@ primary:name
                  between different types of names, we use "name" which
                  is a superset of the two first.*/
 
-allocator:NEW name;
+allocator:NEW name
+     {
+        Expression *e = $2;
+        e->str.prepend(" NEW ");
+        $$ = e;
+     }
 
 
  /*NOTE: enumaration- and record aggregates are supported,
