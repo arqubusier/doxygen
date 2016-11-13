@@ -310,6 +310,8 @@ static RuleHandler *s_handler;
 
 
 %defines 
+%glr-parser
+%expect-rr 6 /*see array_aggregate rule for comment about rr conflicts*/
 
 %%
 
@@ -901,18 +903,17 @@ primary:name
             $$ = e;
         }
         |aggregate
-        /*
-        |allocator;*/
-        /* NOTE: conditional_expression and quantified_expression
+        |allocator;
+        /* NOTE: "conditional_expression" and "quantified_expression"
                  (ada 2012) not currently supported*/
 
-/*
-allocator:
-         NEW subtype_indication
-         |NEW qualified_expression
-         |NEW LPAR name RPAR subtype_indication
-         |NEW LPAR name RPAR qualified_expression;
-         */
+        /* NOTE: in the reference syntax "subtype_indication" and
+                "qualified_expression"
+                 is used in this rule. However since we do not differentiate
+                 between different types of names, we use "name" which
+                 is a superset of the two first.*/
+
+allocator:NEW name;
 
 
  /*NOTE: enumaration- and record aggregates are supported,
@@ -920,12 +921,12 @@ allocator:
          both are a subset of the latter.*/
 aggregate: array_aggregate;
 
-/* NOTE: Reduce/reduce conflicts are created here due to limitation of
-lookahead buffer */
+/* NOTE: Reduce/reduce conflicts occur in array_aggregates due to
+using one token lookahead although the grammar is unambiguos. This
+solved by using GLR parsing, we expect 6 rr conflicts from this
+(cannot decide wether to reduce relation for positional_aggregate,
+or redure choice_relation for named_array_aggregate. */
 array_aggregate:positional_array_aggregate|named_array_aggregate;
-/*NOTE: because of ambiguity when interpreting: arr:=(0),
-        as ( expression ) or positinoal_array_aggregate?
-        It is Always interpret it as the former */
 positional_array_aggregate: LPAR expressions RPAR
             {$2->str.prepend("(");
              $2->str.append(")");
