@@ -776,15 +776,21 @@ statements: statement
             $$ = ss;
             dealloc( s);}
 
-statement:  expression SEM {$$ = new Identifiers($1->ids);
+statement:  
+            /* Procedure_call, code_statement */
+            expression SEM {$$ = new Identifiers($1->ids);
                             dealloc($1);}
+            /* assignment statement */
             | IDENTIFIER COLON expression SEM
                 {$$ = new Identifiers($3->ids);
                 dealloc($3);}
+            /* compound_statement */
             |compound SEM
             |IDENTIFIER COLON compound SEM {$$ = $3;}
             |return_statement SEM
+            /* null_statement */
             |Null SEM {$$ = new Identifiers;}
+            /*TODO: add goto, exit, abort*/
 
 return_statement: RETURN expression {$$ = new Identifiers;}
 
@@ -943,7 +949,9 @@ simple_expression:
             dealloc($2);
           }
 
-unary:  unary_op term
+unary:
+      term
+     |unary_op term
      {
         Expression *e = $2;
         e->str.prepend(*$1);
