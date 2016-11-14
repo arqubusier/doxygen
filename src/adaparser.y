@@ -500,28 +500,39 @@ subprogram_spec_base:  PROCEDURE defining_designator
                    {
                      $$ = s_handler->subprogramSpecBase($2, $3);
                    }
-                   |FUNCTION defining_designator
-                   {
-                     $$ = s_handler->subprogramSpecBase($2);
-                   }
                    |FUNCTION defining_designator parameter_and_result_profile
                    {
                      $$ = s_handler->subprogramSpecBase($2, $3);
                    }
 
 parameter_profile: LPAR parameters RPAR {$$ = $2;}
-parameter_and_result_profile: LPAR parameters RPAR RETURN access_definition
-                            {Parameters *p = $2;
-                             p->type = $5;
-                             $$ = p;}
-                            | LPAR parameters RPAR RETURN subtype_indication
-                            {Parameters *p = $2;
-                             p->type = $5;
-                             $$ = p;}
-                            | LPAR parameters RPAR RETURN null_exclusion subtype_indication
-                            {Parameters *p = $2;
-                             p->type = $6;
-                             $$ = p;}
+parameter_and_result_profile:
+                   RETURN access_definition
+                   {Parameters *p = new Parameters;
+                    p->type = $2;
+                    $$ = p;}
+                   |RETURN subtype_indication
+                   {Parameters *p = new Parameters;
+                    p->type = $2;
+                    $$ = p;}
+                   | RETURN null_exclusion
+                        subtype_indication
+                   {Parameters *p = new Parameters;
+                    p->type = $3;
+                    $$ = p;}
+                   |LPAR parameters RPAR RETURN access_definition
+                   {Parameters *p = $2;
+                    p->type = $5;
+                    $$ = p;}
+                   | LPAR parameters RPAR RETURN subtype_indication
+                   {Parameters *p = $2;
+                    p->type = $5;
+                    $$ = p;}
+                   | LPAR parameters RPAR RETURN null_exclusion
+                        subtype_indication
+                   {Parameters *p = $2;
+                    p->type = $6;
+                    $$ = p;}
 
 body:              package_body| subprogram_body
 package_body:      package_body_base
@@ -612,29 +623,29 @@ renaming_declaration:object_renaming_declaration
                     |subprogram_renaming_declaration
                     |generic_renaming_declaration
 object_renaming_declaration:
-                    IDENTIFIER COLON name RENAMES name
+                    IDENTIFIER COLON name RENAMES name SEM
                     {$$ = NULL;}
-                    |IDENTIFIER COLON null_exclusion name RENAMES name
+                    |IDENTIFIER COLON null_exclusion name RENAMES name SEM
                     {$$ = NULL;}
-                    |IDENTIFIER COLON access_definition RENAMES name
+                    |IDENTIFIER COLON access_definition RENAMES name SEM
                     {$$ = NULL;}
 exception_renaming_declaration:
-                    IDENTIFIER EXCEPTION RENAMES name
+                    IDENTIFIER EXCEPTION RENAMES name SEM
                     {$$ = NULL;}
 package_renaming_declaration:
-                    PACKAGE name RENAMES name
+                    PACKAGE name RENAMES name SEM
                     {$$ = NULL;}
 subprogram_renaming_declaration:
-                    subprogram_spec RENAMES name
+                    subprogram_spec RENAMES name SEM
                     {$$ = NULL;}
-                    |overriding_indicator subprogram_spec RENAMES name
+                    |overriding_indicator subprogram_spec RENAMES name SEM
                     {$$ = NULL;}
 generic_renaming_declaration:
-                    GENERIC PACKAGE name RENAMES name
+                    GENERIC PACKAGE name RENAMES name SEM
                     {$$ = NULL;}
-                    |GENERIC PROCEDURE name RENAMES name
+                    |GENERIC PROCEDURE name RENAMES name SEM
                     {$$ = NULL;}
-                    |GENERIC FUNCTION name RENAMES name
+                    |GENERIC FUNCTION name RENAMES name SEM
                     {$$ = NULL;}
 
 type_declaration:   full_type_declaration|
@@ -747,7 +758,6 @@ array_type_definition:  ARRAY LPAR array_subtype_definitions RPAR
                     OF subtype_indication
                     {Expression *e = $3;
                      Expression *type = $6;
-                        printf("DDD\n");
                      e->str.prepend("array (");
                      e->str.append(") of ");
                      e->str.append(type->str);
@@ -839,12 +849,12 @@ statement:
             expression SEM {$$ = new Identifiers($1->ids);
                             dealloc($1);}
             /* assignment statement */
-            | IDENTIFIER COLON expression SEM
+            | name ASS expression SEM
                 {$$ = new Identifiers($3->ids);
                 dealloc($3);}
             /* compound_statement */
-            |compound SEM
-            |IDENTIFIER COLON compound SEM {$$ = $3;}
+            |compound
+            |IDENTIFIER COLON compound {$$ = $3;}
             /* simple and extended return statement */
             |return_statement SEM
             /* abort_statement*/
@@ -877,7 +887,7 @@ statement:
             |RAISE name SEM
                 {$$ = new Identifiers($2->ids);
                 dealloc($2);}
-            |RAISE name with expression SEM
+            |RAISE name WITH expression SEM
            {Identifiers *s = new Identifiers($2->ids);
             Identifiers *ss = new Identifiers($4->ids);
             ss->splice(ss->begin(), *s);
@@ -889,7 +899,10 @@ statement:
             reque_statement*/
 
 /*simple return and extended return*/
-return_statement: RETURN expression {$$ = new Identifiers;}
+return_statement: RETURN {$$ = new Identifiers;}
+                |RETURN expression
+                {$$ = new Identifiers($2->ids);
+                dealloc($2);}
                 |RETURN subtype_indication DO statements END RETURN
            {Identifiers *s = new Identifiers($2->ids);
             Identifiers *ss = $4;
@@ -898,9 +911,9 @@ return_statement: RETURN expression {$$ = new Identifiers;}
             dealloc( s);
             dealloc($2);}
 
-compound:   case_statement{$$=$1;}
-            |loop_statement
-            |if_statement
+compound:   case_statement SEM{$$=$1;}
+            |loop_statement SEM
+            |if_statement SEM
             |block_statement
 
 block_statement:

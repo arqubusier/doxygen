@@ -98,6 +98,17 @@ B       [ \t]
 {INTEGER}         {TEXT_TO_QSTR; return(INTEGER);}
 {DECIMAL_LITERAL} {TEXT_TO_QSTR; return(DECIMAL_LITERAL);}
 {BASED_LITERAL}   {TEXT_TO_QSTR; return(BASED_LITERAL);}
+"delay"         return(DELAY);
+"delta"         return(DELTA);
+"declare"       return(DECLARE);
+"overriding"    return(OVERRIDING);
+"renames"       return(RENAMES);
+"raise"         return(RAISE);
+"with"          return(WITH);
+"goto"          return(GOTO);
+"separate"      return(SEPARATE);
+"generic"       return(GENERIC);
+"abort"         return(ABORT);
 "access"        return(ACCESS);
 "true"          {return(True);}
 "false"          {return(False);}
@@ -130,7 +141,6 @@ B       [ \t]
 "while"         return(WHILE);
 "for"           return(FOR);
 "reverse"       return(REVERSE);
-"with"          return(WITH);
 "use"           return(USE);
 "of"            return(OF);
 "'"			    return(TIC);

@@ -113,7 +113,44 @@ package body Ada_Test_Package is
          for I in Character'Range loop
             null;
          end loop Array_Loop;
+
+        Block_Name :
+        declare
+            X: Integer;
+        begin
+            X:= X+1;
+        end Block_Name;
+
+        Block_Name2 :
+        begin
+            Temperature:=Temperature+1;
+        end Block_Name2;
+
     end compounds;
+
+    procedure Statements is
+    begin
+        raise Ada.IO_Exceptions.Name_Error;
+        raise Queue_Error with "Buffer Full";
+        raise;                              
+    end;
+
+    procedure Renaming is
+       L : PERSON renames LEFTMOST_PERSON;
+       FULL : exception renames TABLE_MANAGER.TABLE_FULL;
+       package TM renames TABLE_MANAGER; 
+
+        function REAL_PLUS(LEFT, RIGHT : REAL   ) return REAL    renames PLUS;
+        function INT_PLUS (LEFT, RIGHT : INTEGER) return INTEGER renames PLUs; 
+
+        function ROUGE return COLOR renames RED;
+        function ROT   return COLOR renames RED;
+        function ROSSO return COLOR renames ROUGE; 
+
+        function NEXT(X : COLOR) return COLOR renames COLOR'SUCC;
+    begin
+        null;
+    end;
 
     --! \brief Dummy function 1.
     procedure Walk_The_Dog is begin Put_Line("Walk_The_dog"); end;

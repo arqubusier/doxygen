@@ -74,26 +74,30 @@ void RuleHandler::moveUnderNode(Node *node, Nodes *nodes)
 Nodes *RuleHandler::declsBase(Node *new_node)
 {
   Nodes *es = new Nodes;
-  es->push_front(new_node);
+  if (new_node)
+    es->push_front(new_node);
   return es;
 }
 
 Nodes *RuleHandler::declsBase(Nodes *new_nodes)
 {
   Nodes *es = new Nodes;
-  moveNodes(es, new_nodes);
+  if (new_nodes)
+    moveNodes(es, new_nodes);
   return es;
 }
 
 Nodes *RuleHandler::decls(Nodes *nodes, Node *new_node)
 { 
-  nodes->push_front(new_node);
+  if(new_node)
+    nodes->push_front(new_node);
   return nodes;
 }
 
 Nodes *RuleHandler::decls(Nodes *nodes, Nodes *new_nodes)
 { 
-  moveNodes(nodes, new_nodes);
+ if(new_nodes)
+    moveNodes(nodes, new_nodes);
   return nodes;
 }
 
@@ -241,9 +245,7 @@ Node* EntryHandler::subprogramSpecBase(QCString *name,
     {
       fun->entry.type = params->type->str;
     }
-        printf("ccc\n");
     dealloc( params);
-        printf("ddd\n");
   }
   fun->entry.section = Entry::FUNCTION_SEC;
   return fun;
@@ -584,7 +586,7 @@ Node* CodeHandler::subprogramBody(Node *base,
                                   Nodes *decls,
                                   Identifiers *refs)
 {
-  if (decls)
+  if (decls and !decls->empty())
   {
     addObjRefsToParent(base, decls);
     moveUnderNode(base, decls);
