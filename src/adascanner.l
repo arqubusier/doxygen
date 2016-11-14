@@ -150,6 +150,7 @@ B       [ \t]
 ";"             return(SEM);
 ","             return(COMMA);
 ":"             {return(COLON);}
+"new"           return(NEW);
 "all"           return(ALL);
 "constant"      return(CONSTANT);
 "package"{B}*"body"  {return(PACKAGE_BODY);}

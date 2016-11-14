@@ -227,7 +227,7 @@ static RuleHandler *s_handler;
 %type<nodePtr> library_item_body
 %type<exprPtr> obj_decl_type
 %type<exprPtr> subtype_indication
-%type<exprPtr> subtype_mark
+/*%type<exprPtr> subtype_mark*/
 %type<exprPtr> array_type_definition
 %type<paramsPtr> parameter_spec
 %type<paramsPtr> parameter_specs
@@ -766,7 +766,7 @@ identifier_list:    IDENTIFIER
                     }
                     
 subtype_indication: name;
-subtype_mark: name;
+/*subtype_mark: name;*/
 
 statements: statement
            |statements statement
@@ -777,7 +777,8 @@ statements: statement
             dealloc( s);}
 
 statement:  
-            /* Procedure_call, code_statement */
+            /* Procedure_call, code_statement,
+               null_statement */
             expression SEM {$$ = new Identifiers($1->ids);
                             dealloc($1);}
             /* assignment statement */
@@ -787,12 +788,57 @@ statement:
             /* compound_statement */
             |compound SEM
             |IDENTIFIER COLON compound SEM {$$ = $3;}
+            /* simple and extended return statement */
             |return_statement SEM
-            /* null_statement */
-            |Null SEM {$$ = new Identifiers;}
-            /*TODO: add goto, exit, abort*/
+            /* abort_statement*/
+            | ABORT name SEM
+                {$$ = new Identifiers($2->ids);
+                dealloc($2);}
+            /* goto_statement */
+            | GOTO name SEM
+                {$$ = new Identifiers($2->ids);
+                dealloc($2);}
+            /* exit_statement */
+            | EXIT SEM
+            {$$ = new Identifiers;}
+            | EXIT expression SEM
+            {$$ = new Identifiers($2->ids);
+                dealloc($2);}
 
+            | EXIT name WHEN expression SEM
+           {Identifiers *s = new Identifiers($2->ids);
+            Identifiers *ss = new Identifiers($4->ids);
+            ss->splice(ss->begin(), *s);
+            $$ = ss;
+            dealloc( s);
+            dealloc($2);
+            dealloc($4);}
+
+            /* raise_statement */
+            |RAISE
+            |RAISE name
+                {$$ = new Identifiers($2->ids);
+                dealloc($2);}
+            |RAISE name with expression
+           {Identifiers *s = new Identifiers($2->ids);
+            Identifiers *ss = new Identifiers($4->ids);
+            ss->splice(ss->begin(), *s);
+            $$ = ss;
+            dealloc( s);
+            dealloc($2);
+            dealloc($4);}
+            /* TODO delay statement, entry_call_statement,
+            reque_statement*/
+
+/*simple return and extended return*/
 return_statement: RETURN expression {$$ = new Identifiers;}
+                |RETURN subtype_indication DO statements END RETURN
+           {Identifiers *s = new Identifiers($2->ids);
+            Identifiers *ss = $4;
+            ss->splice(ss->begin(), *s);
+            $$ = ss;
+            dealloc( s);
+            dealloc($2);}
 
 compound:   case_statement{$$=$1;}
             |loop_statement
@@ -919,11 +965,11 @@ membership_choice_list:
             $$ = exprPair($1, $3, " | ");
           }
 membership_choice:
+        /* NOTE: subtype_mark is included in "simple_expression" */
         simple_expression /*NOTE: changed from choice_expression
                                 to simple_expression according to
                                 AI12-0039-1*/
         |range
-        |subtype_mark;
 choice_expression: 
           choice_relation
           |choice_expression relation_op choice_relation
@@ -960,7 +1006,7 @@ unary:
      }
 
 term: factor
-    |factor multiplying_op factor;
+    |term multiplying_op factor;
 
 factor: primary
       |primary EXP primary
