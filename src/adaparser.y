@@ -239,6 +239,7 @@ static RuleHandler *s_handler;
 %type<idsPtr> statement
 %type<idsPtr> statements
 %type<idsPtr> return_statement
+%type<idsPtr> block_statement
 %type<exprPtr> call_params
 %type<exprPtr> param_assoc
 %type<qstrPtr>literal
@@ -815,11 +816,12 @@ statement:
             dealloc($4);}
 
             /* raise_statement */
-            |RAISE
-            |RAISE name
+            |RAISE SEM
+            {$$ = new Identifiers;}
+            |RAISE name SEM
                 {$$ = new Identifiers($2->ids);
                 dealloc($2);}
-            |RAISE name with expression
+            |RAISE name with expression SEM
            {Identifiers *s = new Identifiers($2->ids);
             Identifiers *ss = new Identifiers($4->ids);
             ss->splice(ss->begin(), *s);
@@ -843,6 +845,15 @@ return_statement: RETURN expression {$$ = new Identifiers;}
 compound:   case_statement{$$=$1;}
             |loop_statement
             |if_statement
+            |block_statement
+
+block_statement:
+               /* TODO: 2016-11-14 the references used in decls should
+               be returned somehow*/
+            DECLARE decls BEGIN_ statements END tail
+            {$$ = $4;}
+            |BEGIN_ statements END tail
+            {$$ = $2;}
 
 if_statement:if_clause END IF
             |if_clause if_clauses END IF
