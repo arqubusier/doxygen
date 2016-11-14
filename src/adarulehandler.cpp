@@ -256,15 +256,50 @@ Node* EntryHandler::subprogramBody(Node *base,
   return base;
 }
 
-Nodes *EntryHandler::objDeclBase(Identifiers *refs, Expression *type,
+Nodes *EntryHandler::objDeclBase(char *id,
+                                 Expression *type,
                                  Expression *expr)
 {
   Nodes *nodes = new Nodes;
 
+  EntryNode *e = newEntryNode();
+  e->entry.name = QCString(id);
+  e->entry.type = type->str;
+  e->entry.section = Entry::VARIABLE_SEC;
+  if (expr)
+  {
+    // Default value
+    //e->entry.args = ":= " + expr->str;
+    dealloc( expr);
+  }
+  nodes->push_front(e);
+
+  dealloc(id);
+  dealloc( type);
+  return nodes; 
+}
+Nodes *EntryHandler::objDeclBase(char *id,
+                                Identifiers *refs, Expression *type,
+                                 Expression *expr)
+{
+  Nodes *nodes = new Nodes;
+
+  EntryNode *e = newEntryNode();
+  e->entry.name = QCString(id);
+  e->entry.type = type->str;
+  e->entry.section = Entry::VARIABLE_SEC;
+  if (expr)
+  {
+    // Default value
+    //e->entry.args = ":= " + expr->str;
+    dealloc( expr);
+  }
+  nodes->push_front(e);
+
   IdentifiersIter it = refs->begin();
   for (;it != refs->end(); ++it)
   {
-    EntryNode *e = newEntryNode();
+    e = newEntryNode();
     e->entry.name = it->str;
     e->entry.type = type->str;
     e->entry.section = Entry::VARIABLE_SEC;
@@ -278,6 +313,7 @@ Nodes *EntryHandler::objDeclBase(Identifiers *refs, Expression *type,
   }
 
 
+  dealloc(id);
   dealloc( type);
   dealloc( refs);
   return nodes; 
@@ -591,11 +627,37 @@ Nodes *CodeHandler::objDecl(Nodes *base, Node *doc)
 {
   return base;
 }
-Nodes *CodeHandler::objDeclBase(Identifiers *ids, Expression *type,
+
+Nodes *CodeHandler::objDeclBase(char *id,
+                                Expression *type,
                                 Expression *expr)
 {
   Nodes* nodes = new Nodes;
   CodeNode* n;
+
+  n = newCodeNode(ADA_VAR, id, "");
+  if (expr)
+  {
+    n->refs.splice(n->refs.begin(), expr->ids);
+  }
+
+  if (expr)
+      dealloc(expr);
+  return nodes;
+}
+
+Nodes *CodeHandler::objDeclBase(char *id,
+                                Identifiers *ids, Expression *type,
+                                Expression *expr)
+{
+  Nodes* nodes = new Nodes;
+  CodeNode* n;
+
+  n = newCodeNode(ADA_VAR, id, "");
+  if (expr)
+  {
+    n->refs.splice(n->refs.begin(), expr->ids);
+  }
 
   IdentifiersIter it = ids->begin();
   for (;it != ids->end();++it)

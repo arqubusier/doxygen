@@ -44,7 +44,10 @@ public:
             char* name,
             Nodes *decls=NULL, Identifiers *refs=NULL) = 0;
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL) = 0;
-  virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
+  virtual Nodes *objDeclBase(char *id, Expression *type,
+                             Expression *expr=NULL) = 0;
+  virtual Nodes *objDeclBase(char *id,
+                             Identifiers *ids, Expression *type,
                              Expression *expr=NULL) = 0;
   virtual Node* addDoc(Node *base, Node* doc=NULL) = 0;
   virtual Nodes* addDocs(Nodes *base, Node* doc=NULL) = 0;
@@ -162,7 +165,10 @@ public:
   virtual Node *record_definition();
   virtual Nodes *component_declaration(Identifiers *ids, Expression *type,
                              Expression *expr=NULL);
-  virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
+  virtual Nodes *objDeclBase(char *id, Expression *type,
+                             Expression *expr=NULL);
+  virtual Nodes *objDeclBase(char *id,
+                             Identifiers *ids, Expression *type,
                              Expression *expr=NULL);
 
   virtual Node *accessToObjectDefinition(Expression *name,
@@ -212,7 +218,10 @@ public:
             Nodes *decls=NULL,
             Identifiers *ids=NULL);
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL);
-  virtual Nodes *objDeclBase(Identifiers *ids, Expression *type,
+  virtual Nodes *objDeclBase(char *id, Expression *type,
+                             Expression *expr=NULL);
+  virtual Nodes *objDeclBase(char *id,
+                             Identifiers *ids, Expression *type,
                              Expression *expr=NULL);
   virtual Node* addDoc(Node *base, Node* doc=NULL)
   {

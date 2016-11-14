@@ -262,7 +262,15 @@ static RuleHandler *s_handler;
 %type<idsPtr> elsif_clause
 %type<idsPtr> if_clauses
 %type<nodePtr> type_declaration
+
+
 %type<nodePtr> renaming_declaration
+%type<nodePtr> object_renaming_declaration
+%type<nodePtr> exception_renaming_declaration
+%type<nodePtr> package_renaming_declaration
+%type<nodePtr> subprogram_renaming_declaration
+%type<nodePtr> generic_renaming_declaration
+
 %type<nodesPtr> type_declarations
 %type<nodePtr> type_definition
 %type<nodesPtr> type_definitions
@@ -594,25 +602,40 @@ decl_item:          subprogram_decl| package_decl| type_declaration
 
 overriding_indicator: OVERRIDING
                     NOT OVERRIDING
-/* TODO: add aspect_declaration */
-renaming_declaration: object_renaming_declaration
+/* TODO: add aspect_declaration
+         figure out how to represent renames in doxygen
+         
+         dealloc*/
+renaming_declaration:object_renaming_declaration
                     |exception_renaming_declaration
                     |package_renaming_declaration
                     |subprogram_renaming_declaration
                     |generic_renaming_declaration
 object_renaming_declaration:
-                    IDENTIFIER COLON subtype_mark RENAMES name
-                    |IDENTIFIER COLON null_exclusion subtype_mark RENAMES name
+                    IDENTIFIER COLON name RENAMES name
+                    {$$ = NULL;}
+                    |IDENTIFIER COLON null_exclusion name RENAMES name
+                    {$$ = NULL;}
                     |IDENTIFIER COLON access_definition RENAMES name
+                    {$$ = NULL;}
 exception_renaming_declaration:
-                    IDENTIFIER: EXCEPTION RENAMES name
+                    IDENTIFIER EXCEPTION RENAMES name
+                    {$$ = NULL;}
+package_renaming_declaration:
+                    PACKAGE name RENAMES name
+                    {$$ = NULL;}
 subprogram_renaming_declaration:
                     subprogram_spec RENAMES name
+                    {$$ = NULL;}
                     |overriding_indicator subprogram_spec RENAMES name
+                    {$$ = NULL;}
 generic_renaming_declaration:
                     GENERIC PACKAGE name RENAMES name
+                    {$$ = NULL;}
                     |GENERIC PROCEDURE name RENAMES name
+                    {$$ = NULL;}
                     |GENERIC FUNCTION name RENAMES name
+                    {$$ = NULL;}
 
 type_declaration:   full_type_declaration|
                     doxy_comment full_type_declaration
@@ -701,11 +724,20 @@ variant:            WHEN discrete_choice_list REF component_list
 obj_decl:           obj_decl_base
                     |doxy_comment obj_decl_base
                     {$$ = s_handler->objDecl($2, $1);}
-obj_decl_base:      identifier_list COLON 
+                    /* NOTE: grammar for obj_decls_base written
+                             this way to prevent s/r conflicts with
+                             object_renaming_declaration. */
+obj_decl_base:      
+                    IDENTIFIER COLON 
                     obj_decl_type ASS expression SEM
                     {$$ = s_handler->objDeclBase($1, $3, $5);}
-                    |identifier_list COLON obj_decl_type SEM
+                    |IDENTIFIER COLON obj_decl_type SEM
                     {$$ = s_handler->objDeclBase($1, $3);}
+                    |IDENTIFIER COMMA identifier_list COLON 
+                    obj_decl_type ASS expression SEM
+                    {$$ = s_handler->objDeclBase($1, $3, $5, $7);}
+                    |IDENTIFIER COMMA identifier_list COLON obj_decl_type SEM
+                    {$$ = s_handler->objDeclBase($1, $3, $5);}
 
 obj_decl_type:      subtype_indication
                     |array_type_definition
