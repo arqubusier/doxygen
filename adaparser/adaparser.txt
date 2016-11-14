@@ -14,19 +14,24 @@ TODO
   of the types of the function arguments used in funtion calls.
 
 * add language features:
-    - type/subtype definition
-    - access variables
-    - records
-    - abstract, tagged records
+
+* aspect_defintion (ada 2012)
+* task stuff
 
 Doing
 =====
-    - arrays
-
 
 
 Done
 ====
+* various statements (abort, raise, extended return, exit)
+* declare_blocks
+* type/subtype definition (except??)
+* access variables
+* expressions (except quantified expressions)
+* enums
+* arrays
+* records
 * fix bug where function call graph doesn't appear 
     commit cbdf491ba076921aee6b38b7d04b02e10c142f4
 

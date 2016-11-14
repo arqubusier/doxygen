@@ -262,6 +262,7 @@ static RuleHandler *s_handler;
 %type<idsPtr> elsif_clause
 %type<idsPtr> if_clauses
 %type<nodePtr> type_declaration
+%type<nodePtr> renaming_declaration
 %type<nodesPtr> type_declarations
 %type<nodePtr> type_definition
 %type<nodesPtr> type_definitions
@@ -588,7 +589,30 @@ basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
                     {$$ = s_handler->decls($1, $2);}
 
 decl_items:         obj_decl| type_declarations;
-decl_item:          subprogram_decl| package_decl| type_declaration;
+decl_item:          subprogram_decl| package_decl| type_declaration
+                    |renaming_declaration;
+
+overriding_indicator: OVERRIDING
+                    NOT OVERRIDING
+/* TODO: add aspect_declaration */
+renaming_declaration: object_renaming_declaration
+                    |exception_renaming_declaration
+                    |package_renaming_declaration
+                    |subprogram_renaming_declaration
+                    |generic_renaming_declaration
+object_renaming_declaration:
+                    IDENTIFIER COLON subtype_mark RENAMES name
+                    |IDENTIFIER COLON null_exclusion subtype_mark RENAMES name
+                    |IDENTIFIER COLON access_definition RENAMES name
+exception_renaming_declaration:
+                    IDENTIFIER: EXCEPTION RENAMES name
+subprogram_renaming_declaration:
+                    subprogram_spec RENAMES name
+                    |overriding_indicator subprogram_spec RENAMES name
+generic_renaming_declaration:
+                    GENERIC PACKAGE name RENAMES name
+                    |GENERIC PROCEDURE name RENAMES name
+                    |GENERIC FUNCTION name RENAMES name
 
 type_declaration:   full_type_declaration|
                     doxy_comment full_type_declaration
