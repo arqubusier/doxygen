@@ -738,17 +738,24 @@ obj_decl:           obj_decl_base
                     /* NOTE: grammar for obj_decls_base written
                              this way to prevent s/r conflicts with
                              object_renaming_declaration. */
+
+obj_mod:    
+            CONSTANT
+            |ALIASED
+            |CONSTANT ALIASED
+            |/*empty*/
 obj_decl_base:      
-                    IDENTIFIER COLON 
+                    IDENTIFIER COLON obj_mod 
                     obj_decl_type ASS expression SEM
-                    {$$ = s_handler->objDeclBase($1, $3, $5);}
-                    |IDENTIFIER COLON obj_decl_type SEM
-                    {$$ = s_handler->objDeclBase($1, $3);}
-                    |IDENTIFIER COMMA identifier_list COLON 
+                    {$$ = s_handler->objDeclBase($1, $4, $6);}
+                    |IDENTIFIER COLON  obj_mod obj_decl_type SEM
+                    {$$ = s_handler->objDeclBase($1, $4);}
+                    |IDENTIFIER COMMA   identifier_list COLON obj_mod
                     obj_decl_type ASS expression SEM
-                    {$$ = s_handler->objDeclBase($1, $3, $5, $7);}
-                    |IDENTIFIER COMMA identifier_list COLON obj_decl_type SEM
-                    {$$ = s_handler->objDeclBase($1, $3, $5);}
+                    {$$ = s_handler->objDeclBase($1, $3, $6, $8);}
+                    |IDENTIFIER COMMA identifier_list COLON
+                     obj_mod obj_decl_type SEM
+                    {$$ = s_handler->objDeclBase($1, $3, $6);}
 
 obj_decl_type:      subtype_indication
                     |array_type_definition
