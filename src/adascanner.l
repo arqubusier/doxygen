@@ -102,6 +102,7 @@ B       [ \t]
 "delta"         return(DELTA);
 "declare"       return(DECLARE);
 "overriding"    return(OVERRIDING);
+"exception"     return(EXCEPTION);
 "renames"       return(RENAMES);
 "raise"         return(RAISE);
 "with"          return(WITH);
@@ -126,6 +127,7 @@ B       [ \t]
 "&"             return(AMB);
 "/"             return(DIV);
 "mod"           return(MOD);
+"digits"        return(DIGITS);
 "rem"           return(REM);
 "abs"           return(ABS);
 "not"           return(NOT);

@@ -45,10 +45,10 @@ public:
             Nodes *decls=NULL, Identifiers *refs=NULL) = 0;
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL) = 0;
   virtual Nodes *objDeclBase(char *id, Expression *type,
-                             Expression *expr=NULL) = 0;
+                             Expression *expr=NULL, QCString *obj_mod=NULL) = 0;
   virtual Nodes *objDeclBase(char *id,
                              Identifiers *ids, Expression *type,
-                             Expression *expr=NULL) = 0;
+                             Expression *expr=NULL, QCString *obj_mod=NULL) = 0;
   virtual Node* addDoc(Node *base, Node* doc=NULL) = 0;
   virtual Nodes* addDocs(Nodes *base, Node* doc=NULL) = 0;
   virtual Node* type_definition(Expression *def) = 0;
@@ -166,10 +166,10 @@ public:
   virtual Nodes *component_declaration(Identifiers *ids, Expression *type,
                              Expression *expr=NULL);
   virtual Nodes *objDeclBase(char *id, Expression *type,
-                             Expression *expr=NULL);
+                             Expression *expr=NULL, QCString *obj_mod=NULL);
   virtual Nodes *objDeclBase(char *id,
                              Identifiers *ids, Expression *type,
-                             Expression *expr=NULL);
+                             Expression *expr=NULL, QCString *obj_mod=NULL);
 
   virtual Node *accessToObjectDefinition(Expression *name,
                                         QCString *access_mod=NULL);
@@ -219,10 +219,10 @@ public:
             Identifiers *ids=NULL);
   virtual Nodes *objDecl(Nodes *base, Node *doc=NULL);
   virtual Nodes *objDeclBase(char *id, Expression *type,
-                             Expression *expr=NULL);
+                             Expression *expr=NULL, QCString *obj_mod=NULL);
   virtual Nodes *objDeclBase(char *id,
                              Identifiers *ids, Expression *type,
-                             Expression *expr=NULL);
+                             Expression *expr=NULL, QCString *obj_mod=NULL);
   virtual Node* addDoc(Node *base, Node* doc=NULL)
   {
         return base;

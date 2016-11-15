@@ -3,7 +3,13 @@ TODO
 
 * merge with current version of doxygen.
 
-* Include packet dependency graph.
+* add tests that follow doxygens format
+
+* Support comments placed after declarations
+
+* Error handling
+
+* OPTIMIZE_OUTPUT_FOR ada, for ada specific output
 
 * Syntax highlighting for codebrowser.
 
@@ -13,10 +19,50 @@ TODO
   to solve this the grammar needs to be extended to keep track
   of the types of the function arguments used in funtion calls.
 
-* add language features:
 
+visualisation
+-------------
+* represent inheritance in doxygen
+* represent generics in doxygen
+* represent tasks in doxygen
+
+* Include packet dependency graph.
+
+
+
+grammar recognition:
+--------------------
+
+* use clauses
+* char constant
+* operator functions
+
+* pragmas
+
+* exception
+
+* types
+  real type definition "type Percent is delta 0.01 digits 5;"
+  integer type definition  "type Int is range 1 .. 10;"
+
+
+* generic units
+* generic packages
+
+* task
+    -including delay
+
+
+OOP
+---
+* abstract functions 
+* abstract records
+* interface type
+
+* quantified expression "B := (for all K in A'Range => A(K) = 0);" (ada 2012)
+* conditional expression (ada 2012)
 * aspect_defintion (ada 2012)
-* task stuff
+
 
 Doing
 =====
@@ -24,18 +70,21 @@ Doing
 
 Done
 ====
+* proper recognition of "name"
 * various statements (abort, raise, extended return, exit)
 * declare_blocks
-* type/subtype definition (except??)
+* type/subtype definition
+    - enums
+    - arrays
+    - records
+    - access variables
 * access variables
-* expressions (except quantified expressions)
-* enums
-* arrays
-* records
+* expressions (except quantified/conditional expressions)
+    - array and enum aggregates
+    - allocator ("new")
 * fix bug where function call graph doesn't appear 
     commit cbdf491ba076921aee6b38b7d04b02e10c142f4
 
 * find and fix cause of segfaults when running ada_test.
 
 * add build instructinos.
-

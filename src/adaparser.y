@@ -219,6 +219,7 @@ static RuleHandler *s_handler;
 %type<nodesPtr> decls
 %type<nodesPtr> obj_decl
 %type<nodesPtr> obj_decl_base
+%type<qstrPtr> obj_mod
 %type<nodePtr> decl_item
 %type<nodesPtr> decl_items
 %type<idsPtr> identifier_list
@@ -307,7 +308,6 @@ static RuleHandler *s_handler;
 %type<exprPtr> expression
 %type<exprPtr> remaining_expression
 %type<exprPtr> qualified_expression
-/*%type<exprPtr> relation*/
 %type<exprPtr> membership_test
 %type<exprPtr> membership_choice_list
 %type<exprPtr> membership_choice
@@ -451,7 +451,19 @@ name: IDENTIFIER {$$=new Expression($1, NEW_ID($1, @1));}
               }
 
               /* A simlpification, attributes with ( expression ) can be interpreted as a subprogram call*/
-attribute_designator: IDENTIFIER {$$ = new QCString($1); dealloc($1);}
+attribute_designator: 
+                IDENTIFIER
+                {$$ = new QCString($1); dealloc($1);}
+                /*|IDENTIFIER LPAR expression RPAR
+                {$$ = new QCString($1); dealloc($1); dealloc($3);}*/
+                |DELTA
+                {$$ = new QCString(" Delta ");}
+                |ACCESS
+                {$$ = new QCString(" Access ");}
+                |DIGITS
+                {$$ = new QCString(" Digits ");}
+                |MOD
+                {$$ = new QCString(" Mod ");}
 
 doxy_comment: SPECIAL_COMMENT
 
@@ -741,21 +753,36 @@ obj_decl:           obj_decl_base
 
 obj_mod:    
             CONSTANT
+            {$$ = new QCString(" constant ");}
             |ALIASED
+            {$$ = new QCString(" aliased ");}
             |CONSTANT ALIASED
-            |/*empty*/
+            {$$ = new QCString(" constant ");}
+
 obj_decl_base:      
-                    IDENTIFIER COLON obj_mod 
+                    IDENTIFIER COLON
                     obj_decl_type ASS expression SEM
-                    {$$ = s_handler->objDeclBase($1, $4, $6);}
+                    {$$ = s_handler->objDeclBase($1, $3, $5);}
+                    |IDENTIFIER COLON obj_decl_type SEM
+                    {$$ = s_handler->objDeclBase($1, $3);}
+                    |IDENTIFIER COMMA   identifier_list COLON
+                    obj_decl_type ASS expression SEM
+                    {$$ = s_handler->objDeclBase($1, $3, $5, $7);}
+                    |IDENTIFIER COMMA identifier_list COLON
+                     obj_decl_type SEM
+                    {$$ = s_handler->objDeclBase($1, $3, $5);}
+
+                    |IDENTIFIER COLON obj_mod 
+                    obj_decl_type ASS expression SEM
+                    {$$ = s_handler->objDeclBase($1, $4, $6, $3);}
                     |IDENTIFIER COLON  obj_mod obj_decl_type SEM
-                    {$$ = s_handler->objDeclBase($1, $4);}
+                    {$$ = s_handler->objDeclBase($1, $4, NULL, $3);}
                     |IDENTIFIER COMMA   identifier_list COLON obj_mod
                     obj_decl_type ASS expression SEM
-                    {$$ = s_handler->objDeclBase($1, $3, $6, $8);}
+                    {$$ = s_handler->objDeclBase($1, $3, $6, $8, $5);}
                     |IDENTIFIER COMMA identifier_list COLON
                      obj_mod obj_decl_type SEM
-                    {$$ = s_handler->objDeclBase($1, $3, $6);}
+                    {$$ = s_handler->objDeclBase($1, $3, $6, NULL, $5);}
 
 obj_decl_type:      subtype_indication
                     |array_type_definition
@@ -930,6 +957,8 @@ block_statement:
             {$$ = $4;}
             |BEGIN_ statements END tail
             {$$ = $2;}
+            |DECLARE BEGIN_ statements END tail
+            {$$ = $3;}
 
 if_statement:if_clause END IF
             |if_clause if_clauses END IF
@@ -1004,7 +1033,9 @@ qualified_expression:
         because of conflicts between "positional_array_aggregate", 
         '(' expression ')' and "named_array_aggregate".*/
 expression: 
+
           choice_expression
+          |membership_test
           |membership_test relation_op remaining_expression
           {
             $$ = exprPair($1, $3, *$2);

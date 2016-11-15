@@ -260,13 +260,19 @@ Node* EntryHandler::subprogramBody(Node *base,
 
 Nodes *EntryHandler::objDeclBase(char *id,
                                  Expression *type,
-                                 Expression *expr)
+                                 Expression *expr, QCString *obj_mod)
 {
   Nodes *nodes = new Nodes;
 
   EntryNode *e = newEntryNode();
   e->entry.name = QCString(id);
   e->entry.type = type->str;
+  if (obj_mod)
+  {
+    e->entry.type.prepend(*obj_mod);
+    dealloc(obj_mod);
+  }
+
   e->entry.section = Entry::VARIABLE_SEC;
   if (expr)
   {
@@ -282,13 +288,19 @@ Nodes *EntryHandler::objDeclBase(char *id,
 }
 Nodes *EntryHandler::objDeclBase(char *id,
                                 Identifiers *refs, Expression *type,
-                                 Expression *expr)
+                                 Expression *expr, QCString *obj_mod)
 {
   Nodes *nodes = new Nodes;
 
   EntryNode *e = newEntryNode();
   e->entry.name = QCString(id);
   e->entry.type = type->str;
+  if (obj_mod)
+  {
+    e->entry.type.prepend(*obj_mod);
+    dealloc(obj_mod);
+  }
+
   e->entry.section = Entry::VARIABLE_SEC;
   if (expr)
   {
@@ -632,10 +644,15 @@ Nodes *CodeHandler::objDecl(Nodes *base, Node *doc)
 
 Nodes *CodeHandler::objDeclBase(char *id,
                                 Expression *type,
-                                Expression *expr)
+                                Expression *expr, QCString *obj_mod)
 {
   Nodes* nodes = new Nodes;
   CodeNode* n;
+
+  if (obj_mod)
+  {
+    dealloc(obj_mod);
+  }
 
   n = newCodeNode(ADA_VAR, id, "");
   if (expr)
@@ -650,10 +667,15 @@ Nodes *CodeHandler::objDeclBase(char *id,
 
 Nodes *CodeHandler::objDeclBase(char *id,
                                 Identifiers *ids, Expression *type,
-                                Expression *expr)
+                                Expression *expr, QCString *obj_mod)
 {
   Nodes* nodes = new Nodes;
   CodeNode* n;
+
+  if (obj_mod)
+  {
+    dealloc(obj_mod);
+  }
 
   n = newCodeNode(ADA_VAR, id, "");
   if (expr)
