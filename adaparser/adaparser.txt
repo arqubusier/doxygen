@@ -1,75 +1,82 @@
 TODO
 ====
 
-* merge with current version of doxygen.
-
-* add tests that follow doxygens format
-
-* Support comments placed after declarations
-
-* Error handling
-
-* OPTIMIZE_OUTPUT_FOR ada, for ada specific output
-
-* Syntax highlighting for codebrowser.
-
-* handle function overloading. When generating call graphs,
-  currently there is no consideration that multiple functions
-  might have the same name but with different parameters.
-  to solve this the grammar needs to be extended to keep track
-  of the types of the function arguments used in funtion calls.
-
-
-visualisation
--------------
-* represent inheritance in doxygen
-* represent generics in doxygen
-* represent tasks in doxygen
-
-* Include packet dependency graph.
+    * merge with current version of doxygen.
+    
+    * add tests that follow Doxygen's test format
+    
+    * OPTIMIZE_OUTPUT_FOR ada, for ada specific output
+    
+    * Support doxygen comments placed after declarations
+    
+    * Error handling
+    
+    * Syntax highlighting for codebrowser.
+    
+    * handle function overloading. When generating call graphs,
+      currently there is no consideration that multiple functions
+      might have the same name but with different parameters.
+      to solve this the grammar needs to be extended to keep track
+      of the types of the function arguments used in funtion calls.
 
 
-
-grammar recognition:
---------------------
-
-* use clauses
-* char constant
-* operator functions
-
-* pragmas
-
-* exception
-
-* types
-  real type definition "type Percent is delta 0.01 digits 5;"
-  integer type definition  "type Int is range 1 .. 10;"
-
-
-* generic units
-* generic packages
-
-* task
-    -including delay
-
-
-OOP
----
-* abstract functions 
-* abstract records
-* interface type
-
-* quantified expression "B := (for all K in A'Range => A(K) = 0);" (ada 2012)
-* conditional expression (ada 2012)
-* aspect_defintion (ada 2012)
+    visualisation
+    -------------
+    * represent inheritance in doxygen
+    * represent generics in doxygen
+    * represent tasks in doxygen
+    
+    * Include packet dependency graph.
+    
+    
+    grammar recognition:
+    --------------------
+    
+    * operator functions
+    * pragmas
+            pragma import
+    
+    * exceptions
+    
+    * types
+      real type definition "type Percent is delta 0.01 digits 5;"
+      integer type definition  "type Int is range 1 .. 10;"
+    
+    
+    * generic units
+    * generic packages
+    * for use ....
+    
+    * task
+        -including delay
+    
+    
+        OOP
+        ---
+        * abstract functions 
+        * abstract records
+        * interface type
+        
+        * quantified expression
+            "B := (for all K in A'Range => A(K) = 0);" (ada 2012)
+        * conditional expression (ada 2012)
+        * aspect_defintion (ada 2012)
 
 
 Doing
 =====
+    * char constant
 
+    * test use and with clauses
 
 Done
 ====
+
+* use
+    * representation
+    * library level
+    * declaration level
+        * type
 * proper recognition of "name"
 * various statements (abort, raise, extended return, exit)
 * declare_blocks
@@ -80,7 +87,7 @@ Done
     - access variables
 * access variables
 * expressions (except quantified/conditional expressions)
-    - array and enum aggregates
+    - array, record and enum aggregates
     - allocator ("new")
 * fix bug where function call graph doesn't appear 
     commit cbdf491ba076921aee6b38b7d04b02e10c142f4

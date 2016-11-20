@@ -84,8 +84,29 @@ DECIMAL_LITERAL		{INTEGER}(\.?{INTEGER})?{EXPONENT}?
 BASE			{INTEGER}
 BASED_INTEGER		{EXTENDED_DIGIT}(_?{EXTENDED_DIGIT})*
 BASED_LITERAL		{BASE}#{BASED_INTEGER}(\.{BASED_INTEGER})?#{EXPONENT}?
-STRING_CHAR     ([^'"]|\\.)
-STRING_LITERAL  \"{STRING_CHAR}*\"
+
+ASC     [\x00-\x7f]
+ASCN    [\x00-\t\v-\x7f]
+ASCQ    [\x00-\x21\x23-\x7f]
+ASCQQ   [\x00-\x26\x28-\x7f]
+U       [\x80-\xbf]
+U2      [\xc2-\xdf]
+U3      [\xe0-\xef]
+U4      [\xf0-\xf4]
+
+/* match ascii or unicode char*/
+UANY    {ASC}|{U2}{U}|{U3}{U}{U}|{U4}{U}{U}{U}
+/* match ascii or unicode char except newline*/
+UANYN   {ASCN}|{U2}{U}|{U3}{U}{U}|{U4}{U}{U}{U}
+/* match ascii or unicode char except single quote*/
+UANYQ   {ASCQ}|{U2}{U}|{U3}{U}{U}|{U4}{U}{U}{U}
+/* match ascii or unicode char except double quote*/
+UANYQQ   {ASCQQ}|{U2}{U}|{U3}{U}{U}|{U4}{U}{U}{U}
+
+CH     {UANY}
+CH_LITERAL '{CH}'
+
+STRING_LITERAL  \"([\"\"]|{UANYQQ})*\"
 B       [ \t]
 
 
@@ -94,7 +115,8 @@ B       [ \t]
 
 
 %%
-{STRING_LITERAL}  {TEXT_TO_QSTR; return(STRING_LITERAL);}
+{CH_LITERAL} {printf("%s\n", yytext);TEXT_TO_QSTR; return(CHAR_LITERAL);}
+{STRING_LITERAL}  {printf("%s\n", yytext);TEXT_TO_QSTR; return(STRING_LITERAL);}
 {INTEGER}         {TEXT_TO_QSTR; return(INTEGER);}
 {DECIMAL_LITERAL} {TEXT_TO_QSTR; return(DECIMAL_LITERAL);}
 {BASED_LITERAL}   {TEXT_TO_QSTR; return(BASED_LITERAL);}

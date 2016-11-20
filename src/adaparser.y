@@ -202,6 +202,8 @@ static RuleHandler *s_handler;
 %token <qstrPtr>DECIMAL_LITERAL
 %token <qstrPtr>BASED_LITERAL
 %token <qstrPtr>STRING_LITERAL
+/*this is defined as a QCString because it can be several bytes in non ascii*/
+%token <qstrPtr>CHAR_LITERAL
 
 /*non-terminals*/
 %type<nodePtr> doxy_comment
@@ -333,8 +335,16 @@ context_clause: with_clause
                |use_clause
                |context_clause with_clause
                |context_clause use_clause
+/* TODO: handle WITH and USE in doxygen, will be similar to using in c++
+         right now this causes memory leak with names.*/
 with_clause: WITH names SEM
+             |WITH PRIVATE names SEM
+             |LIMITED WITH names SEM
+             |LIMITED WITH PRIVATE names SEM
+
 use_clause: USE names SEM
+            |USE TYPE names SEM
+            |USE TYPE ALL names SEM
 
 null_exclusion: NOT Null;
 
@@ -605,12 +615,15 @@ mode:              IN {$$ = new QCString("in");}
                    | OUT {$$ = new QCString("out");}
                    | IN OUT {$$ = new QCString("in out");}
 
+/*TODO handle use_clause, add aspect_clause*/
 decls:             body {$$ = s_handler->declsBase($1);}
                    |decl_item {$$ = s_handler->declsBase($1);}
                    |decl_items {$$ = s_handler->declsBase($1);}
+                   |use_clause {$$ = NULL;}
                    |decls body {$$ = s_handler->decls($1, $2);}
                    |decls decl_item {$$ = s_handler->decls($1, $2);}
                    |decls decl_items {$$ = s_handler->decls($1, $2);}
+                   |decls use_clause {$$ = $1;}
 
 basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
                     |decl_item {$$ = s_handler->declsBase($1);}
@@ -1229,6 +1242,7 @@ param_assoc: expression
 
 literal:
        STRING_LITERAL|INTEGER|DECIMAL_LITERAL|BASED_LITERAL
+       |CHAR_LITERAL
        |True{$$= new QCString(" True ");}
        |False{$$= new QCString(" False ");}
        |Null{$$= new QCString(" Null ");}
