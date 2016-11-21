@@ -296,6 +296,7 @@ static RuleHandler *s_handler;
 %type<paramsPtr> parameter_and_result_profile
 %type<paramsPtr> parameter_profile
 %type<qstrPtr> defining_designator
+%type<qstrPtr> defining_program_unit_name
 %type<exprPtr> access_definition
 %type<nodePtr> access_type_definition
 %type<nodePtr> access_to_object_definition
@@ -505,7 +506,16 @@ subprogram_decl:   subprogram_spec SEM {$$ = $1;}
 subprogram_spec:   subprogram_spec_base|
                    doxy_comment subprogram_spec_base
                      {$$ = s_handler->subprogramSpec($2, $1);}
-defining_designator: IDENTIFIER
+
+defining_designator: defining_program_unit_name
+                   |STRING_LITERAL
+
+/* NOTE: this version of defining program_unit_name is a lot more
+          restrictive than the standard. However, I have not seen any cases where
+          this makes a difference. */
+
+defining_program_unit_name:
+                    IDENTIFIER
                    {$$ = new QCString($1); dealloc($1);}
                    |defining_designator DOT IDENTIFIER
                    {QCString *str = $1;
@@ -514,11 +524,12 @@ defining_designator: IDENTIFIER
                    dealloc($3);
                    $$ = str;
                    }
-subprogram_spec_base:  PROCEDURE defining_designator
+
+subprogram_spec_base:  PROCEDURE defining_program_unit_name
                    {
                      $$ = s_handler->subprogramSpecBase($2);
                    }
-                   |PROCEDURE defining_designator parameter_profile
+                   |PROCEDURE defining_program_unit_name parameter_profile
                    {
                      $$ = s_handler->subprogramSpecBase($2, $3);
                    }
