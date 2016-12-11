@@ -304,6 +304,9 @@ static RuleHandler *s_handler;
 %type<qstrPtr> defining_program_unit_name
 %type<exprPtr> access_definition
 %type<nodePtr> access_type_definition
+%type<nodePtr> real_range_specification
+%type<nodePtr> real_type;
+%type<nodePtr> integer_type;
 %type<nodePtr> access_to_object_definition
 %type<nodePtr> access_to_subprogram_definition
 
@@ -718,8 +721,9 @@ type_definition: array_type_definition
                {$$ = s_handler->type_definition($1);}
                | record_type_definition
                | access_type_definition
-                    /* integer type, real type,
-                    derived type, interface type*/
+               |real_type
+               |integer_type
+                    /* TODO: derived type, interface type*/
 type_definitions: enumeration_type_definition
 
 enumeration_type_definition: LPAR enumeration_literals RPAR
@@ -752,6 +756,55 @@ record_definition:  RECORD component_list END RECORD
                     {$$ = s_handler->record_definition($2);}
                     |Null RECORD
                     {$$ = s_handler->record_definition();}
+real_range_specification: RANGE simple_expression DDOT simple_expression
+                    {
+                      dealloc($2);
+                      dealloc($4);
+                      $$ = NULL;
+                    }
+/* TODO: process real_type so it's visible in doxygen.*/
+real_type:  
+         /*floating_point_definition*/
+         DIGITS expression
+         {
+            dealloc($2);
+            $$ = NULL;
+         }
+         |DIGITS real_range_specification
+         {
+            $$ = NULL;
+         }
+         |DIGITS expression real_range_specification
+         {
+            dealloc($2);
+            $$ = NULL;
+         }
+         /*fixed_point_definition*/
+         |DELTA expression real_range_specification
+         {
+            dealloc($2);
+            $$ = NULL;
+         }
+         |DELTA expression DIGITS expression
+         {
+            dealloc($2);
+            dealloc($4);
+            $$ = NULL;
+         }
+         |DELTA expression DIGITS expression real_range_specification
+         {
+            dealloc($2);
+            dealloc($4);
+            $$ = NULL;
+         }
+integer_type:
+        RANGE simple_expression DDOT simple_expression
+        {dealloc($2);
+         dealloc($4);
+         $$ = NULL;}
+        |MOD expression
+        {dealloc($2);
+         $$ = NULL;}
 component_list:     component_item
                     /* TODO: find a way to implement variants in doxygen*/
                     |variant_part

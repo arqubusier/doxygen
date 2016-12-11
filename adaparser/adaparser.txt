@@ -29,14 +29,14 @@ TODO
     * Include packet dependency graph.
     
     
-    grammar recognition:
-    --------------------
+    grammar
+    -------
     
-    * operator functions
-    * pragmas
-            pragma import
+    * pragmas (processing)
+            pragma import 
     
-    * exceptions
+    * exceptions (processing)
+    * renaming (processing)
     
     * types
       real type definition "type Percent is delta 0.01 digits 5;"
@@ -71,6 +71,7 @@ Doing
 Done
 ====
 
+* exceptions (parsing but no processing)
 * char constant
 * pragmas (parsing but not any processing)
 * use
