@@ -221,10 +221,11 @@ static RuleHandler *s_handler;
 %type<nodesPtr> decls
 %type<nodesPtr> obj_decl
 %type<nodesPtr> obj_decl_base
+%type<nodesPtr> exception_declaration
 %type<qstrPtr> obj_mod
 %type<nodePtr> decl_item
 %type<nodesPtr> decl_items
-%type<idsPtr> identifier_list
+%type<idsPtr> defining_identifier_list
 %type<nodePtr> library_item
 %type<nodePtr> library_item_decl
 %type<nodePtr> library_item_body
@@ -241,6 +242,7 @@ static RuleHandler *s_handler;
 %type<exprPtr> array_component_assoc
 %type<idsPtr> statement
 %type<idsPtr> statements
+%type<idsPtr> handled_statements
 %type<idsPtr> return_statement
 %type<idsPtr> block_statement
 %type<exprPtr> call_params
@@ -583,23 +585,23 @@ package_body_base: PACKAGE_BODY IDENTIFIER IS
                      $$ = s_handler->packageBodyBase($2, $4); 
                    }
                    |PACKAGE_BODY IDENTIFIER IS
-                   decls BEGIN_ statements END tail
+                   decls BEGIN_ handled_statements END tail
                    {
                      $$ = s_handler->packageBodyBase($2, $4, $6); 
                    }
                    |PACKAGE_BODY IDENTIFIER IS
-                   BEGIN_ statements END tail
+                   BEGIN_ handled_statements END tail
                    {
                      $$ = s_handler->packageBodyBase($2, NULL, $5); 
                    }
 
 subprogram_body:  subprogram_spec IS
-                  BEGIN_ statements END tail
+                  BEGIN_ handled_statements END tail
                   {
                     $$ = s_handler->subprogramBody($1, NULL, $4);
                   }
                   |subprogram_spec IS decls
-                  BEGIN_ statements END tail
+                  BEGIN_ handled_statements END tail
                   {
                     $$ = s_handler->subprogramBody($1, $3, $5);
                   }
@@ -609,17 +611,17 @@ parameters:       parameter_specs
 parameter_specs:  parameter_spec {$$ = $1;}
                   |parameter_specs SEM parameter_spec
                    {$$ = s_handler->params($1, $3);}
-parameter_spec:    identifier_list COLON subtype_indication
+parameter_spec:    defining_identifier_list COLON subtype_indication
                      {$$ = s_handler->paramSpec($1, $3);}
-                   |identifier_list COLON mode subtype_indication
+                   |defining_identifier_list COLON mode subtype_indication
                      {$$ = s_handler->paramSpec($1, $4, $3);}
-                   |identifier_list COLON subtype_indication ASS expression
+                   |defining_identifier_list COLON subtype_indication ASS expression
                      {$$ = s_handler->paramSpec($1, $3, NULL, $5);}
-                   |identifier_list COLON mode subtype_indication ASS expression
+                   |defining_identifier_list COLON mode subtype_indication ASS expression
                      {$$ = s_handler->paramSpec($1, $4, $3, $6);}
-                   |identifier_list COLON access_definition
+                   |defining_identifier_list COLON access_definition
                      {$$ = s_handler->paramSpec($1, $3);}
-                   |identifier_list COLON access_definition ASS expression
+                   |defining_identifier_list COLON access_definition ASS expression
                      {$$ = s_handler->paramSpec($1, $3, NULL, $5);}
 
 mode:              IN {$$ = new QCString("in");}
@@ -643,9 +645,21 @@ basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
                     |basic_decls decl_item
                     {$$ = s_handler->decls($1, $2);}
 
-decl_items:         obj_decl| type_declarations;
+decl_items:         obj_decl| type_declarations| exception_declaration;
 decl_item:          subprogram_decl| package_decl| type_declaration
                     |renaming_declaration;
+                    /* TODO: add aspect_declaration. Handle exceptions in doxygen.*/
+exception_declaration: IDENTIFIER COLON EXCEPTION SEM
+                     {
+                        dealloc($1);
+                        $$ = NULL;
+                     }
+                     |IDENTIFIER COMMA defining_identifier_list COLON EXCEPTION SEM
+                     {
+                        dealloc($1);
+                        dealloc($3);
+                        $$ = NULL;
+                     }
 
 overriding_indicator: OVERRIDING
                     NOT OVERRIDING
@@ -746,9 +760,9 @@ component_list:     component_item
 component_item:     component_declaration /*TODO: aspect clasue*/
                     |doxy_comment component_declaration
                     {$$ = s_handler->addDocs($2, $1);}
-component_declaration: identifier_list COLON component_definition SEM
+component_declaration: defining_identifier_list COLON component_definition SEM
                     {$$ = s_handler->component_declaration($1, $3);}
-                     | identifier_list COLON component_definition
+                     | defining_identifier_list COLON component_definition
                      ASS expression SEM /*TODO: aspect spec*/
                     {$$ = s_handler->component_declaration($1, $3, $5);}
 component_definition: subtype_indication
@@ -789,10 +803,10 @@ obj_decl_base:
                     {$$ = s_handler->objDeclBase($1, $3, $5);}
                     |IDENTIFIER COLON obj_decl_type SEM
                     {$$ = s_handler->objDeclBase($1, $3);}
-                    |IDENTIFIER COMMA   identifier_list COLON
+                    |IDENTIFIER COMMA   defining_identifier_list COLON
                     obj_decl_type ASS expression SEM
                     {$$ = s_handler->objDeclBase($1, $3, $5, $7);}
-                    |IDENTIFIER COMMA identifier_list COLON
+                    |IDENTIFIER COMMA defining_identifier_list COLON
                      obj_decl_type SEM
                     {$$ = s_handler->objDeclBase($1, $3, $5);}
 
@@ -801,10 +815,10 @@ obj_decl_base:
                     {$$ = s_handler->objDeclBase($1, $4, $6, $3);}
                     |IDENTIFIER COLON  obj_mod obj_decl_type SEM
                     {$$ = s_handler->objDeclBase($1, $4, NULL, $3);}
-                    |IDENTIFIER COMMA   identifier_list COLON obj_mod
+                    |IDENTIFIER COMMA   defining_identifier_list COLON obj_mod
                     obj_decl_type ASS expression SEM
                     {$$ = s_handler->objDeclBase($1, $3, $6, $8, $5);}
-                    |IDENTIFIER COMMA identifier_list COLON
+                    |IDENTIFIER COMMA defining_identifier_list COLON
                      obj_mod obj_decl_type SEM
                     {$$ = s_handler->objDeclBase($1, $3, $6, NULL, $5);}
 
@@ -873,7 +887,7 @@ range_attribute:        name TIC RANGE
                          moveExprIds(name, expr);
                          $$ = name;}
                      
-identifier_list:    IDENTIFIER
+defining_identifier_list:    IDENTIFIER
                     {
                       Identifiers *ids = new Identifiers;
                       ids->push_front(NEW_ID($1, @1));
@@ -881,7 +895,7 @@ identifier_list:    IDENTIFIER
                       $$ = ids;
                       dealloc($1);
                     }
-                    |IDENTIFIER COMMA identifier_list
+                    |IDENTIFIER COMMA defining_identifier_list
                     {
                       Identifiers *ids = $3;
                       ids->push_front(NEW_ID($1, @1));
@@ -900,6 +914,23 @@ statements: statement
             ss->splice(ss->begin(), *s);
             $$ = ss;
             dealloc( s);}
+
+handled_statements:statements
+                  |statements EXCEPTION exception_handler
+                  {$$ = $1;};
+
+/* TODO: handle exception handlers in doxygen */
+exception_handler:WHEN exception_choices REF statements
+                 {dealloc($4);}
+                 |WHEN IDENTIFIER exception_choices REF statements
+                 {dealloc($5);}
+exception_choices:
+                  name
+                  {dealloc($1);}
+                 |OTHERS
+                 |exception_choices PIPE name
+                  {dealloc($3);}
+                 |exception_choices PIPE OTHERS
 
 statement:  
             /* Procedure_call, code_statement,
@@ -961,7 +992,7 @@ return_statement: RETURN {$$ = new Identifiers;}
                 |RETURN expression
                 {$$ = new Identifiers($2->ids);
                 dealloc($2);}
-                |RETURN subtype_indication DO statements END RETURN
+                |RETURN subtype_indication DO handled_statements END RETURN
            {Identifiers *s = new Identifiers($2->ids);
             Identifiers *ss = $4;
             ss->splice(ss->begin(), *s);
@@ -977,11 +1008,11 @@ compound:   case_statement SEM{$$=$1;}
 block_statement:
                /* TODO: 2016-11-14 the references used in decls should
                be returned somehow*/
-            DECLARE decls BEGIN_ statements END tail
+            DECLARE decls BEGIN_ handled_statements END tail
             {$$ = $4;}
-            |BEGIN_ statements END tail
+            |BEGIN_ handled_statements END tail
             {$$ = $2;}
-            |DECLARE BEGIN_ statements END tail
+            |DECLARE BEGIN_ handled_statements END tail
             {$$ = $3;}
 
 if_statement:if_clause END IF

@@ -65,13 +65,14 @@ TODO
 
 Doing
 =====
-    * char constant
 
     * test use and with clauses
 
 Done
 ====
 
+* char constant
+* pragmas (parsing but not any processing)
 * use
     * representation
     * library level
