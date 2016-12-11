@@ -38,7 +38,7 @@ TODO
     * exceptions (processing)
     * renaming (processing)
     
-    * types
+    * types (processing)
       real type definition "type Percent is delta 0.01 digits 5;"
       integer type definition  "type Int is range 1 .. 10;"
     
@@ -51,17 +51,17 @@ TODO
         -including delay
     
     
-        OOP
-        ---
-        * abstract functions 
-        * abstract records
-        * interface type
         
         * quantified expression
             "B := (for all K in A'Range => A(K) = 0);" (ada 2012)
         * conditional expression (ada 2012)
         * aspect_defintion (ada 2012)
 
+        OOP
+        ---
+        * abstract functions 
+        * abstract records
+        * interface type
 
 Doing
 =====
@@ -71,6 +71,7 @@ Doing
 Done
 ====
 
+* types real type definition and integer type definition (parsing, no processing)
 * exceptions (parsing but no processing)
 * char constant
 * pragmas (parsing but not any processing)

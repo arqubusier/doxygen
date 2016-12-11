@@ -960,7 +960,34 @@ defining_identifier_list:    IDENTIFIER
                       dealloc($1);
                     }
                     
-subtype_indication: name;
+subtype_indication: name
+                  /*|null_exclusion name {$$ = $2;}*/
+                 /* |null_exclusion name constraint {$$ = $2;}*/
+
+/* TODO: composite constraints */
+constraint:         
+            /* range_constraint */
+            RANGE range
+            /* digits_constraint */
+            |DIGITS expression
+            |DIGITS expression RANGE range
+            /* delta_constraint */
+            |DELTA expression
+            |DELTA expression RANGE range
+            /*index_constraint
+            |discriminant_constraint;
+            */
+
+/*
+index_constraint:
+
+selector_name:
+             IDENTIFIER|CHAR_LITERAL
+discriminant_constraint: selector_name
+                       |discriminant_constraint COMMA selector_name
+*/
+
+            
 /*subtype_mark: name;*/
 
 statements: statement
