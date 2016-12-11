@@ -49,6 +49,7 @@ static bool                s_should_save_comments;
 * Global variables
 */
 Entry* parser_root;
+int pragma_nesting=0;
 
 
 /*
@@ -112,6 +113,7 @@ B       [ \t]
 
 %x doxy_comment
 %x comment
+%x pragma
 
 
 %%
@@ -228,6 +230,24 @@ B       [ \t]
 "--"                 {BEGIN(comment);}
 <comment>[^\n]*     ;
 <comment>\n         {BEGIN(INITIAL);}
+    /*Note: currently pragmas are thrown away and not processed.
+            An important pragma that may affect doxygen is
+            "import", note that this is also handled by an aspect
+            definition in ada2012. */
+"pragma"            {BEGIN(pragma);}
+<pragma>[^();]*      ;
+<pragma>\(          {++pragma_nesting;}
+<pragma>\)          {--pragma_nesting;}
+<pragma>";"         {
+                        if(pragma_nesting<=0)
+                        {
+                            pragma_nesting = 0;
+                            BEGIN(INITIAL);
+                        }
+
+                    }
+
+
 [a-zA-Z][a-zA-Z0-9_]* {adaYYlval.cstrVal = strdup(yytext);
                         return(IDENTIFIER);}
 [ \t\n\f]		;

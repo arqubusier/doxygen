@@ -32,9 +32,6 @@ TODO
     grammar recognition:
     --------------------
     
-    * operator functions
-    * pragmas
-            pragma import
     
     * exceptions
     
@@ -65,18 +62,22 @@ TODO
 
 Doing
 =====
-    * char constant
+    * pragmas
+            pragma import
 
     * test use and with clauses
 
 Done
 ====
 
+* char constant
+* operator functions
 * use
     * representation
     * library level
     * declaration level
         * type
+
 * proper recognition of "name"
 * various statements (abort, raise, extended return, exit)
 * declare_blocks
