@@ -243,6 +243,9 @@ static RuleHandler *s_handler;
 %type<idsPtr> statement
 %type<idsPtr> statements
 %type<idsPtr> handled_statements
+%type<idsPtr> exception_handlers
+%type<idsPtr> exception_handler
+%type<idsPtr> exception_choices
 %type<idsPtr> return_statement
 %type<idsPtr> block_statement
 %type<exprPtr> call_params
@@ -916,21 +919,30 @@ statements: statement
             dealloc( s);}
 
 handled_statements:statements
-                  |statements EXCEPTION exception_handler
+                  |statements EXCEPTION exception_handlers
                   {$$ = $1;};
 
 /* TODO: handle exception handlers in doxygen */
+exception_handlers: exception_handler
+                  |exception_handlers exception_handler;
+
 exception_handler:WHEN exception_choices REF statements
-                 {dealloc($4);}
+                 {dealloc($4);
+                 $$ = NULL;}
                  |WHEN IDENTIFIER exception_choices REF statements
-                 {dealloc($5);}
+                 {dealloc($5);
+                 $$ = NULL;}
 exception_choices:
                   name
-                  {dealloc($1);}
+                  {dealloc($1);
+                  $$ = NULL;}
                  |OTHERS
+                  {$$ = NULL;}
                  |exception_choices PIPE name
-                  {dealloc($3);}
+                  {dealloc($3);
+                  $$ = NULL;}
                  |exception_choices PIPE OTHERS
+                  {$$ = NULL;}
 
 statement:  
             /* Procedure_call, code_statement,
