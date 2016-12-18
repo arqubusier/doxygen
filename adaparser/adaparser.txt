@@ -41,6 +41,7 @@ TODO
     * types (processing)
       real type definition "type Percent is delta 0.01 digits 5;"
       integer type definition  "type Int is range 1 .. 10;"
+    * subtype declarations
     
     
     * generic units

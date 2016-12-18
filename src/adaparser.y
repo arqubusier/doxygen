@@ -344,7 +344,7 @@ context_clause: with_clause
                |use_clause
                |context_clause with_clause
                |context_clause use_clause
-/* TODO: handle WITH and USE in doxygen, will be similar to using in c++
+/* TODO: handle WITH and USE in doxygen, will be similar to "using" in c++
          right now this causes memory leak with names.*/
 with_clause: WITH names SEM
              |WITH PRIVATE names SEM
@@ -556,11 +556,6 @@ parameter_and_result_profile:
                    {Parameters *p = new Parameters;
                     p->type = $2;
                     $$ = p;}
-                   | RETURN null_exclusion
-                        subtype_indication
-                   {Parameters *p = new Parameters;
-                    p->type = $3;
-                    $$ = p;}
                    |LPAR parameters RPAR RETURN access_definition
                    {Parameters *p = $2;
                     p->type = $5;
@@ -568,11 +563,6 @@ parameter_and_result_profile:
                    | LPAR parameters RPAR RETURN subtype_indication
                    {Parameters *p = $2;
                     p->type = $5;
-                    $$ = p;}
-                   | LPAR parameters RPAR RETURN null_exclusion
-                        subtype_indication
-                   {Parameters *p = $2;
-                    p->type = $6;
                     $$ = p;}
 
 body:              package_body| subprogram_body
@@ -912,8 +902,11 @@ array_subtype_definitions: array_subtype_definition
                          e1->str.append(e2->str);
                          moveExprIds(e1, e2);
                          $$ = e1;}
-array_subtype_definition:discrete_subtype
-                        |subtype_indication RANGE BOX
+array_subtype_definition:
+                        /*constrained subindex*/
+                        discrete_subtype
+                        /*uncenstrained subindex*/
+                        |name RANGE BOX
                         {Expression *e = $1;
                          e->str.append(" range <>");
                          $$ = e;}
@@ -961,8 +954,8 @@ defining_identifier_list:    IDENTIFIER
                     }
                     
 subtype_indication: name
-                  /*|null_exclusion name {$$ = $2;}*/
-                 /* |null_exclusion name constraint {$$ = $2;}*/
+                  |null_exclusion name {$$ = $2;}
+                  |null_exclusion name constraint {$$ = $2;}
 
 /* TODO: composite constraints */
 constraint:         
