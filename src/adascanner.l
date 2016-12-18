@@ -208,6 +208,7 @@ B       [ \t]
 "("          {return(LPAR);}
 "begin"          {return(BEGIN_);}
 "null"          {return(Null);}
+"subtype"       {return(SUBTYPE);}
 "--!"                 {s_specialComment.resize(0); 
                        BEGIN(doxy_comment);}
 <doxy_comment>[^\n]*  {s_specialComment.append(yytext);}

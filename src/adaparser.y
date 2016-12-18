@@ -282,6 +282,7 @@ static RuleHandler *s_handler;
 %type<nodesPtr> type_declarations
 %type<nodePtr> type_definition
 %type<nodesPtr> type_definitions
+%type<nodePtr> subtype_declaration
 %type<nodePtr> full_type_declaration
 %type<nodesPtr> full_type_declarations
 %type<nodesPtr> enumeration_type_definition
@@ -643,7 +644,7 @@ basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
 
 decl_items:         obj_decl| type_declarations| exception_declaration;
 decl_item:          subprogram_decl| package_decl| type_declaration
-                    |renaming_declaration;
+                    |renaming_declaration|subtype_declaration;
                     /* TODO: add aspect_declaration. Handle exceptions in doxygen.*/
 exception_declaration: IDENTIFIER COLON EXCEPTION SEM
                      {
@@ -694,6 +695,14 @@ generic_renaming_declaration:
                     |GENERIC FUNCTION name RENAMES name SEM
                     {$$ = NULL;}
 
+subtype_declaration:
+                   /* TODO: Add aspect_specification*/
+                   SUBTYPE IDENTIFIER IS subtype_indication SEM
+                   {
+                     dealloc($2);
+                     dealloc($4);
+                     $$ = NULL;
+                   }
 type_declaration:   full_type_declaration|
                     doxy_comment full_type_declaration
                     {$$ = s_handler->addDoc($2, $1);}
@@ -954,6 +963,7 @@ defining_identifier_list:    IDENTIFIER
                     }
                     
 subtype_indication: name
+                  |name constraint {$$=$1;}
                   |null_exclusion name {$$ = $2;}
                   |null_exclusion name constraint {$$ = $2;}
 
