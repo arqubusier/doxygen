@@ -235,12 +235,17 @@ static RuleHandler *s_handler;
 %type<nodePtr> generic_formal_part
 %type<nodePtr> generic_formal_parameter_declarations
 %type<nodePtr> generic_formal_parameter_declaration
+%type<nodePtr> generic_instantiation
+%type<nodePtr> generic_actual_part
+%type<nodePtr> generic_associtations
+%type<nodePtr> generic_association
+%type<nodePtr> explicit_generic_actual_parameter
 %type<nodePtr> formal_object_declaration
 %type<nodePtr> formal_type_declaration
 %type<nodePtr> formal_subprogram_declaration
 %type<nodePtr> formal_type_definition
 %type<nodePtr> subprogram_default
-/*%type<nodePtr> formal_package_declaration*/
+%type<nodePtr> formal_package_declaration
 %type<exprPtr> obj_decl_type
 %type<exprPtr> subtype_indication
 /*%type<exprPtr> subtype_mark*/
@@ -660,7 +665,8 @@ basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
 
 decl_items:         obj_decl| type_declarations| exception_declaration;
 decl_item:          subprogram_decl| package_decl| type_declaration
-                    |renaming_declaration|subtype_declaration|generic_declaration;
+                    |renaming_declaration|subtype_declaration|generic_declaration
+                    |generic_instantiation;
 generic_declaration: generic_subprogram_declaration|generic_package_declaration;
                    /* TODO: add aspect_declaration, handle generics in doxygen */
 generic_subprogram_declaration:
@@ -689,8 +695,8 @@ generic_formal_parameter_declaration:
                     {$$ = NULL;}
                     |formal_subprogram_declaration
                     {$$ = NULL;}
-                    /*|formal_package_declaration
-                    {$$ = NULL;}*/
+                    |formal_package_declaration
+                    {$$ = NULL;}
                     /* TODO: add aspect_declaration */
 formal_object_declaration:
                     defining_identifier_list COLON mode name SEM
@@ -734,9 +740,9 @@ formal_type_declaration:
                     {$$ = NULL;}
                     /* Complete type */
                     /* TODO: add aspect declaration */
-                    |TYPE IDENTIFIER IS formal_type_definition
+                    |TYPE IDENTIFIER IS formal_type_definition SEM
                     {$$ = NULL;}
-                    |TYPE IDENTIFIER discriminant_part IS formal_type_definition
+                    |TYPE IDENTIFIER discriminant_part IS formal_type_definition SEM
                     {$$ = NULL;}
 formal_type_definition:
                     LPAR BOX RPAR
@@ -757,6 +763,23 @@ formal_type_definition:
                     {$$ = NULL;}
                     /*TODO: interface_type */
 
+                    /*TODO: add aspect_clause*/
+formal_package_declaration:
+                    WITH PACKAGE IDENTIFIER IS NEW name formal_package_actual_part SEM
+                    {$$ = NULL;}
+formal_package_actual_part:
+                    LPAR BOX RPAR
+                    |LPAR OTHERS REF BOX RPAR
+                    |generic_actual_part
+                    |LPAR formal_package_associations RPAR
+formal_package_associations:
+                    generic_association
+                    |name REF BOX
+                    |formal_package_associations COMMA generic_association
+                    |formal_package_associations COMMA name
+                    /* NOTE: this is a bit more permissive since it allows multiple others
+                     associations */
+                    |formal_package_associations COMMA OTHERS REF BOX
                     
                     /* TODO: add aspect_declaration. Handle exceptions in doxygen.*/
 exception_declaration: IDENTIFIER COLON EXCEPTION SEM
@@ -770,6 +793,42 @@ exception_declaration: IDENTIFIER COLON EXCEPTION SEM
                         dealloc($3);
                         $$ = NULL;
                      }
+
+/* TODO: add aspect_declaration */
+generic_instantiation:
+                    PACKAGE defining_program_unit_name IS NEW name SEM
+                    {$$=NULL;}
+                    |PACKAGE defining_program_unit_name IS NEW name generic_actual_part SEM
+                    {$$=NULL;}
+                    |PROCEDURE defining_program_unit_name IS NEW name SEM
+                    {$$=NULL;}
+                    |overriding_indicator PROCEDURE defining_program_unit_name IS NEW name SEM
+                    {$$=NULL;}
+                    |PROCEDURE defining_program_unit_name IS NEW name generic_actual_part SEM
+                    {$$=NULL;}
+                    |overriding_indicator PROCEDURE defining_program_unit_name
+                    IS NEW name generic_actual_part SEM 
+                    {$$=NULL;}
+generic_actual_part: 
+                    LPAR generic_associtations RPAR
+                    {$$=NULL;}
+generic_associtations:
+                    generic_association
+                    {$$=NULL;}
+                    |generic_associtations COMMA generic_association
+                    {$$=NULL;}
+generic_association:
+                   explicit_generic_actual_parameter
+                    {$$=NULL;}
+                   |name REF explicit_generic_actual_parameter
+                    {$$=NULL;}
+explicit_generic_actual_parameter:
+                    expression
+                    {$$=NULL;}
+                    |name
+                    {$$=NULL;}
+
+
 
 overriding_indicator: OVERRIDING
                     NOT OVERRIDING
