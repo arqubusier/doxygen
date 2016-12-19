@@ -41,7 +41,7 @@ TODO
     * types (processing)
       real type definition "type Percent is delta 0.01 digits 5;"
       integer type definition  "type Int is range 1 .. 10;"
-    * subtype declarations
+    * subtype declarations (processing)
     
     
     * generic units
@@ -72,6 +72,7 @@ Doing
 Done
 ====
 
+* subtype declaration (parsing no processing);
 * types real type definition and integer type definition (parsing, no processing)
 * exceptions (parsing but no processing)
 * char constant

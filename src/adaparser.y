@@ -229,6 +229,18 @@ static RuleHandler *s_handler;
 %type<nodePtr> library_item
 %type<nodePtr> library_item_decl
 %type<nodePtr> library_item_body
+%type<nodePtr> generic_declaration
+%type<nodePtr> generic_subprogram_declaration
+%type<nodePtr> generic_package_declaration
+%type<nodePtr> generic_formal_part
+%type<nodePtr> generic_formal_parameter_declarations
+%type<nodePtr> generic_formal_parameter_declaration
+%type<nodePtr> formal_object_declaration
+%type<nodePtr> formal_type_declaration
+%type<nodePtr> formal_subprogram_declaration
+%type<nodePtr> formal_type_definition
+%type<nodePtr> subprogram_default
+/*%type<nodePtr> formal_package_declaration*/
 %type<exprPtr> obj_decl_type
 %type<exprPtr> subtype_indication
 /*%type<exprPtr> subtype_mark*/
@@ -271,6 +283,10 @@ static RuleHandler *s_handler;
 %type<idsPtr> if_clauses
 %type<nodePtr> type_declaration
 
+%type<nodePtr> discriminant_part
+%type<nodePtr> known_discriminant_part
+%type<nodePtr> discriminant_specification
+%type<nodePtr> discriminant_specifications
 
 %type<nodePtr> renaming_declaration
 %type<nodePtr> object_renaming_declaration
@@ -644,7 +660,104 @@ basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
 
 decl_items:         obj_decl| type_declarations| exception_declaration;
 decl_item:          subprogram_decl| package_decl| type_declaration
-                    |renaming_declaration|subtype_declaration;
+                    |renaming_declaration|subtype_declaration|generic_declaration;
+generic_declaration: generic_subprogram_declaration|generic_package_declaration;
+                   /* TODO: add aspect_declaration, handle generics in doxygen */
+generic_subprogram_declaration:
+                    generic_formal_part subprogram_spec SEM
+generic_package_declaration:
+                    generic_formal_part package_spec SEM
+                    {
+                        $$ = $1;
+                    }
+generic_formal_part:
+                    GENERIC generic_formal_parameter_declarations
+                    {$$ = NULL;}
+generic_formal_parameter_declarations:
+                    generic_formal_parameter_declaration
+                    {$$ = NULL;}
+                    |use_clause
+                    {$$ = NULL;}
+                    |generic_formal_parameter_declarations generic_formal_parameter_declaration
+                    {$$ = NULL;}
+                    |generic_formal_parameter_declarations use_clause
+                    {$$ = NULL;}
+generic_formal_parameter_declaration:
+                    formal_object_declaration
+                    {$$ = NULL;}
+                    |formal_type_declaration
+                    {$$ = NULL;}
+                    |formal_subprogram_declaration
+                    {$$ = NULL;}
+                    /*|formal_package_declaration
+                    {$$ = NULL;}*/
+                    /* TODO: add aspect_declaration */
+formal_object_declaration:
+                    defining_identifier_list COLON mode name SEM
+                    {$$ = NULL;}
+                    |defining_identifier_list COLON mode null_exclusion name SEM
+                    {$$ = NULL;}
+                    |defining_identifier_list COLON mode name ASS expression SEM
+                    {$$ = NULL;}
+                    |defining_identifier_list COLON mode null_exclusion name ASS expression SEM
+                    {$$ = NULL;}
+                    |defining_identifier_list COLON mode access_definition SEM
+                    {$$ = NULL;}
+                    |defining_identifier_list COLON mode access_definition ASS expression SEM
+                    {$$ = NULL;}
+                    /*TODO: add aspect_declaration */
+formal_subprogram_declaration:
+                    WITH subprogram_spec SEM
+                    {$$ = NULL;}
+                    |WITH subprogram_spec IS subprogram_default SEM
+                    {$$ = NULL;}
+                    |WITH subprogram_spec IS ABSTRACT SEM
+                    {$$ = NULL;}
+                    |WITH subprogram_spec IS ABSTRACT subprogram_default SEM
+                    {$$ = NULL;}
+subprogram_default:
+                    name
+                    {$$ = NULL;}
+                    |BOX
+                    {$$ = NULL;}
+                    |Null
+                    {$$ = NULL;}
+formal_type_declaration:
+                    /* Incomplete type */
+                    TYPE IDENTIFIER SEM
+                    {$$ = NULL;}
+                    |TYPE IDENTIFIER discriminant_part SEM
+                    {$$ = NULL;}
+                    |TYPE IDENTIFIER IS TAGGED SEM
+                    {$$ = NULL;}
+                    |TYPE IDENTIFIER discriminant_part IS TAGGED SEM
+                    {$$ = NULL;}
+                    /* Complete type */
+                    /* TODO: add aspect declaration */
+                    |TYPE IDENTIFIER IS formal_type_definition
+                    {$$ = NULL;}
+                    |TYPE IDENTIFIER discriminant_part IS formal_type_definition
+                    {$$ = NULL;}
+formal_type_definition:
+                    LPAR BOX RPAR
+                    {$$ = NULL;}
+                    |RANGE BOX
+                    {$$ = NULL;}
+                    |MOD BOX
+                    {$$ = NULL;}
+                    |DIGITS BOX
+                    {$$ = NULL;}
+                    |DELTA BOX
+                    {$$ = NULL;}
+                    |DELTA BOX DIGITS BOX
+                    {$$ = NULL;}
+                    |array_type_definition
+                    {$$ = NULL;}
+                    |access_type_definition
+                    {$$ = NULL;}
+                    /*TODO: interface_type */
+
+                    
                     /* TODO: add aspect_declaration. Handle exceptions in doxygen.*/
 exception_declaration: IDENTIFIER COLON EXCEPTION SEM
                      {
@@ -993,6 +1106,29 @@ discriminant_constraint: selector_name
             
 /*subtype_mark: name;*/
 
+discriminant_part:
+            LPAR BOX RPAR
+            {$$ = NULL;}
+            |known_discriminant_part;
+known_discriminant_part:
+            LPAR discriminant_specifications RPAR
+            {$$ = NULL;}
+discriminant_specifications:
+             discriminant_specification
+            |known_discriminant_part SEM discriminant_specification
+discriminant_specification:
+            defining_identifier_list COLON name 
+            {$$ = NULL;}
+            |defining_identifier_list COLON null_exclusion name 
+            {$$ = NULL;}
+            |defining_identifier_list COLON null_exclusion name ASS expression
+            {$$ = NULL;}
+            |defining_identifier_list COLON name ASS expression
+            {$$ = NULL;}
+            |defining_identifier_list COLON access_definition
+            {$$ = NULL;}
+            |defining_identifier_list COLON access_definition ASS expression
+            {$$ = NULL;}
 statements: statement
            |statements statement
            {Identifiers *s = $1;
