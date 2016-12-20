@@ -211,9 +211,8 @@ static RuleHandler *s_handler;
 %type<nodePtr> package_spec_base
 %type<nodePtr> package_decl
 %type<nodePtr> subprogram_spec
-%type<nodePtr> subprogram_spec_org
+%type<nodePtr> subprogram_spec_subset
 %type<nodePtr> procedure_head
-%type<nodePtr> subprogram_spec_base
 %type<nodePtr> subprogram_decl
 %type<nodePtr> body
 %type<nodePtr> package_body
@@ -227,6 +226,8 @@ static RuleHandler *s_handler;
 %type<qstrPtr> obj_mod
 %type<nodePtr> decl_item
 %type<nodesPtr> decl_items
+%type<nodesPtr> decl
+%type<nodesPtr> basic_decl
 %type<idsPtr> defining_identifier_list
 %type<nodePtr> library_item
 %type<nodePtr> library_item_decl
@@ -522,8 +523,6 @@ library_item_body: package_body| subprogram_body
 
 package_decl:      package_spec SEM{$$ = $1;}
 package_spec:      package_spec_base
-                   |doxy_comment package_spec_base
-                     {$$ = s_handler->packageSpec($2, $1);}
 /* TODO: make trailing identifier optional */
 package_spec_base: PACKAGE defining_program_unit_name IS
                    basic_decls END defining_program_unit_name
@@ -539,13 +538,8 @@ package_spec_base: PACKAGE defining_program_unit_name IS
                       }
 
 subprogram_decl:   subprogram_spec SEM {$$ = $1;}
-subprogram_spec:   subprogram_spec_org
-                    |procedure_head
-                   doxy_comment procedure_head
-                     {$$ = s_handler->subprogramSpec($2, $1);}
-subprogram_spec_org:   subprogram_spec_base|
-                   doxy_comment subprogram_spec_base
-                     {$$ = s_handler->subprogramSpec($2, $1);}
+subprogram_spec:   subprogram_spec_subset
+                    procedure_head
 
 defining_designator: defining_program_unit_name
                    |STRING_LITERAL
@@ -569,7 +563,7 @@ procedure_head: PROCEDURE defining_program_unit_name
                 $$ = s_handler->subprogramSpecBase($2);
               }
 
-subprogram_spec_base:
+subprogram_spec_subset:
                    PROCEDURE defining_program_unit_name parameter_profile
                    {
                      $$ = s_handler->subprogramSpecBase($2, $3);
@@ -600,9 +594,6 @@ parameter_and_result_profile:
 
 body:              package_body| subprogram_body
 package_body:      package_body_base
-                   |doxy_comment package_body_base
-                     {s_handler->packageBody($2, $1);
-                      $$ = $2;}
 package_body_base: PACKAGE_BODY IDENTIFIER IS
                    END tail
                    {
@@ -631,12 +622,12 @@ subprogram_body:
                   {
                     $$ = s_handler->subprogramBody($1, NULL, $4);
                   }
-                  |subprogram_spec_org IS
+                  |subprogram_spec_subset IS
                   BEGIN_ handled_statements END tail
                   {
                     $$ = s_handler->subprogramBody($1, NULL, $4);
                   }
-                  |subprogram_spec_org IS decls
+                  |subprogram_spec_subset IS decls
                   BEGIN_ handled_statements END tail
                   {
                     $$ = s_handler->subprogramBody($1, $3, $5);
@@ -665,20 +656,37 @@ mode:              IN {$$ = new QCString("in");}
                    | IN OUT {$$ = new QCString("in out");}
 
 /*TODO handle use_clause, add aspect_clause*/
-decls:             body {$$ = s_handler->declsBase($1);}
-                   |decl_item {$$ = s_handler->declsBase($1);}
-                   |decl_items {$$ = s_handler->declsBase($1);}
-                   |use_clause {$$ = NULL;}
-                   |decls body {$$ = s_handler->decls($1, $2);}
-                   |decls decl_item {$$ = s_handler->decls($1, $2);}
-                   |decls decl_items {$$ = s_handler->decls($1, $2);}
-                   |decls use_clause {$$ = $1;}
+basic_decl:
+                   decl_item
+                   {$$ = s_handler->declsBase($1);}
+                   |decl_items
+                   |doxy_comment decl_item
+                   {
+                    s_handler->addDoc($2, $1);
+                    $$ = s_handler->declsBase($1);
+                   }
+                   |doxy_comment decl_items
+                   {s_handler->addDocs($2, $1);}
+decl:
+                    basic_decl
+                    |body
+                   {$$ = s_handler->declsBase($1);}
+                    |use_clause
+                    {$$ = NULL; }
+                    |doxy_comment body
+                   {
+                    s_handler->addDoc($2, $1);
+                    $$ = s_handler->declsBase($1);
+                   }
+                    |doxy_comment use_clause
+                   {$$ = NULL;}
 
-basic_decls:        decl_items {$$ = s_handler->declsBase($1);}
-                    |decl_item {$$ = s_handler->declsBase($1);}
-                    |basic_decls decl_items
-                    {$$ = s_handler->decls($1, $2);}
-                    |basic_decls decl_item
+decls:             
+                    decl
+                   |decls decl_items {$$ = s_handler->decls($1, $2);}
+
+basic_decls:        basic_decl
+                    |basic_decls basic_decl
                     {$$ = s_handler->decls($1, $2);}
 
 decl_items:         obj_decl| type_declarations| exception_declaration;
@@ -892,13 +900,9 @@ subtype_declaration:
                      dealloc($4);
                      $$ = NULL;
                    }
-type_declaration:   full_type_declaration|
-                    doxy_comment full_type_declaration
-                    {$$ = s_handler->addDoc($2, $1);}
+type_declaration:   full_type_declaration
                     /*aspect definition missing*/
-type_declarations:  full_type_declarations|
-                    doxy_comment full_type_declarations
-                    {$$ = s_handler->addDocs($2, $1);}
+type_declarations:  full_type_declarations
 
 /*TODO add discriminant part*/
 full_type_declaration: TYPE IDENTIFIER IS type_definition SEM
@@ -1027,8 +1031,6 @@ variant_list:       variant|variant variant_list;
 variant:            WHEN discrete_choice_list REF component_list
 
 obj_decl:           obj_decl_base
-                    |doxy_comment obj_decl_base
-                    {$$ = s_handler->objDecl($2, $1);}
                     /* NOTE: grammar for obj_decls_base written
                              this way to prevent s/r conflicts with
                              object_renaming_declaration. */

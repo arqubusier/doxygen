@@ -467,7 +467,7 @@ EntryNode* EntryHandler::newEntryNode()
 }
 
 void EntryHandler::addDocToEntry(Node *doc, Node *entry){
-  if( doc ){
+  if( doc && entry ){
     EntryNode *e_doc = dynamic_cast<EntryNode*>(doc);
     EntryNode *e_entry = dynamic_cast<EntryNode*>(entry);
     e_entry->entry.doc = e_doc->entry.doc;
@@ -477,7 +477,7 @@ void EntryHandler::addDocToEntry(Node *doc, Node *entry){
 
 void EntryHandler::addDocToEntries(Node *doc, Nodes* nodes)
 {
-  if (!nodes->empty())
+  if (doc && !nodes->empty())
   {
     Node *node = nodes->back();
     addDocToEntry(doc, node);
