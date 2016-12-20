@@ -250,6 +250,7 @@ static RuleHandler *s_handler;
 %type<nodePtr> formal_type_declaration
 %type<nodePtr> formal_subprogram_declaration
 %type<nodePtr> formal_type_definition
+%type<qstrPtr> formal_private_type_definition
 %type<nodePtr> subprogram_default
 %type<nodePtr> formal_package_declaration
 %type<exprPtr> obj_decl_type
@@ -539,7 +540,7 @@ package_spec_base: PACKAGE defining_program_unit_name IS
 
 subprogram_decl:   subprogram_spec SEM {$$ = $1;}
 subprogram_spec:   subprogram_spec_subset
-                    procedure_head
+                    |procedure_head
 
 defining_designator: defining_program_unit_name
                    |STRING_LITERAL
@@ -683,7 +684,7 @@ decl:
 
 decls:             
                     decl
-                   |decls decl_items {$$ = s_handler->decls($1, $2);}
+                   |decls decl {$$ = s_handler->decls($1, $2);}
 
 basic_decls:        basic_decl
                     |basic_decls basic_decl
@@ -770,8 +771,25 @@ formal_type_declaration:
                     {$$ = NULL;}
                     |TYPE IDENTIFIER discriminant_part IS formal_type_definition SEM
                     {$$ = NULL;}
+                    /* TODO: add formal_derived_type_definition */
+formal_private_type_definition:
+                    PRIVATE
+                    {$$ = NULL;}
+                    |TAGGED PRIVATE
+                    {$$ = NULL;}
+                    |ABSTRACT TAGGED PRIVATE
+                    {$$ = NULL;}
+                    |LIMITED PRIVATE
+                    {$$ = NULL;}
+                    |TAGGED LIMITED PRIVATE
+                    {$$ = NULL;}
+                    |ABSTRACT TAGGED LIMITED PRIVATE
+                    {$$ = NULL;}
+
 formal_type_definition:
-                    LPAR BOX RPAR
+                    formal_private_type_definition
+                    {$$ = NULL;}
+                    |LPAR BOX RPAR
                     {$$ = NULL;}
                     |RANGE BOX
                     {$$ = NULL;}
