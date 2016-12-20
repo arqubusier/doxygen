@@ -211,6 +211,8 @@ static RuleHandler *s_handler;
 %type<nodePtr> package_spec_base
 %type<nodePtr> package_decl
 %type<nodePtr> subprogram_spec
+%type<nodePtr> subprogram_spec_org
+%type<nodePtr> procedure_head
 %type<nodePtr> subprogram_spec_base
 %type<nodePtr> subprogram_decl
 %type<nodePtr> body
@@ -236,10 +238,13 @@ static RuleHandler *s_handler;
 %type<nodePtr> generic_formal_parameter_declarations
 %type<nodePtr> generic_formal_parameter_declaration
 %type<nodePtr> generic_instantiation
+/*
 %type<nodePtr> generic_actual_part
 %type<nodePtr> generic_associtations
 %type<nodePtr> generic_association
+%type<nodePtr> generic_association_ref
 %type<nodePtr> explicit_generic_actual_parameter
+*/
 %type<nodePtr> formal_object_declaration
 %type<nodePtr> formal_type_declaration
 %type<nodePtr> formal_subprogram_declaration
@@ -519,21 +524,26 @@ package_decl:      package_spec SEM{$$ = $1;}
 package_spec:      package_spec_base
                    |doxy_comment package_spec_base
                      {$$ = s_handler->packageSpec($2, $1);}
-package_spec_base: PACKAGE IDENTIFIER IS
-                   basic_decls END IDENTIFIER
+/* TODO: make trailing identifier optional */
+package_spec_base: PACKAGE defining_program_unit_name IS
+                   basic_decls END defining_program_unit_name
                       {
                        $$ = s_handler->packageSpecBase($2, $4);
                        dealloc($6);
                       }
-                    | PACKAGE IDENTIFIER IS basic_decls
-                      PRIVATE basic_decls END IDENTIFIER
+                    | PACKAGE defining_program_unit_name IS basic_decls
+                      PRIVATE basic_decls END defining_program_unit_name
                       {
                        $$ = s_handler->packageSpecBase($2, $4, $6);
                        dealloc( $8);
                       }
 
 subprogram_decl:   subprogram_spec SEM {$$ = $1;}
-subprogram_spec:   subprogram_spec_base|
+subprogram_spec:   subprogram_spec_org
+                    |procedure_head
+                   doxy_comment procedure_head
+                     {$$ = s_handler->subprogramSpec($2, $1);}
+subprogram_spec_org:   subprogram_spec_base|
                    doxy_comment subprogram_spec_base
                      {$$ = s_handler->subprogramSpec($2, $1);}
 
@@ -554,12 +564,13 @@ defining_program_unit_name:
                    dealloc($3);
                    $$ = str;
                    }
+procedure_head: PROCEDURE defining_program_unit_name
+              {
+                $$ = s_handler->subprogramSpecBase($2);
+              }
 
-subprogram_spec_base:  PROCEDURE defining_program_unit_name
-                   {
-                     $$ = s_handler->subprogramSpecBase($2);
-                   }
-                   |PROCEDURE defining_program_unit_name parameter_profile
+subprogram_spec_base:
+                   PROCEDURE defining_program_unit_name parameter_profile
                    {
                      $$ = s_handler->subprogramSpecBase($2, $3);
                    }
@@ -613,12 +624,19 @@ package_body_base: PACKAGE_BODY IDENTIFIER IS
                      $$ = s_handler->packageBodyBase($2, NULL, $5); 
                    }
 
-subprogram_body:  subprogram_spec IS
+/* TODO: fix doxy comments for procedure head */
+subprogram_body:  
+                  procedure_head IS
                   BEGIN_ handled_statements END tail
                   {
                     $$ = s_handler->subprogramBody($1, NULL, $4);
                   }
-                  |subprogram_spec IS decls
+                  |subprogram_spec_org IS
+                  BEGIN_ handled_statements END tail
+                  {
+                    $$ = s_handler->subprogramBody($1, NULL, $4);
+                  }
+                  |subprogram_spec_org IS decls
                   BEGIN_ handled_statements END tail
                   {
                     $$ = s_handler->subprogramBody($1, $3, $5);
@@ -770,16 +788,13 @@ formal_package_declaration:
 formal_package_actual_part:
                     LPAR BOX RPAR
                     |LPAR OTHERS REF BOX RPAR
-                    |generic_actual_part
-                    |LPAR formal_package_associations RPAR
-formal_package_associations:
-                    generic_association
-                    |name REF BOX
-                    |formal_package_associations COMMA generic_association
-                    |formal_package_associations COMMA name
-                    /* NOTE: this is a bit more permissive since it allows multiple others
-                     associations */
-                    |formal_package_associations COMMA OTHERS REF BOX
+                    |LPAR call_params OTHERS REF BOX RPAR
+                    |LPAR formal_package_assocs RPAR
+formal_package_assocs:
+                     name REF BOX
+                     |call_params COMMA name REF BOX
+                     |formal_package_assocs COMMA name REF BOX
+                     |formal_package_assocs COMMA param_assoc
                     
                     /* TODO: add aspect_declaration. Handle exceptions in doxygen.*/
 exception_declaration: IDENTIFIER COLON EXCEPTION SEM
@@ -795,39 +810,40 @@ exception_declaration: IDENTIFIER COLON EXCEPTION SEM
                      }
 
 /* TODO: add aspect_declaration */
+/* NOTE: generic parameter associations are interpreted as actual parameters for 
+         function calls. This gives the same expressivity, while avoiding conflicts */
 generic_instantiation:
                     PACKAGE defining_program_unit_name IS NEW name SEM
                     {$$=NULL;}
-                    |PACKAGE defining_program_unit_name IS NEW name generic_actual_part SEM
+                    |procedure_head IS NEW name SEM
                     {$$=NULL;}
-                    |PROCEDURE defining_program_unit_name IS NEW name SEM
+                    |overriding_indicator procedure_head IS NEW name SEM
                     {$$=NULL;}
-                    |overriding_indicator PROCEDURE defining_program_unit_name IS NEW name SEM
+                    |overriding_indicator procedure_head
                     {$$=NULL;}
-                    |PROCEDURE defining_program_unit_name IS NEW name generic_actual_part SEM
-                    {$$=NULL;}
-                    |overriding_indicator PROCEDURE defining_program_unit_name
-                    IS NEW name generic_actual_part SEM 
-                    {$$=NULL;}
+/*
 generic_actual_part: 
                     LPAR generic_associtations RPAR
                     {$$=NULL;}
 generic_associtations:
-                    generic_association
+                    generic_association_ref
                     {$$=NULL;}
-                    |generic_associtations COMMA generic_association
+                    |expressions COMMA generic_association_ref
+                    {$$ = NULL;}
+                    |generic_associtations COMMA generic_association_ref
+                    {$$ = NULL;}
+                    |generic_associtations COMMA expression
                     {$$=NULL;}
-generic_association:
-                   explicit_generic_actual_parameter
+generic_association_ref:
+                   name REF explicit_generic_actual_parameter
+                    */
+/*                    {$$=NULL;}
+generic_association:*l
+                    /* explicit_generic_actual_parameter */
+                   /* expression
                     {$$=NULL;}
-                   |name REF explicit_generic_actual_parameter
-                    {$$=NULL;}
-explicit_generic_actual_parameter:
-                    expression
-                    {$$=NULL;}
-                    |name
-                    {$$=NULL;}
-
+                    |generic_association_ref
+                    */
 
 
 overriding_indicator: OVERRIDING
@@ -852,19 +868,20 @@ exception_renaming_declaration:
                     IDENTIFIER EXCEPTION RENAMES name SEM
                     {$$ = NULL;}
 package_renaming_declaration:
-                    PACKAGE name RENAMES name SEM
+                    PACKAGE defining_program_unit_name RENAMES name SEM
                     {$$ = NULL;}
 subprogram_renaming_declaration:
                     subprogram_spec RENAMES name SEM
                     {$$ = NULL;}
                     |overriding_indicator subprogram_spec RENAMES name SEM
                     {$$ = NULL;}
+/* TODO: add aspect_declaration */
 generic_renaming_declaration:
-                    GENERIC PACKAGE name RENAMES name SEM
+                    GENERIC PACKAGE defining_program_unit_name RENAMES name SEM
                     {$$ = NULL;}
-                    |GENERIC PROCEDURE name RENAMES name SEM
+                    |GENERIC PROCEDURE defining_program_unit_name RENAMES name SEM
                     {$$ = NULL;}
-                    |GENERIC FUNCTION name RENAMES name SEM
+                    |GENERIC FUNCTION defining_program_unit_name RENAMES name SEM
                     {$$ = NULL;}
 
 subtype_declaration:
@@ -1560,11 +1577,11 @@ array_component_assoc: discrete_choice_list REF expression
                      }
 
 call_params: param_assoc
-           |param_assoc COMMA call_params
-           {Expression *pa = $1;
-            Expression *cp = $3;
+           |call_params COMMA param_assoc
+           {Expression *pa = $3;
+            Expression *cp = $1;
             cp->str.append(" , ");
-            cp->str.append($1->str);
+            cp->str.append($3->str);
             cp->ids.splice(cp->ids.begin(), pa->ids);
             $$ = cp;
             dealloc( pa);}

@@ -30,7 +30,7 @@ public:
   /* Handler methods.*/
   virtual Node* packageSpec(Node *base, Node* doc=NULL) = 0;
   virtual Node* packageSpecBase(
-            char* name,
+            QCString* name,
             Nodes *publics=NULL,
             Nodes *privates=NULL) = 0;
   virtual Node* subprogramSpec(Node *base, Node* doc=NULL) = 0;
@@ -122,7 +122,7 @@ public:
     return base;
   }
   virtual Node* packageSpecBase(
-            char* name,
+            QCString* name,
             Nodes *publics=NULL,
             Nodes *privates=NULL);
   virtual Node* subprogramSpec(Node *base, Node* doc=NULL)
@@ -203,7 +203,7 @@ public:
   //handlers
   virtual Node* packageSpec(Node *base, Node* doc=NULL);
   virtual Node* packageSpecBase(
-            char* name,
+            QCString* name,
             Nodes *publics=NULL,
             Nodes *privates=NULL);
   virtual Node* subprogramSpec(Node *base, Node* doc=NULL);

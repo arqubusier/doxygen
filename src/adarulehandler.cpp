@@ -197,12 +197,12 @@ void EntryHandler::addFileSection(const char *fileName)
   }
 }
 
-Node *EntryHandler::packageSpecBase(char* name, Nodes *publics, 
+Node *EntryHandler::packageSpecBase(QCString* name, Nodes *publics, 
                      Nodes *privates) 
 { 
   EntryNode *pkg = newEntryNode(); 
   pkg->entry.section = Entry::NAMESPACE_SEC; 
-  pkg->entry.name = QCString(name); 
+  pkg->entry.name = *name; 
   pkg->entry.type = QCString("namespace"); 
 
   NodesIter it = publics->begin(); 
@@ -557,11 +557,11 @@ Node* CodeHandler::packageSpec(Node *base, Node* doc)
   return base;
 }
 Node* CodeHandler::packageSpecBase(
-         char* name,
+         QCString* name,
           Nodes *publics,
           Nodes *privates)
 {
-  CodeNode *pkg = newCodeNode(ADA_PKG, name, "");
+  CodeNode *pkg = newCodeNode(ADA_PKG, *name, "");
   if(publics)
   {
     addObjRefsToParent(pkg, publics);
