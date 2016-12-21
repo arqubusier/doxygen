@@ -251,6 +251,10 @@ static RuleHandler *s_handler;
 %type<nodePtr> formal_subprogram_declaration
 %type<nodePtr> formal_type_definition
 %type<qstrPtr> formal_private_type_definition
+%type<qstrPtr> formal_derived_type_definition
+%type<qstrPtr> formal_derived_type_prefix
+%type<qstrPtr> formal_derived_type_suffix
+%type<exprPtr> interface_list
 %type<nodePtr> subprogram_default
 %type<nodePtr> formal_package_declaration
 %type<exprPtr> obj_decl_type
@@ -345,6 +349,7 @@ static RuleHandler *s_handler;
 %type<qstrPtr> relational_op
 %type<qstrPtr> multiplying_op
 
+%type<qstrPtr> selector_name
 %type<exprPtr> expression
 %type<exprPtr> remaining_expression
 %type<exprPtr> qualified_expression
@@ -738,6 +743,19 @@ formal_object_declaration:
                     {$$ = NULL;}
                     |defining_identifier_list COLON mode access_definition ASS expression SEM
                     {$$ = NULL;}
+
+                    |defining_identifier_list COLON name SEM
+                    {$$ = NULL;}
+                    |defining_identifier_list COLON null_exclusion name SEM
+                    {$$ = NULL;}
+                    |defining_identifier_list COLON name ASS expression SEM
+                    {$$ = NULL;}
+                    |defining_identifier_list COLON null_exclusion name ASS expression SEM
+                    {$$ = NULL;}
+                    |defining_identifier_list COLON access_definition SEM
+                    {$$ = NULL;}
+                    |defining_identifier_list COLON access_definition ASS expression SEM
+                    {$$ = NULL;}
                     /*TODO: add aspect_declaration */
 formal_subprogram_declaration:
                     WITH subprogram_spec SEM
@@ -771,7 +789,7 @@ formal_type_declaration:
                     {$$ = NULL;}
                     |TYPE IDENTIFIER discriminant_part IS formal_type_definition SEM
                     {$$ = NULL;}
-                    /* TODO: add formal_derived_type_definition */
+
 formal_private_type_definition:
                     PRIVATE
                     {$$ = NULL;}
@@ -786,8 +804,41 @@ formal_private_type_definition:
                     |ABSTRACT TAGGED LIMITED PRIVATE
                     {$$ = NULL;}
 
+formal_derived_type_prefix:
+                    ABSTRACT LIMITED
+                    {$$ = NULL;}
+                    |ABSTRACT SYNCHRONIZED
+                    {$$ = NULL;}
+                    |ABSTRACT
+                    {$$ = NULL;}
+                    |LIMITED
+                    {$$ = NULL;}
+                    |SYNCHRONIZED
+                    {$$ = NULL;}
+
+formal_derived_type_suffix:
+                    AND interface_list
+                    {$$ = NULL;}
+                    |AND interface_list WITH PRIVATE
+                    {$$ = NULL;}
+                    |WITH PRIVATE
+                    {$$ = NULL;}
+
+formal_derived_type_definition:
+                    NEW name
+                    {$$ = NULL;}
+                    |formal_derived_type_prefix NEW name
+                    {$$ = NULL;}
+                    |NEW name formal_derived_type_suffix
+                    {$$ = NULL;}
+                    |formal_derived_type_prefix NEW name formal_derived_type_suffix
+                    {$$ = NULL;}
+
+
 formal_type_definition:
                     formal_private_type_definition
+                    {$$ = NULL;}
+                    |formal_derived_type_definition
                     {$$ = NULL;}
                     |LPAR BOX RPAR
                     {$$ = NULL;}
@@ -817,9 +868,9 @@ formal_package_actual_part:
                     |LPAR call_params OTHERS REF BOX RPAR
                     |LPAR formal_package_assocs RPAR
 formal_package_assocs:
-                     name REF BOX
-                     |call_params COMMA name REF BOX
-                     |formal_package_assocs COMMA name REF BOX
+                     selector_name REF BOX
+                     |call_params COMMA selector_name REF BOX
+                     |formal_package_assocs COMMA selector_name REF BOX
                      |formal_package_assocs COMMA param_assoc
                     
                     /* TODO: add aspect_declaration. Handle exceptions in doxygen.*/
@@ -845,32 +896,16 @@ generic_instantiation:
                     {$$=NULL;}
                     |overriding_indicator procedure_head IS NEW name SEM
                     {$$=NULL;}
-                    |overriding_indicator procedure_head
+                    |FUNCTION defining_program_unit_name IS NEW name SEM
                     {$$=NULL;}
-/*
-generic_actual_part: 
-                    LPAR generic_associtations RPAR
+                    |overriding_indicator FUNCTION defining_program_unit_name IS NEW name SEM
                     {$$=NULL;}
-generic_associtations:
-                    generic_association_ref
-                    {$$=NULL;}
-                    |expressions COMMA generic_association_ref
-                    {$$ = NULL;}
-                    |generic_associtations COMMA generic_association_ref
-                    {$$ = NULL;}
-                    |generic_associtations COMMA expression
-                    {$$=NULL;}
-generic_association_ref:
-                   name REF explicit_generic_actual_parameter
-                    */
-/*                    {$$=NULL;}
-generic_association:*l
-                    /* explicit_generic_actual_parameter */
-                   /* expression
-                    {$$=NULL;}
-                    |generic_association_ref
-                    */
 
+interface_list:
+                    name
+                    {$$=NULL;}
+                    |interface_list AND name
+                    {$$=NULL;}
 
 overriding_indicator: OVERRIDING
                     NOT OVERRIDING
@@ -1192,12 +1227,15 @@ constraint:
 
 /*
 index_constraint:
-
-selector_name:
-             IDENTIFIER|CHAR_LITERAL
 discriminant_constraint: selector_name
                        |discriminant_constraint COMMA selector_name
 */
+
+selector_name:
+             IDENTIFIER
+             {$$ = new QCString($1);
+              dealloc($1);}
+             |STRING_LITERAL
 
             
 /*subtype_mark: name;*/
@@ -1604,10 +1642,17 @@ call_params: param_assoc
             cp->str.append($3->str);
             cp->ids.splice(cp->ids.begin(), pa->ids);
             $$ = cp;
-            dealloc( pa);}
-param_assoc: expression
-            |name REF expression
-            {$$ = exprPair($1, $3, " => ");}
+            dealloc(pa);}
+
+param_assoc: 
+            expression
+            |selector_name REF expression
+            {
+                $3->str.append(" => ");
+                $3->str.append(*$1);
+                dealloc($1);
+                $$ = $3;
+            }
 
 literal:
        STRING_LITERAL|INTEGER|DECIMAL_LITERAL|BASED_LITERAL

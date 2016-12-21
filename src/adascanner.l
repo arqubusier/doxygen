@@ -113,12 +113,29 @@ B       [ \t]
 
 %x doxy_comment
 %x comment
+%x string
 %x pragma
 
 
 %%
 {CH_LITERAL} {printf("%s\n", yytext);TEXT_TO_QSTR; return(CHAR_LITERAL);}
-{STRING_LITERAL}  {printf("%s\n", yytext);TEXT_TO_QSTR; return(STRING_LITERAL);}
+"\""            {
+                    TEXT_TO_QSTR;
+                    BEGIN(string);
+                }
+<string>"\"\""  {
+                    adaYYlval.qstrPtr->append("\"");
+                }
+<string>"\""  {
+                    BEGIN(INITIAL);
+                    adaYYlval.qstrPtr->append("\"");
+                    return(STRING_LITERAL);
+                }
+<string>[^\"]*  {
+                    adaYYlval.qstrPtr->append(yytext);
+                }
+
+
 {INTEGER}         {TEXT_TO_QSTR; return(INTEGER);}
 {DECIMAL_LITERAL} {TEXT_TO_QSTR; return(DECIMAL_LITERAL);}
 {BASED_LITERAL}   {TEXT_TO_QSTR; return(BASED_LITERAL);}
@@ -192,6 +209,7 @@ B       [ \t]
 "package"{B}*"body"  {return(PACKAGE_BODY);}
 "package"  {return(PACKAGE);}
 "private"       {return(PRIVATE);}
+"limited"       {return(LIMITED);}
 "protected"       {return(PROTECTED_);}
 "is"            {return(IS);}
 "end"           {return(END);}
