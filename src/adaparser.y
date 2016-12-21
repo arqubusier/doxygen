@@ -225,6 +225,12 @@ static RuleHandler *s_handler;
 %type<nodesPtr> exception_declaration
 %type<qstrPtr> obj_mod
 %type<nodePtr> decl_item
+%type<nodePtr> single_task_definition_part
+%type<nodePtr> task_items
+%type<nodePtr> entry_declaration
+%type<nodePtr> task_type_declaration
+%type<nodePtr> single_task_definition
+%type<nodePtr> task_definition
 %type<nodesPtr> decl_items
 %type<nodesPtr> decl
 %type<nodesPtr> basic_decl
@@ -520,6 +526,7 @@ attribute_designator:
 
 doxy_comment: SPECIAL_COMMENT
 
+/* TODO: add package_renaming, generic_renaming, subprogram_renaming */
 library_item: library_item_decl| library_item_body
 
 library_item_decl: package_decl| subprogram_decl|generic_declaration|generic_instantiation
@@ -695,10 +702,65 @@ basic_decls:        basic_decl
                     |basic_decls basic_decl
                     {$$ = s_handler->decls($1, $2);}
 
-decl_items:         obj_decl| type_declarations| exception_declaration;
-decl_item:          subprogram_decl| package_decl| type_declaration
-                    |renaming_declaration|subtype_declaration|generic_declaration
-                    |generic_instantiation;
+decl_items:         obj_decl
+                    |type_declarations
+                    |exception_declaration
+decl_item:          subprogram_decl
+                    |package_decl
+                    |type_declaration
+                    |renaming_declaration
+                    |subtype_declaration
+                    |generic_declaration
+                    |generic_instantiation
+                    |single_task_definition
+
+/* TODO: add aspect_specification, handle tasks in doxygen */
+single_task_definition:
+                     TASK single_task_definition_part
+                     {$$ = NULL;}
+
+single_task_definition_part:
+                     IDENTIFIER IS task_definition SEM
+                     {$$ = NULL;}
+                     |IDENTIFIER IS NEW interface_list WITH
+                     task_definition SEM
+                     {$$ = NULL;}
+                     |IDENTIFIER known_discriminant_part IS task_definition SEM
+                     {$$ = NULL;}
+                     |IDENTIFIER known_discriminant_part IS NEW interface_list WITH
+                     task_definition SEM
+                     {$$ = NULL;}
+
+task_type_declaration:
+                     TASK TYPE single_task_definition_part
+                     {$$ = NULL;}
+
+task_definition:
+                    task_items END IDENTIFIER
+                     {$$ = NULL;}
+                    |task_items PRIVATE task_items END IDENTIFIER
+                     {$$ = NULL;}
+                    |PRIVATE task_items END IDENTIFIER
+                     {$$ = NULL;}
+/* TODO: add aspect_clause */
+task_items:
+          entry_declaration
+          |task_items entry_declaration
+          {$$ = NULL;}
+
+/* TODO: add aspect_secification */
+entry_declaration:
+          ENTRY IDENTIFIER parameter_profile SEM
+                     {$$ = NULL;}
+          |overriding_indicator
+          ENTRY IDENTIFIER parameter_profile SEM
+                     {$$ = NULL;}
+          |ENTRY IDENTIFIER LPAR discrete_subtype RPAR parameter_profile SEM
+                     {$$ = NULL;}
+          |overriding_indicator
+          ENTRY IDENTIFIER LPAR discrete_subtype RPAR parameter_profile SEM
+                     {$$ = NULL;}
+
 generic_declaration: generic_subprogram_declaration|generic_package_declaration;
                    /* TODO: add aspect_declaration, handle generics in doxygen */
 generic_subprogram_declaration:
@@ -960,6 +1022,8 @@ type_declarations:  full_type_declarations
 /*TODO add discriminant part*/
 full_type_declaration: TYPE IDENTIFIER IS type_definition SEM
                     {$$ = s_handler->full_type_declaration($2, $4);}
+                    |task_type_declaration
+                    {$$ = NULL;}
 full_type_declarations: TYPE IDENTIFIER IS type_definitions SEM
                     {$$ = s_handler->full_type_declarations($2, $4);}
 type_definition: array_type_definition
