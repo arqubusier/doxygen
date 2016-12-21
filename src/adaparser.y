@@ -605,7 +605,11 @@ parameter_and_result_profile:
                     p->type = $5;
                     $$ = p;}
 
-body:              package_body| subprogram_body
+body:              
+                    package_body
+                    |subprogram_body
+                    |task_body
+                    
 package_body:      package_body_base
 package_body_base: PACKAGE_BODY IDENTIFIER IS
                    END tail
@@ -760,6 +764,28 @@ entry_declaration:
           |overriding_indicator
           ENTRY IDENTIFIER LPAR discrete_subtype RPAR parameter_profile SEM
                      {$$ = NULL;}
+
+/* TODO: add aspect_secification */
+task_body:
+        TASK BODY IDENTIFIER IS
+        decls begin handled_statements END tail
+        {$$ = NULL;}
+        |TASK BODY IDENTIFIER IS
+        decls begin handled_statements END
+        {$$ = NULL;}
+
+/* TODO: add aspect_secification */
+protected_type_declaration:
+        PROTECTED TYPE IDENTIFIER
+        IS protected_definition SEM
+        |PROTECTED TYPE IDENTIFIER
+        IS NEW interface_list WITH protected_definition SEM
+        |PROTECTED TYPE IDENTIFIER known_discriminant_part
+        IS protected_definition SEM
+        |PROTECTED TYPE IDENTIFIER known_discriminant_part
+        IS NEW interface_list WITH protected_definition SEM
+
+
 
 generic_declaration: generic_subprogram_declaration|generic_package_declaration;
                    /* TODO: add aspect_declaration, handle generics in doxygen */
