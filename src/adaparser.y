@@ -522,7 +522,7 @@ doxy_comment: SPECIAL_COMMENT
 
 library_item: library_item_decl| library_item_body
 
-library_item_decl: package_decl| subprogram_decl
+library_item_decl: package_decl| subprogram_decl|generic_declaration|generic_instantiation
 
 library_item_body: package_body| subprogram_body
 
