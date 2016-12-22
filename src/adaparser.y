@@ -831,6 +831,68 @@ component_declarations:
         |component_declarations component_declaration
         {$$ = NULL;}
 
+/* TODO: add aspect_secification */
+protected_body:
+        PROTECTED_ BODY IDENTIFER IS protected_operation_items END tail
+        {$$ = NULL;}
+protected_operation_items:
+        /* empty */
+        {$$ = NULL;}
+        |protected_operation_items_
+/* TODO: add aspect_clause */
+protected_operation_items_:
+        subprogram_body
+        {$$ = NULL;}
+        |entry_body
+        {$$ = NULL;}
+
+accept_statment:
+        ACCEPT direct_name expression parameter_profile DO handled_statements END tail
+        {$$ = NULL;}
+        ACCEPT direct_name expression parameter_profile SEM
+        {$$ = NULL;}
+        ACCEPT direct_name parameter_profile DO handled_statements END tail
+        {$$ = NULL;}
+        ACCEPT direct_name parameter_profile SEM
+        {$$ = NULL;}
+        ACCEPT direct_name DO handled_statements END tail
+        {$$ = NULL;}
+        ACCEPT direct_name SEM
+        {$$ = NULL;}
+
+entry_body:
+        ENTRY IDENTIFIER entry_body_formal_part when expression IS
+            decls
+        begin
+            handled_statements
+        END tail
+        {$$ = NULL;}
+        |ENTRY IDENTIFIER entry_body_formal_part when expression IS
+        begin
+            handled_statements
+        END tail
+        {$$ = NULL;}
+
+entry_body_formal_part:
+        LPAR FOR IDENTIFIER IN discrete_subtype RPAR parameter_profile
+        {$$ = NULL;}
+        |parameter_profile
+        {$$ = NULL;}
+
+requeue_statement:
+        REQUEUE name SEM
+        {$$ = NULL;}
+        |REQUEUE name WITH ABORT SEM
+        {$$ = NULL;}
+
+delay_statement:
+        DELAY expression SEM
+        {$$ = NULL;}
+        DELAY UNTIL expression SEM
+        {$$ = NULL;}
+
+
+
 
 generic_declaration: generic_subprogram_declaration|generic_package_declaration;
                    /* TODO: add aspect_declaration, handle generics in doxygen */
