@@ -133,7 +133,7 @@ static RuleHandler *s_handler;
 %token OUT
 %token OVERRIDING //ADA 2005
 %token PACKAGE
-%token PACKAGE_BODY
+%token BODY
 %token PRAGMA
 %token PRIVATE
 %token PROCEDURE
@@ -231,6 +231,14 @@ static RuleHandler *s_handler;
 %type<nodePtr> task_type_declaration
 %type<nodePtr> single_task_definition
 %type<nodePtr> task_definition
+%type<nodePtr> task_body
+%type<nodePtr> protected_definition
+%type<nodePtr> protected_type_declaration
+%type<nodePtr> protected_operation_declarations
+%type<nodePtr> entry_declarations
+%type<nodePtr> single_protected_type_declaration
+%type<nodePtr> protected_element_declarations
+%type<nodePtr> component_declarations
 %type<nodesPtr> decl_items
 %type<nodesPtr> decl
 %type<nodesPtr> basic_decl
@@ -611,25 +619,25 @@ body:
                     |task_body
                     
 package_body:      package_body_base
-package_body_base: PACKAGE_BODY IDENTIFIER IS
+package_body_base: PACKAGE BODY IDENTIFIER IS
                    END tail
                    {
-                     $$ = s_handler->packageBodyBase($2); 
+                     $$ = s_handler->packageBodyBase($3); 
                    }
-                   |PACKAGE_BODY IDENTIFIER IS
+                   |PACKAGE BODY IDENTIFIER IS
                    decls END tail
                    {
-                     $$ = s_handler->packageBodyBase($2, $4); 
+                     $$ = s_handler->packageBodyBase($3, $5); 
                    }
-                   |PACKAGE_BODY IDENTIFIER IS
+                   |PACKAGE BODY IDENTIFIER IS
                    decls BEGIN_ handled_statements END tail
                    {
-                     $$ = s_handler->packageBodyBase($2, $4, $6); 
+                     $$ = s_handler->packageBodyBase($3, $5, $7); 
                    }
-                   |PACKAGE_BODY IDENTIFIER IS
+                   |PACKAGE BODY IDENTIFIER IS
                    BEGIN_ handled_statements END tail
                    {
-                     $$ = s_handler->packageBodyBase($2, NULL, $5); 
+                     $$ = s_handler->packageBodyBase($3, NULL, $6); 
                    }
 
 /* TODO: fix doxy comments for procedure head */
@@ -717,6 +725,7 @@ decl_item:          subprogram_decl
                     |generic_declaration
                     |generic_instantiation
                     |single_task_definition
+                    |single_protected_type_declaration
 
 /* TODO: add aspect_specification, handle tasks in doxygen */
 single_task_definition:
@@ -767,24 +776,60 @@ entry_declaration:
 
 /* TODO: add aspect_secification */
 task_body:
-        TASK BODY IDENTIFIER IS
-        decls begin handled_statements END tail
-        {$$ = NULL;}
-        |TASK BODY IDENTIFIER IS
-        decls begin handled_statements END
+        TASK BODY IDENTIFIER IS decls begin handled_statements END tail
         {$$ = NULL;}
 
 /* TODO: add aspect_secification */
 protected_type_declaration:
-        PROTECTED TYPE IDENTIFIER
-        IS protected_definition SEM
-        |PROTECTED TYPE IDENTIFIER
+        PROTECTED_ TYPE IDENTIFIER IS protected_definition SEM
+        {$$ = NULL;}
+        |PROTECTED_ TYPE IDENTIFIER
         IS NEW interface_list WITH protected_definition SEM
-        |PROTECTED TYPE IDENTIFIER known_discriminant_part
+        {$$ = NULL;}
+        |PROTECTED_ TYPE IDENTIFIER known_discriminant_part
         IS protected_definition SEM
-        |PROTECTED TYPE IDENTIFIER known_discriminant_part
+        {$$ = NULL;}
+        |PROTECTED_ TYPE IDENTIFIER known_discriminant_part
         IS NEW interface_list WITH protected_definition SEM
+        {$$ = NULL;}
 
+single_protected_type_declaration:
+        PROTECTED_ IDENTIFIER IS protected_definition SEM
+        {$$ = NULL;}
+        |PROTECTED_ IDENTIFIER IS NEW interface_list WITH protected_definition SEM
+        {$$ = NULL;}
+
+protected_definition:
+        protected_operation_declarations END
+        {$$ = NULL;}
+        |protected_operation_declarations END IDENTIFIER
+        {$$ = NULL;}
+        |protected_operation_declarations PRIVATE protected_element_declarations END
+        {$$ = NULL;}
+        |protected_operation_declarations PRIVATE protected_element_declarations END IDENTIFIER
+        {$$ = NULL;}
+
+protected_operation_declarations:
+        /* empty */
+        {$$ = NULL;}
+        |entry_declarations
+        {$$ = NULL;}
+entry_declarations:
+        entry_declaration
+        {$$ = NULL;}
+        |entry_declarations entry_declaration
+        {$$ = NULL;}
+
+protected_element_declarations:
+        /* empty */
+        {$$ = NULL;}
+        |component_declarations
+        {$$ = NULL;}
+component_declarations:
+        component_declaration
+        {$$ = NULL;}
+        |component_declarations component_declaration
+        {$$ = NULL;}
 
 
 generic_declaration: generic_subprogram_declaration|generic_package_declaration;
@@ -1049,7 +1094,8 @@ type_declarations:  full_type_declarations
 full_type_declaration: TYPE IDENTIFIER IS type_definition SEM
                     {$$ = s_handler->full_type_declaration($2, $4);}
                     |task_type_declaration
-                    {$$ = NULL;}
+                    |protected_type_declaration
+
 full_type_declarations: TYPE IDENTIFIER IS type_definitions SEM
                     {$$ = s_handler->full_type_declarations($2, $4);}
 type_definition: array_type_definition

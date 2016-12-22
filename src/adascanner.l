@@ -206,7 +206,7 @@ B       [ \t]
 "new"           return(NEW);
 "all"           return(ALL);
 "constant"      return(CONSTANT);
-"package"{B}*"body"  {return(PACKAGE_BODY);}
+"body"  {return(BODY);}
 "package"  {return(PACKAGE);}
 "private"       {return(PRIVATE);}
 "limited"       {return(LIMITED);}
